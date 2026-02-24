@@ -1,0 +1,46 @@
+SELECT
+  a.envio_puq               AS "envio a PUQ",
+  a.temperatura_menos80      AS "-80°",
+  m.medio                    AS "Medio Cultivo",
+  c.nombre                   AS "Cepa",
+  c.cod_lab                  AS "Cód-lab",
+  c.pigmentacion             AS "Pigmentación",
+  c.origen                   AS "Origen",
+  mo.gram                    AS "Gram",
+  mo.morfologia_1            AS "morfologia",
+  mo.morfologia_2            AS "Morfologia",
+  ae.lecitinasa              AS "Lecitinasa",
+  ae.ureasa                  AS "Ureasa",
+  ae.lipasa                  AS "Lipasa",
+  ae.amilasa                 AS "Amilasa",
+  ae.proteasa                AS "Proteasa",
+  ae.catalasa                AS "Catalasa",
+  ae.celulasa                AS "Celulasa",
+  ae.fosfatasa               AS "Fosfatasa",
+  ae.aia                     AS "AIA",
+  ct.temp_5                  AS "5 ºC",
+  ct.temp_25                 AS "25 °C",
+  ct.temp_37                 AS "37 °C",
+  ra.amp                     AS "AMP",
+  ra.ctx                     AS "CTX",
+  ra.cxm                     AS "CXM",
+  ra.caz                     AS "CAZ",
+  ra.ak                      AS "AK",
+  ra.c                       AS "C",
+  ra.te                      AS "TE",
+  ra.am_ecoli                AS "AM E.coli",
+  ra.am_saureus              AS "AM S.aureus",
+  cg.gen_16s                 AS "16S",
+  cg.metabolomica            AS "Metabolomica",
+  p.responsable              AS "Nicolás",
+  p.nombre_proyecto          AS "Proyecto"
+FROM cepas c
+LEFT JOIN almacenamiento a            ON a.cepa_id = c.id
+LEFT JOIN medios_cultivo m            ON m.cepa_id = c.id
+LEFT JOIN morfologia mo               ON mo.cepa_id = c.id
+LEFT JOIN actividad_enzimatica ae     ON ae.cepa_id = c.id
+LEFT JOIN crecimiento_temperatura ct  ON ct.cepa_id = c.id
+LEFT JOIN resistencia_antibiotica ra  ON ra.cepa_id = c.id
+LEFT JOIN caracterizacion_genetica cg ON cg.cepa_id = c.id
+LEFT JOIN proyectos p                 ON p.cepa_id = c.id
+ORDER BY c.id;

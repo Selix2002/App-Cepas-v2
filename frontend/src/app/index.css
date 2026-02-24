@@ -1,0 +1,94 @@
+/*Importa Space Grotesk desde Google Fonts */
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap");
+@import "tailwindcss";
+
+:root {
+  font-family: "Space Grotesk",sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  height: 100%;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+@layer base {
+  html, body, #root {
+    height: 100%;
+    margin: 0;
+    background-color: #1a202c; /* Tailwind's bg-gray-900 */
+  }
+}
+
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #00c950;
+  cursor: pointer;
+  transition: background-color 0.5s;
+  color: white; /* 🔹 Añade esto */
+}
+button:hover {
+  background-color: #000000;
+}
+button.logout{
+  background-color: #ff0000;
+  cursor: pointer;
+  transition: background-color 0.5s;
+}
+button.logout:hover {
+  background-color: #000000;
+}
+
+
+button.import{
+  background-color: #0026ff;
+  cursor: pointer;
+  transition: background-color 0.5s;
+}
+button.import:hover{
+  background-color: #000000;
+}
+
+
+button.drop{
+  background-color: #ffffff;
+  cursor: pointer;
+  transition: background-color 0.5s;
+}
+button.drop:hover {
+  background-color: #ff2200;
+}
+
+
+button.users{
+  background-color: #121eff;
+  cursor: pointer;
+  transition: background-color 0.5s;
+}
+button.users:hover {
+  background-color: #000000;
+}
+
+
+
+.ag-theme-alpine.custom-space {
+  --ag-font-family: "Space Grotesk",sans-serif;
+}
+
+.ag-body-viewport-wrapper.ag-layout-normal {
+  overflow-x: scroll;
+  overflow-y: scroll;
+}
+::-webkit-scrollbar {
+  -webkit-appearance: none;
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background-color: rgba(0,0,0,.5);
+  box-shadow: 0 0 1px rgba(255,255,255,.5);
+}

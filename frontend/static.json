@@ -1,0 +1,18 @@
+{
+    "headers": [
+      {
+        "source": "**/*.js",
+        "headers": [
+          { "key": "Content-Type", "value": "application/javascript; charset=utf-8" }
+        ]
+      }
+    ],
+    "redirects": [
+      {
+        "source": "/*",
+        "destination": "/index.html",
+        "status": 200
+      }
+    ]
+  }
+  

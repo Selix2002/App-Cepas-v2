@@ -1,0 +1,34 @@
+from typing import Any
+
+from litestar.connection import ASGIConnection
+from litestar.contrib.jwt import OAuth2PasswordBearerAuth, Token
+from litestar.exceptions import NotAuthorizedException, NotFoundException
+from litestar.handlers import BaseRouteHandler
+
+from app.core.config import settings
+from app.models.models import User
+
+
+async def retrieve_user_handler(
+    token: Token,
+    _: ASGIConnection[Any, Any, Any, Any],
+) -> User:
+    user = await User.find_one(User.username == token.sub)
+    if not user:
+        raise NotFoundException(detail="Usuario no encontrado")
+    return user
+
+
+oauth2_auth = OAuth2PasswordBearerAuth[User](
+    retrieve_user_handler=retrieve_user_handler,
+    token_secret=settings.secret_key.get_secret_value(),
+    token_url="/auth/login",
+    exclude=["/auth/login", "/schema"],
+)
+
+
+def admin_guard(connection: ASGIConnection, _: BaseRouteHandler) -> None:
+    """Permite solo usuarios con is_admin=True."""
+    user: User | None = getattr(connection, "user", None)
+    if not user or not user.is_admin:
+        raise NotAuthorizedException(detail="Se requiere rol de administrador")
