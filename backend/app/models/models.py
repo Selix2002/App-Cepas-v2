@@ -1,6 +1,6 @@
 from beanie import Document, Indexed
-from pydantic import Field,ConfigDict
-from typing import Optional
+from pydantic import Field,ConfigDict,BaseModel
+from typing import Optional,List
 from datetime import datetime
 
 
@@ -66,5 +66,17 @@ class Cepa(Document):
     fecha_creacion: datetime = Field(default_factory=datetime.utcnow)
     fecha_actualizacion: Optional[datetime] = None
 
+    embedding: Optional[List[float]] = None
     class Settings:
         name = "cepas"
+        
+
+class ChatMessage(BaseModel):
+    pregunta: str = Field(..., min_length=3, max_length=500)
+    incluir_fuentes: bool = True
+
+class ChatResponse(BaseModel):
+    respuesta: str
+    fuentes: Optional[List[dict]] = None
+    modelo_usado: str
+    tokens_usados: Optional[int] = None
