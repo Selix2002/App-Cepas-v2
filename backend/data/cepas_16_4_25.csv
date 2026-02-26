@@ -20,3 +20,5 @@ ID,Cepa,Latitud,Longitud,Código Lab,Origen,Pigmentación,Envío a Punta Arenas,
 19,PLA 13,-50.97410,-72.78740,C6,Planta L. Amarga,Rojo,10-may,J8,CM,+,bacilos,N/I,-,-,-,-,-,-,-,-,+++,N/I,1.0,N/I,N/I,N/I,N/I,N/I,N/I,N/I,N/I,-,+,Arthrobacter sp.,N/I,N/I,Innova Sur Sur,N/I,N/I
 20,SBPE 1,-51.04780,-72.99870,C8,Lago pehoe,Blanco,10-may,E1,CM,+,Bacilos,N/I,+,-,+,+,-,++,+,+,P,N/I,1.0,N/I,N/I,N/I,N/I,N/I,N/I,N/I,N/I,-,+,Pseudomonas sp.,N/I,MDR,N/I,N/I,ss
 21,PL3,-50.97350,-72.79500,X4,N/I,negro,N/I,N/I,TSA,+,bacilos,N/I,+,-,+,-,-,+,+++,-,N/I,N/I,N/I,N/I,N/I,N/I,N/I,N/I,N/I,N/I,N/I,N/I,N/I,Bacillus sp.,N/I,N/I,N/I,N/I,N/I
+22,SEBAS1,-51.06020,-73.15050,B30,Lago Grey,Blanco,20-may,H8,TSB,+,Bacilos,N/I,+,-,+,+,++,+,++,+,+,1.0,1.0,1.0,R,R,R,R,P,S,I,-,+,Paenibacillus sp.,si,N/I,Innova Sur Sur,x1,archivo1
+23,ANUELBRRRR,-51.04950,-72.99540,C10,Lago Pehoe,Amarillo,20-may,F10,CM,-,Bacilos,N/I,+,+,-,+,++,+,+,++,P,1.0,1.0,1.0,R,R,R,R,P,R,R,-,-,Pseudomonas sp.,si,MDR,Lechuga,x2,archivo2

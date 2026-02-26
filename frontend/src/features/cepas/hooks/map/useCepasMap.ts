@@ -1,91 +1,66 @@
-// src/features/cepas/hooks/useCepasMap.ts
-import { useState, useMemo, useCallback } from "react";
-import type { GridApi } from "ag-grid-community";
+import { useState, useMemo, useCallback } from "react"
+import type { GridApi } from "ag-grid-community"
+import type { Cepa } from "../../../../shared/interfaces"
 
-export type CoordFilter = { lat: number; lng: number };
+export type CoordFilter = { lat: number; lng: number }
 
 type UseCepasMapParams = {
-    gridApi?: GridApi;
-    rawTableData: any[];
-    filterVersion: number;
-};
+    gridApi?: GridApi
+    rawTableData: Cepa[]
+    filterVersion: number
+}
 
-export function useCepasMap({
-    gridApi,
-    rawTableData,
-    filterVersion,
-}: UseCepasMapParams) {
-    // Estado del panel y del filtro por coordenadas
-    const [mapOpen, setMapOpen] = useState(true);
-    const [coordFilter, setCoordFilter] = useState<CoordFilter | null>(null);
+export function useCepasMap({ gridApi, rawTableData, filterVersion }: UseCepasMapParams) {
+    const [mapOpen, setMapOpen] = useState(true)
+    const [coordFilter, setCoordFilter] = useState<CoordFilter | null>(null)
 
-    // Filas visibles en la grid (respeta filtros activos)
-    const visibleRows = useMemo(() => {
-        if (!gridApi) return rawTableData;
-
-        const rows: any[] = [];
+    const visibleRows = useMemo((): Cepa[] => {
+        if (!gridApi) return rawTableData
+        const rows: Cepa[] = []
         if (gridApi.isAnyFilterPresent()) {
-            gridApi.forEachNodeAfterFilter((n) => rows.push(n.data));
+            gridApi.forEachNodeAfterFilter((n) => rows.push(n.data))
         } else {
-            gridApi.forEachNode((n) => rows.push(n.data));
+            gridApi.forEachNode((n) => rows.push(n.data))
         }
-        return rows;
-    }, [gridApi, rawTableData, filterVersion]);
+        return rows
+    }, [gridApi, rawTableData, filterVersion]) // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Filas con coordenadas válidas para el mapa
-    const validRowsForMap = useMemo(() => {
-        return visibleRows.filter(
-            (r) =>
-                Number.isFinite(Number(r?.latitud)) &&
-                Number.isFinite(Number(r?.longitud))
-        );
-    }, [visibleRows]);
+    const validRowsForMap = useMemo(
+        () => visibleRows.filter((r) => Number.isFinite(r.latitud) && Number.isFinite(r.longitud)),
+        [visibleRows]
+    )
 
-    // Conteo de marcadores válidos
-    const markersCount = useMemo(() => {
-        return validRowsForMap.length;
-    }, [validRowsForMap]);
+    const markersCount = validRowsForMap.length
 
-    // Doble click en un punto del mapa → aplicar filtros en la grid
     const handleMapPointDblClick = useCallback(
         (lat: number, lng: number) => {
-            // cerrar panel
-            setMapOpen(false);
+            setMapOpen(false)
+            if (!gridApi) return
 
-            if (!gridApi) return;
+            const lat6 = Number(lat.toFixed(6))
+            const lng6 = Number(lng.toFixed(6))
 
-            // redondeo consistente con la agrupación (6 decimales)
-            const lat6 = Number(lat.toFixed(6));
-            const lng6 = Number(lng.toFixed(6));
-
-            // aplicar filtros para columnas latitud y longitud
-            const current = gridApi.getFilterModel() || {};
-            const nextModel = {
-                ...current,
+            gridApi.setFilterModel({
+                ...(gridApi.getFilterModel() ?? {}),
                 latitud: { filterType: "number", type: "equals", filter: lat6 },
                 longitud: { filterType: "number", type: "equals", filter: lng6 },
-            };
-            gridApi.setFilterModel(nextModel);
-            gridApi.onFilterChanged();
-
-            // garantizar visibilidad de columnas
-            gridApi.setColumnsVisible(["latitud", "longitud"], true);
-
-            // mostrar chip
-            setCoordFilter({ lat: lat6, lng: lng6 });
+            })
+            gridApi.onFilterChanged()
+            gridApi.setColumnsVisible(["latitud", "longitud"], true)
+            setCoordFilter({ lat: lat6, lng: lng6 })
         },
         [gridApi]
-    );
+    )
 
     const clearCoordFilters = useCallback(() => {
-        if (!gridApi) return;
-        const model = { ...(gridApi.getFilterModel() || {}) };
-        delete (model as any).latitud;
-        delete (model as any).longitud;
-        gridApi.setFilterModel(model);
-        gridApi.onFilterChanged();
-        setCoordFilter(null);
-    }, [gridApi]);
+        if (!gridApi) return
+        const model = { ...(gridApi.getFilterModel() ?? {}) }
+        delete (model as Record<string, unknown>).latitud
+        delete (model as Record<string, unknown>).longitud
+        gridApi.setFilterModel(model)
+        gridApi.onFilterChanged()
+        setCoordFilter(null)
+    }, [gridApi])
 
     return {
         mapOpen,
@@ -95,5 +70,5 @@ export function useCepasMap({
         markersCount,
         handleMapPointDblClick,
         clearCoordFilters,
-    };
+    }
 }

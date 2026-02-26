@@ -3,7 +3,7 @@ set shell := ["bash", "-c"]
 
 # --- Backend ---
 backend:
-    cd backend && .venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+    cd backend && source .venv/bin/activate && uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 
 # --- Frontend ---
 frontend:

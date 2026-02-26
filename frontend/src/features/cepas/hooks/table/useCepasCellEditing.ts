@@ -1,114 +1,68 @@
-// src/features/cepas/hooks/useCepasCellEditing.ts
-import { useCallback } from "react";
-import type { CellValueChangedEvent } from "ag-grid-community";
+import { useCallback } from "react"
+import type { CellValueChangedEvent } from "ag-grid-community"
+import { updateCepa } from "../../services/CepasQuery"
+import type { NotificationState } from "./useCepasTableData"
+import type { User, CepaUpdate } from "../../../../shared/interfaces"
 
-import { actualizarCepaPorCampo } from "../../services/cepaUpdate";
-import { updateCepasJSONB_forTable } from "../../services/CepasQuery";
-import type { NotificationState } from "./useCepasTableData";
-import type { User } from "../../../../shared/interfaces";
-
-const filterRowId = 0;
+const FILTER_ROW_ID = "__filter__"
 
 type UseCepasCellEditingArgs = {
-    rowData: any[];
-    setRowData: React.Dispatch<React.SetStateAction<any[]>>;
-    setNotification: React.Dispatch<React.SetStateAction<NotificationState>>;
-    user: User | null | undefined;
-};
+    setRowData: React.Dispatch<React.SetStateAction<any[]>>
+    setNotification: React.Dispatch<React.SetStateAction<NotificationState>>
+    user: User | null | undefined
+}
 
 export function useCepasCellEditing({
-    rowData,
     setRowData,
     setNotification,
     user,
 }: UseCepasCellEditingArgs) {
+
+    const showNotification = (text: string, type: "success" | "error") => {
+        setNotification({ text, type })
+        setTimeout(() => setNotification(null), 3000)
+    }
+
     const handleCellValueChanged = async (params: CellValueChangedEvent) => {
-        // Evitar cambios en la fila de filtros
-        if (params.data.id === filterRowId) return;
-        // Evitar disparar si no cambió el valor
-        if (params.oldValue === params.newValue) return;
+        if (params.data.id === FILTER_ROW_ID) return
+        if (params.oldValue === params.newValue) return
 
-        const updatedRow = params.data;
-        const field = params.colDef.field as string;
-        const rawValue = params.newValue;
-        const texto =
-            typeof rawValue === "string" ? rawValue.trim() : String(rawValue).trim();
+        const field = params.colDef.field as string
+        if (!field) return
 
-        if (!texto || texto.toLowerCase() === "null") {
-            setNotification({
-                text: 'No se puede dejar la casilla vacía; si quieres vaciarla, escribe "N/I"',
-                type: "error",
-            });
-            setTimeout(() => setNotification(null), 3000);
-            return;
-        }
+        // Valor vacío → null en backend (string vacío se interpreta como null)
+        const rawValue = params.newValue
+        const newValue = typeof rawValue === "string" ? rawValue.trim() : rawValue
 
-        const JSONB_PREFIX = "datos_extra.";
-        const isJSONBField = field.startsWith(JSONB_PREFIX);
-        const jsonKey = isJSONBField ? field.slice(JSONB_PREFIX.length) : "";
+        const updatedRow = params.data
 
         try {
-            if (isJSONBField) {
-                // Construimos un mapa nombreCepa -> datos_extra existentes
-                const existingDatosExtras = rowData.reduce<
-                    Record<string, Record<string, any>>
-                >((acc, row) => {
-                    acc[row.nombre] = row.datos_extra ?? {};
-                    return acc;
-                }, {});
+            const payload: CepaUpdate = { [field]: newValue === "" ? null : newValue }
+            const updated = await updateCepa(updatedRow.id, payload)
 
-                const merged = {
-                    ...existingDatosExtras[updatedRow.nombre],
-                    [jsonKey]: texto,
-                };
-
-                await updateCepasJSONB_forTable(
-                    { attribute_name: jsonKey, [updatedRow.nombre]: texto },
-                    existingDatosExtras
-                );
-
-                // Actualizamos el estado local de la fila
-                setRowData((rows) =>
-                    rows.map((r) =>
-                        r.nombre === updatedRow.nombre ? { ...r, datos_extra: merged } : r
-                    )
-                );
-            } else {
-                // Campo "normal"
-                await actualizarCepaPorCampo(updatedRow.id, field, texto);
-                setRowData((rows) =>
-                    rows.map((r) =>
-                        r.id === updatedRow.id ? { ...r, [field]: texto } : r
-                    )
-                );
-            }
-
-            setNotification({ text: "Cambios guardados con éxito", type: "success" });
+            // Actualizar estado local con la respuesta del backend
+            setRowData((rows) =>
+                rows.map((r) => (r.id === updatedRow.id ? { ...r, ...updated } : r))
+            )
+            showNotification("Cambios guardados con éxito", "success")
         } catch (err) {
-            console.error(err);
-            setNotification({
-                text: "Hubo un error al guardar los cambios",
-                type: "error",
-            });
-        } finally {
-            setTimeout(() => setNotification(null), 3000);
+            console.error(err)
+            // Revertir el valor en la celda al valor anterior
+            params.node.setDataValue(field, params.oldValue)
+            showNotification("Hubo un error al guardar los cambios", "error")
         }
-    };
+    }
 
     const isCellEditable = useCallback(
         (params: any) => {
-            // La fila de selectores no es editable.
-            if (params.data && params.data.id === filterRowId) {
-                return false;
-            }
-            // Sólo admin puede editar
-            return user?.isAdmin ?? false;
+            if (params.data?.id === FILTER_ROW_ID) return false
+            return user?.is_admin ?? false   // era isAdmin
         },
         [user]
-    );
+    )
 
     return {
         handleCellValueChanged,
         isCellEditable,
-    };
+    }
 }

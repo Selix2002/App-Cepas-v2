@@ -1,8 +1,9 @@
 // src/features/cepas/components/CepasTable.tsx
 
 import { AgGridReact } from "ag-grid-react";
-import type { GridReadyEvent } from "ag-grid-community";
 import { AllCommunityModule, ModuleRegistry } from "ag-grid-community";
+import type { GridReadyEvent, ValueFormatterParams } from "ag-grid-community"
+
 import { useAuth } from "../../auth/store/AuthContext";
 
 import { useCepasTableData } from "../hooks/table/useCepasTableData";
@@ -50,7 +51,6 @@ export default function CepasTable({
   });
 
   const { handleCellValueChanged, isCellEditable } = useCepasCellEditing({
-    rowData,
     setRowData,
     setNotification,
     user,
@@ -84,6 +84,11 @@ export default function CepasTable({
               editable: isCellEditable,
               resizable: true,
               wrapHeaderText: true,
+              valueFormatter: (params: ValueFormatterParams) => {
+                if (params.data?.id === "__filter__") return ""
+                if (params.value === null || params.value === undefined || params.value === "") return "N/I"
+                return params.value
+              },
             }}
             rowHeight={50}
             pagination

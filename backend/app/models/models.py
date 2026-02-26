@@ -1,5 +1,5 @@
 from beanie import Document, Indexed
-from pydantic import Field
+from pydantic import Field,ConfigDict
 from typing import Optional
 from datetime import datetime
 
@@ -17,7 +17,9 @@ class User(Document):
 
 
 class Cepa(Document):
-    cepa: str
+    model_config = ConfigDict(extra="allow")  # permite campos dinámicos
+
+    cepa: Indexed(str, unique=True)
     codigo_lab: Optional[str] = None
     origen: Optional[str] = None
     latitud: Optional[float] = None

@@ -1,6 +1,21 @@
+#// app/schema/dtos.py
 from pydantic import BaseModel, field_validator
-from typing import Optional
+from typing import Any,Optional
 from datetime import datetime
+
+
+def _coerce_coord(v: Any) -> Optional[float]:
+    """Convierte el valor a float. Si es string o no es numérico, retorna None."""
+    if v is None:
+        return None
+    if isinstance(v, str):
+        try:
+            return float(v.replace(",", "."))
+        except (ValueError, AttributeError):
+            return None
+    if isinstance(v, (int, float)):
+        return float(v)
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -55,6 +70,7 @@ class CepaCreateDTO(BaseModel):
     metabolomica: Optional[str] = None
     nicolas: Optional[str] = None
     nombre_proyecto: Optional[str] = None
+    model_config = {"extra": "allow"}  # no se permiten campos adicionales
 
     @field_validator("cepa")
     @classmethod
@@ -138,16 +154,18 @@ class CepaUpdateDTO(BaseModel):
                 raise ValueError("El nombre de la cepa no puede estar vacío")
         return v
 
-    @field_validator("latitud")
+    @field_validator("latitud", mode="before")
     @classmethod
-    def latitud_valid(cls, v: Optional[float]) -> Optional[float]:
+    def latitud_valid(cls, v: Any) -> Optional[float]:
+        v = _coerce_coord(v)
         if v is not None and not (-90 <= v <= 90):
             raise ValueError(f"Latitud inválida: {v}. Debe estar entre -90 y 90")
         return v
 
-    @field_validator("longitud")
+    @field_validator("longitud", mode="before")
     @classmethod
-    def longitud_valid(cls, v: Optional[float]) -> Optional[float]:
+    def longitud_valid(cls, v: Any) -> Optional[float]:
+        v = _coerce_coord(v)
         if v is not None and not (-180 <= v <= 180):
             raise ValueError(f"Longitud inválida: {v}. Debe estar entre -180 y 180")
         return v
@@ -219,7 +237,7 @@ class CepaResponseDTO(BaseModel):
     fecha_creacion: datetime
     fecha_actualizacion: Optional[datetime] = None
 
-    model_config = {"from_attributes": True}
+    model_config = {"from_attributes": True, "extra": "allow"}
 
 # ---------------------------------------------------------------------------
 # PAGINACIÓN — respuesta envuelta con metadata

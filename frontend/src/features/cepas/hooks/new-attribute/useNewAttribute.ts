@@ -1,158 +1,116 @@
 // src/features/cepas/hooks/useNewAttribute.ts
-import { useEffect, useRef, useState } from "react";
-import type React from "react";
+import { useEffect, useRef, useState } from "react"
+import type React from "react"
+import { getCepas, addAttribute } from "../../services/CepasQuery"
+import { buildTemplateText, downloadTextFile, parseAttributeFile, validateAttributeDict } from "../../utils/attributeFile"
+import type { Cepa } from "../../../../shared/interfaces"
 
-import { fetchCepasFull, updateCepasJSONB } from "../../services/CepasQuery";
-import { loader } from "../../../../shared/utils/loader";
-import {
-    buildTemplateText,
-    downloadTextFile,
-    parseAttributeFile,
-    validateAttributeDict,
-} from "../../utils/attributeFile";
-
-type CepaLite = { id: number; nombre: string };
+type CepaLite = { id: string; nombre: string }
 
 export function useNewAttribute() {
-    const [cepas, setCepas] = useState<CepaLite[]>([]);
-    const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-    const fileInputRef = useRef<HTMLInputElement | null>(null);
+    const [cepas, setCepas] = useState<CepaLite[]>([])
+    const [loading, setLoading] = useState(false)
+    const [fileDict, setFileDict] = useState<Record<string, string>>({})
+    const [showModal, setShowModal] = useState(false)
 
-    const [fileDict, setFileDict] = useState<Record<string, string>>({});
-    const [showModal, setShowModal] = useState(false);
+    const inputRefs = useRef<(HTMLInputElement | null)[]>([])
+    const fileInputRef = useRef<HTMLInputElement | null>(null)
 
-    // Cargar cepas al montar
     useEffect(() => {
-        let mounted = true;
-        loader(true);
-        fetchCepasFull()
-            .then((data) => {
-                if (mounted) setCepas(data);
+        setLoading(true)
+        getCepas()
+            .then(({ items }) => {
+                setCepas(items.map((c: Cepa) => ({ id: c.id, nombre: c.cepa })))
             })
-            .catch((error) => console.error("Error cargando cepas:", error))
-            .finally(() => {
-                loader(false);
-            });
+            .catch((err) => console.error("Error cargando cepas:", err))
+            .finally(() => setLoading(false))
+    }, [])
 
-        return () => {
-            mounted = false;
-        };
-    }, []);
-
-    // Descargar plantilla
     const downloadTemplate = () => {
-        const text = buildTemplateText(cepas);
-        downloadTextFile("template_addAttribute.txt", text);
-    };
+        const text = buildTemplateText(cepas)
+        downloadTextFile("template_addAttribute.txt", text)
+    }
 
-    // Procesar archivo .txt
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+        const file = e.target.files?.[0]
+        if (!file) return
 
-        const reader = new FileReader();
-
+        const reader = new FileReader()
         reader.onload = (evt) => {
             try {
-                const text = evt.target?.result;
-                if (typeof text !== "string") {
-                    throw new Error("Archivo vacío o formato inválido");
-                }
+                const text = evt.target?.result
+                if (typeof text !== "string") throw new Error("Archivo vacío o formato inválido")
 
-                const dict = parseAttributeFile(text);
-                validateAttributeDict(
-                    dict,
-                    cepas.map((c) => c.nombre)
-                );
-
-                setFileDict(dict);
-                setShowModal(true);
-            } catch (err: any) {
-                const msg =
-                    err instanceof Error
-                        ? err.message
-                        : "Error al procesar el archivo";
-                alert(`Error al procesar el archivo: ${msg}`);
-                console.error(msg);
+                const dict = parseAttributeFile(text)
+                validateAttributeDict(dict, cepas.map((c) => c.nombre))
+                setFileDict(dict)
+                setShowModal(true)
+            } catch (err) {
+                const msg = err instanceof Error ? err.message : "Error al procesar el archivo"
+                alert(`Error al procesar el archivo: ${msg}`)
             } finally {
-                // resetear input para permitir volver a subir el mismo archivo
-                e.target.value = "";
+                e.target.value = ""
             }
-        };
+        }
+        reader.readAsText(file)
+    }
 
-        reader.readAsText(file);
-    };
-
-    // Navegar con Enter entre inputs
-    const handleKeyDown = (
-        e: React.KeyboardEvent<HTMLInputElement>,
-        index: number
-    ) => {
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
         if (e.key === "Enter") {
-            e.preventDefault();
-            const nextInput = inputRefs.current[index + 1];
-            if (nextInput) nextInput.focus();
+            e.preventDefault()
+            inputRefs.current[index + 1]?.focus()
         }
-    };
+    }
 
-    // Llamada genérica al backend para guardar
-    const confirmUpdate = async (dict: Record<string, string>) => {
+    const confirmUpdate = async (dict: Record<string, string | null>) => {
+        const { attribute_name, ...values } = dict
+        if (!attribute_name) {
+            alert('Debe ingresar un valor para "Nombre del atributo".')
+            return
+        }
+
+        setLoading(true)
         try {
-            loader(true);
-            await updateCepasJSONB(dict);
-            alert("¡Atributos añadidos con éxito!");
-
-            setFileDict({});
-            setShowModal(false);
-
-            // Limpiar inputs del formulario
-            inputRefs.current.forEach((el) => {
-                if (el) el.value = "";
-            });
+            const result = await addAttribute(attribute_name, values)
+            alert(`¡Atributos añadidos con éxito! (${result.updated} cepas actualizadas)`)
+            setFileDict({})
+            setShowModal(false)
+            inputRefs.current.forEach((el) => { if (el) el.value = "" })
         } catch (err: any) {
-            console.error(err);
-            alert(
-                `Error al actualizar la base de datos: ${err.response?.data?.detail ?? err.message
-                }`
-            );
+            const detail = err?.response?.data?.detail ?? err?.message ?? "Error desconocido"
+            alert(`Error al actualizar: ${detail}`)
         } finally {
-            loader(false);
+            setLoading(false)
         }
-    };
+    }
 
-    // Confirmar usando los datos del archivo
     const confirmFromFile = () => {
         if (!fileDict || Object.keys(fileDict).length === 0) {
-            alert("No hay datos cargados desde archivo.");
-            return;
+            alert("No hay datos cargados desde archivo.")
+            return
         }
-        void confirmUpdate(fileDict);
-    };
+        void confirmUpdate(fileDict)
+    }
 
-    // Construye dict desde los inputs y confirma
     const confirmFromInputs = () => {
-        const dict: Record<string, string> = {};
-
-        const attributeName = inputRefs.current[0]?.value?.trim();
+        const attributeName = inputRefs.current[0]?.value?.trim()
         if (!attributeName) {
-            alert('Debe ingresar un valor para "Nombre del atributo".');
-            return;
+            alert('Debe ingresar un valor para "Nombre del atributo".')
+            return
         }
 
-        dict["attribute_name"] = attributeName;
-
+        const dict: Record<string, string | null> = { attribute_name: attributeName }
         cepas.forEach((cepa, idx) => {
-            const val = inputRefs.current[idx + 1]?.value?.trim();
-            dict[cepa.nombre] = val && val !== "" ? val : "N/I";
-        });
+            const val = inputRefs.current[idx + 1]?.value?.trim()
+            dict[cepa.nombre] = val || null   // vacío → null
+        })
 
-        void confirmUpdate(dict);
-    };
-
-    const closeModal = () => setShowModal(false);
+        void confirmUpdate(dict)
+    }
 
     return {
         cepas,
+        loading,
         inputRefs,
         fileInputRef,
         fileDict,
@@ -162,6 +120,6 @@ export function useNewAttribute() {
         handleKeyDown,
         confirmFromFile,
         confirmFromInputs,
-        closeModal,
-    };
+        closeModal: () => setShowModal(false),
+    }
 }

@@ -2,6 +2,10 @@ from litestar import Controller, get, post, patch, delete
 from litestar.di import Provide
 from litestar.exceptions import NotFoundException, HTTPException
 from litestar.status_codes import HTTP_204_NO_CONTENT
+from litestar.connection import Request
+from litestar.contrib.jwt import Token
+from app.models.models import User
+from typing import Any
 
 from app.schema.user_dto import (
     UserCreateDTO,
@@ -29,6 +33,16 @@ class UserController(Controller):
     path = "/users"
     guards = [admin_guard]   # todos los endpoints requieren admin
     dependencies = {"repo": Provide(user_repository,sync_to_thread=False)}
+    
+    # ------------------------------------------------------------------
+    # GET ME — cualquier usuario autenticado
+    # ------------------------------------------------------------------
+    @get("/me")
+    async def get_my_user(
+        self,
+        request: Request[User, Token, Any],
+    ) -> UserResponseDTO:
+        return _to_response(request.user)
 
     # ------------------------------------------------------------------
     # GET ALL

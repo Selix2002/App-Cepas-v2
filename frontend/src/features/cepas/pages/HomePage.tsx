@@ -79,7 +79,7 @@ export function HomePage() {
       <div className="flex flex-col h-full min-h-screen bg-gray-900 text-white">
         {/* Cabecera */}
         <HomeHeader
-          isAdmin={!!user?.isAdmin}
+          isAdmin={!!user?.is_admin}
           columns={columns}
           onLogout={handleLogout}
           onOpenImport={() => setShowImport(true)}
@@ -92,7 +92,7 @@ export function HomePage() {
           isOpen={showImport}
           onClose={() => setShowImport(false)}
           existingNames={rawTableData.map((r) =>
-            String(r?.nombre ?? "").trim()
+            String(r?.cepa ?? "").trim()
           )}
           onImported={() => setRefreshToken((v) => v + 1)}
         />
@@ -106,7 +106,7 @@ export function HomePage() {
           selectedColumns={selectedColumns}
           pieChartData={pieChartData}
           barDataset={barDataset}
-          canDownload={!!user?.isAdmin}
+          canDownload={!!user?.is_admin}
           onOpenDownload={() => setShowDownload(true)}
         />
 

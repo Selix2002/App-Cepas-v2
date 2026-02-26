@@ -1,7 +1,10 @@
+from datetime import datetime
+
 from litestar import Controller, get, post, patch, delete
 from litestar.di import Provide
 from litestar.exceptions import NotFoundException, HTTPException
 from litestar.status_codes import HTTP_204_NO_CONTENT
+from pydantic import BaseModel
 
 from app.schema.dtos import (
     CepaCreateDTO,
@@ -15,13 +18,16 @@ from app.repositories.cepa_repository import (
     CepaNotFoundError,
     CepaAlreadyExistsError,
 )
-from app.models.models import User  # tu modelo de usuario
+from app.models.models import Cepa  # tu modelo de cepa
 from app.core.security import admin_guard  # guard que verifica rol admin
 
 
 def cepa_repository() -> CepaRepository:
     return CepaRepository()
 
+class AddAttributeDTO(BaseModel):
+    attribute_name: str                  # nombre del nuevo campo
+    values: dict[str, str | None]        # {cepa_name: valor | null}
 
 class CepaController(Controller):
     path = "/cepas"
@@ -84,6 +90,30 @@ class CepaController(Controller):
 
         return CepaResponseDTO(id=str(cepa.id), **cepa.model_dump(exclude={"id"}))
 
+    # ------------------------------------------------------------------
+    # POST /add-attribute  — añade un campo nuevo a múltiples cepas
+    # ------------------------------------------------------------------
+    @post("/add-attribute", guards=[admin_guard])
+    async def add_attribute(self, data: AddAttributeDTO) -> dict:
+        field = data.attribute_name.strip()
+        if not field:
+            raise HTTPException(status_code=400, detail="attribute_name no puede estar vacío")
+
+        updated = 0
+        not_found = []
+
+        for cepa_name, value in data.values.items():
+            cepa = await Cepa.find_one(Cepa.cepa == cepa_name)
+            if not cepa:
+                not_found.append(cepa_name)
+                continue
+            await cepa.set({field: value, "fecha_actualizacion": datetime.utcnow()})
+            updated += 1
+
+        return {
+            "updated": updated,
+            "not_found": not_found,
+        }
     # ------------------------------------------------------------------
     # PATCH  — solo admins
     # ------------------------------------------------------------------

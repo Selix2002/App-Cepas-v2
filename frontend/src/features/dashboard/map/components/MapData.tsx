@@ -1,63 +1,42 @@
-// src/components/map/MapData.tsx
-import { useMemo } from "react";
-import { Marker, Popup } from "react-leaflet";
-import { Map } from "./Map";
-
-type Row = {
-  id: number | string;
-  nombre?: string;
-  cod_lab?: string;
-  latitud?: number | string | null;
-  longitud?: number | string | null;
-};
+import { useMemo } from "react"
+import { Marker, Popup } from "react-leaflet"
+import { Map } from "./Map"
+import type { Cepa } from "../../../../shared/interfaces"
 
 export default function MapData({
   data,
-  onPointDblClick,                 // 👈 nuevo
+  onPointDblClick,
 }: {
-  data?: Row[];
-  onPointDblClick?: (lat: number, lng: number) => void;
+  data?: Cepa[]
+  onPointDblClick?: (lat: number, lng: number) => void
 }) {
-  const toNum = (v: unknown) =>
-    v === null || v === undefined || (typeof v === "string" && v.trim() === "")
-      ? NaN
-      : Number(v);
-
   const points = useMemo(() => {
-    if (!data?.length) return [] as {
-      id: Row["id"];
-      nombre: string;
-      cod_lab?: string;
-      pos: [number, number];
-    }[];
+    if (!data?.length) return []
     return data.flatMap((r) => {
-      const lat = toNum(r.latitud);
-      const lng = toNum(r.longitud);
-      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return [];
-      return [
-        {
-          id: r.id,
-          nombre: r.nombre ?? String(r.id),
-          cod_lab: r.cod_lab,
-          pos: [lat, lng] as [number, number],
-        },
-      ];
-    });
-  }, [data]);
+      const lat = r.latitud
+      const lng = r.longitud
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return []
+      return [{
+        id: r.id,
+        nombre: r.cepa,              // era "nombre" → "cepa"
+        cod_lab: r.codigo_lab,       // era "cod_lab" → "codigo_lab"
+        pos: [lat, lng] as [number, number],
+      }]
+    })
+  }, [data])
 
-  // === AGRUPACIÓN POR COORDENADAS (misma que ya te propuse) ===
   const grouped = useMemo(() => {
-    const map = new globalThis.Map<string, typeof points[0][]>();
+    const map = new globalThis.Map<string, typeof points[0][]>()
     for (const p of points) {
-      const key = `${p.pos[0].toFixed(6)},${p.pos[1].toFixed(6)}`; // precisión
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(p);
+      const key = `${p.pos[0].toFixed(6)},${p.pos[1].toFixed(6)}`
+      if (!map.has(key)) map.set(key, [])
+      map.get(key)!.push(p)
     }
     return Array.from(map.entries()).map(([key, items]) => {
-      const [lat, lng] = key.split(",").map(Number);
-      return { key, pos: [lat, lng] as [number, number], items };
-    });
-  }, [points]);
+      const [lat, lng] = key.split(",").map(Number)
+      return { key, pos: [lat, lng] as [number, number], items }
+    })
+  }, [points])
 
   const markers = useMemo(
     () =>
@@ -66,7 +45,7 @@ export default function MapData({
           key={g.key}
           position={g.pos}
           eventHandlers={{
-            dblclick: () => onPointDblClick?.(g.pos[0], g.pos[1]), // 👈 aquí
+            dblclick: () => onPointDblClick?.(g.pos[0], g.pos[1]),
           }}
         >
           <Popup>
@@ -85,9 +64,7 @@ export default function MapData({
                 ))}
               </ul>
               {g.items.length > 10 && (
-                <div className="text-xs text-gray-400">
-                  …y {g.items.length - 10} más
-                </div>
+                <div className="text-xs text-gray-400">…y {g.items.length - 10} más</div>
               )}
               <div className="text-xs opacity-70 mt-2">
                 [{g.pos[0].toFixed(5)}, {g.pos[1].toFixed(5)}]
@@ -97,8 +74,8 @@ export default function MapData({
         </Marker>
       )),
     [grouped, onPointDblClick]
-  );
+  )
 
-  const center: [number, number] = grouped[0]?.pos ?? [-53.16, -70.91];
-  return <Map center={center} zoom={grouped.length ? 7 : 4} markers={markers} />;
+  const center: [number, number] = grouped[0]?.pos ?? [-53.16, -70.91]
+  return <Map center={center} zoom={grouped.length ? 7 : 4} markers={markers} />
 }

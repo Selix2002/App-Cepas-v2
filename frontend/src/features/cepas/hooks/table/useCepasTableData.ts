@@ -1,90 +1,81 @@
-// src/features/cepas/hooks/useCepasTableData.ts
-import { useEffect, useState } from "react";
-import type { ColDef } from "ag-grid-community";
-
-import { loader } from "../../../../shared/utils/loader";
-import { fetchCepasFull } from "../../services/CepasQuery";
-import { getCepasColumnDefs } from "../../components/CepasColumns";
+import { useEffect, useState } from "react"
+import type { ColDef } from "ag-grid-community"
+import { getCepas } from "../../services/CepasQuery"
+import { getCepasColumnDefsWithExtras } from "../../components/CepasColumns"
+import type { Cepa } from "../../../../shared/interfaces"
 import CheckboxCellRenderer, {
-    type ChartType,
-    type ColumnSelection,
-} from "../../components/table/CheckboxCellRenderer";
-
-const filterRow = { id: 0 };
+  type ChartType,
+  type ColumnSelection,
+} from "../../components/table/CheckboxCellRenderer"
 
 export type NotificationState = {
-    text: string;
-    type: "success" | "error";
-} | null;
+  text: string
+  type: "success" | "error"
+} | null
 
 type UseCepasTableDataArgs = {
-    onDataLoaded: (data: any[]) => void;
-    chartType: ChartType;
-    onColumnToggle: (selection: ColumnSelection, checked: boolean) => void;
-    selectedColumns: ColumnSelection[];
-    refreshToken?: number;
-};
+  onDataLoaded: (data: Cepa[]) => void
+  chartType: ChartType
+  onColumnToggle: (selection: ColumnSelection, checked: boolean) => void
+  selectedColumns: ColumnSelection[]
+  refreshToken?: number
+}
+
+const FILTER_ROW_ID = "__filter__"
 
 export function useCepasTableData({
-    onDataLoaded,
-    chartType,
-    onColumnToggle,
-    selectedColumns,
-    refreshToken,
+  onDataLoaded,
+  chartType,
+  onColumnToggle,
+  selectedColumns,
+  refreshToken,
 }: UseCepasTableDataArgs) {
-    const [rowData, setRowData] = useState<any[]>([]);
-    const [columnDefs, setColumnDefs] = useState<ColDef[]>([]);
-    const [pinnedTopRowDataState, setPinnedTopRowDataState] = useState<any[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<Error | null>(null);
-    const [notification, setNotification] = useState<NotificationState>(null);
+  const [rowData, setRowData] = useState<Cepa[]>([])
+  const [columnDefs, setColumnDefs] = useState<ColDef[]>([])
+  const [pinnedTopRowDataState, setPinnedTopRowDataState] = useState<object[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
+  const [notification, setNotification] = useState<NotificationState>(null)
 
-    // 1) Fetch de datos
-    useEffect(() => {
-        setLoading(true);
-        loader(true);
+  // Fetch de datos
+  useEffect(() => {
+    setLoading(true)
+    getCepas()
+      .then(({ items }) => {
+        onDataLoaded(items)
+        setRowData(items)
+        setPinnedTopRowDataState([{ id: FILTER_ROW_ID }])
+        console.log("Cepas cargadas:", items)  // Log para depuración --- IGNORE ---
+      })
+      .catch((err) => setError(err instanceof Error ? err : new Error(String(err))))
+      .finally(() => setLoading(false))
+  }, [refreshToken]) // eslint-disable-line react-hooks/exhaustive-deps
 
-        fetchCepasFull()
-            .then((data) => {
-                onDataLoaded(data);
-                setRowData(data);
-                setPinnedTopRowDataState([filterRow]);
-            })
-            .catch((err) => {
-                setError(err);
-            })
-            .finally(() => {
-                setLoading(false);
-                loader(false);
-            });
-    }, [onDataLoaded, refreshToken]);
+  // Construcción de columnas
+  useEffect(() => {
+    if (rowData.length === 0) return
 
-    // 2) Construcción de columnas (depende de rowData y selección de gráficos)
-    useEffect(() => {
-        if (rowData.length === 0) return;
+    const baseColumnDefs = getCepasColumnDefsWithExtras(rowData as unknown as Record<string, unknown>[])
+    const enhancedColumnDefs = baseColumnDefs.map((colDef) => ({
+      ...colDef,
+      cellRenderer: CheckboxCellRenderer,
+      cellRendererParams: {
+        chartType,
+        onColumnToggle,
+        selectedColumns,
+      },
+    }))
+    setColumnDefs(enhancedColumnDefs)
+  }, [rowData, chartType, onColumnToggle, selectedColumns])
 
-        const baseColumnDefs = getCepasColumnDefs(rowData);
-        const enhancedColumnDefs = baseColumnDefs.map((colDef) => ({
-            ...colDef,
-            cellRenderer: CheckboxCellRenderer,
-            cellRendererParams: {
-                chartType,
-                onColumnToggle,
-                selectedColumns,
-            },
-        }));
-
-        setColumnDefs(enhancedColumnDefs);
-    }, [rowData, chartType, onColumnToggle, selectedColumns]);
-
-    return {
-        rowData,
-        setRowData,
-        columnDefs,
-        pinnedTopRowDataState,
-        loading,
-        error,
-        notification,
-        setNotification,
-    };
+  return {
+    rowData,
+    setRowData,
+    columnDefs,
+    pinnedTopRowDataState,
+    loading,
+    error,
+    notification,
+    setNotification,
+  }
 }

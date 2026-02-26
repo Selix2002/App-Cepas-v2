@@ -1,101 +1,76 @@
 // src/features/cepas/hooks/useNewCepa.ts
-import { useEffect, useRef, useState } from "react";
-import type React from "react";
-import type { ColDef } from "ag-grid-community";
+import { useEffect, useRef, useState } from "react"
+import type React from "react"
+import type { ColDef } from "ag-grid-community"
 
-import { fetchCepasFull, createCepa } from "../../services/CepasQuery";
-import { getCepasColumnDefs } from "../../components/CepasColumns";
-import { loader } from "../../../../shared/utils/loader";
+import { createCepa } from "../../services/CepasQuery"
+import { getCepasColumnDefs } from "../../components/CepasColumns"
+import type { CepaCreate } from "../../../../shared/interfaces"
 import {
     downloadCepaTemplate,
     parseCepaFile,
     normalizeCepaParsedData,
-} from "../../utils/cepaFile";
+} from "../../utils/cepaFile"
 import {
     buildCepaPayloadFromFieldMap,
     buildCepaPayloadFromHeaderMap,
-} from "../../utils/cepaPayload";
+} from "../../utils/cepaPayload"
 
 export function useNewCepa() {
-    const [columns, setColumns] = useState<ColDef[]>([]);
-    const [formData, setFormData] = useState<Record<string, string>>({});
-    const [fileData, setFileData] = useState<Record<string, string>>({});
-    const [showModal, setShowModal] = useState(false);
+    const [columns, setColumns] = useState<ColDef[]>([])
+    const [formData, setFormData] = useState<Record<string, string>>({})
+    const [fileData, setFileData] = useState<Record<string, string>>({})
+    const [showModal, setShowModal] = useState(false)
+    const [loading, setLoading] = useState(false)
 
-    const fileInputRef = useRef<HTMLInputElement | null>(null);
-    const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+    const fileInputRef = useRef<HTMLInputElement | null>(null)
+    const inputRefs = useRef<(HTMLInputElement | null)[]>([])
 
-    // Cargar columnas y preparar formData inicial
+    // Columnas y formData inicial — ya no necesita fetch, las columnas son estáticas
     useEffect(() => {
-        let mounted = true;
-        loader(true);
+        const defs = getCepasColumnDefs()
+        setColumns(defs)
 
-        fetchCepasFull()
-            .then((data) => {
-                if (!mounted) return;
-                const defs = getCepasColumnDefs(data);
-                setColumns(defs);
-
-                const initial: Record<string, string> = {};
-                defs
-                    .filter(
-                        (col): col is ColDef & { field: string } =>
-                            typeof col.field === "string" && col.field !== "id"
-                    )
-                    .forEach((col) => {
-                        initial[col.field] = "";
-                    });
-                setFormData(initial);
+        const initial: Record<string, string> = {}
+        defs
+            .filter(
+                (col): col is ColDef & { field: string } =>
+                    typeof col.field === "string" && col.field !== "id"
+            )
+            .forEach((col) => {
+                initial[col.field] = ""
             })
-            .catch((error) => console.error("Error cargando cepas:", error))
-            .finally(() => {
-                if (mounted) loader(false);
-            });
+        setFormData(initial)
+    }, [])
 
-        return () => {
-            mounted = false;
-        };
-    }, []);
-
-    // Cambios en inputs del formulario
     const handleInputChange = (field: string, value: string) => {
-        setFormData((prev) => ({ ...prev, [field]: value }));
-    };
+        setFormData((prev) => ({ ...prev, [field]: value }))
+    }
 
-    // Navegar con Enter entre inputs
-    const handleKeyDown = (
-        e: React.KeyboardEvent<HTMLInputElement>,
-        index: number
-    ) => {
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
         if (e.key === "Enter") {
-            e.preventDefault();
-            const next = inputRefs.current[index + 1];
-            next?.focus();
+            e.preventDefault()
+            inputRefs.current[index + 1]?.focus()
         }
-    };
+    }
 
-    // Descargar plantilla
     const downloadTemplate = () => {
         if (!columns.length) {
-            alert("No hay columnas disponibles para generar la plantilla.");
-            return;
+            alert("No hay columnas disponibles para generar la plantilla.")
+            return
         }
-        downloadCepaTemplate(columns);
-    };
+        downloadCepaTemplate(columns)
+    }
 
-    // Subir y procesar archivo .txt
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+        const file = e.target.files?.[0]
+        if (!file) return
 
-        const reader = new FileReader();
-
+        const reader = new FileReader()
         reader.onload = (ev) => {
             try {
-                const text = ev.target?.result;
-                if (typeof text !== "string") {
-                    throw new Error("Archivo vacío o formato inválido");
-                }
+                const text = ev.target?.result
+                if (typeof text !== "string") throw new Error("Archivo vacío o formato inválido")
 
                 const expectedKeys = columns
                     .filter(
@@ -103,84 +78,65 @@ export function useNewCepa() {
                             typeof col.field === "string" && col.field !== "id"
                     )
                     .map((col) => col.headerName!)
-                    .filter(Boolean);
+                    .filter(Boolean)
 
-                const parsed = parseCepaFile(text, expectedKeys);
-                const normalized = normalizeCepaParsedData(parsed);
+                const parsed = parseCepaFile(text, expectedKeys)
+                const normalized = normalizeCepaParsedData(parsed)
 
-                // Igual que antes: mezclamos parsed sobre formData
-                setFormData((prev) => ({ ...prev, ...normalized }));
-                setFileData(normalized);
-                setShowModal(true);
-            } catch (err: any) {
-                const msg =
-                    err instanceof Error
-                        ? err.message
-                        : "Error al procesar el archivo";
-                alert(`Error al procesar el archivo: ${msg}`);
-                console.error(msg);
+                setFormData((prev) => ({ ...prev, ...normalized }))
+                setFileData(normalized)
+                setShowModal(true)
+            } catch (err) {
+                const msg = err instanceof Error ? err.message : "Error al procesar el archivo"
+                alert(`Error al procesar el archivo: ${msg}`)
             } finally {
-                // permitir volver a subir el mismo archivo
-                e.target.value = "";
+                e.target.value = ""
             }
-        };
+        }
+        reader.readAsText(file)
+    }
 
-        reader.readAsText(file);
-    };
-
-    // Crear cepa desde el formulario (botón "Añadir Cepa")
     const addCepaFromForm = async (): Promise<void> => {
-        const payload = buildCepaPayloadFromFieldMap(formData);
-
-        loader(true);
+        setLoading(true)
         try {
-            await createCepa(payload);
-            alert("Cepa creada con éxito");
-            setFormData({});
-            setFileData({});
+            const payload = buildCepaPayloadFromFieldMap(formData) as CepaCreate
+            await createCepa(payload)
+            alert("Cepa creada con éxito")
+            setFormData({})
+            setFileData({})
         } catch (error) {
-            console.error("Error al crear la cepa:", error);
-            alert(
-                "Error al crear la cepa. Por favor, revisa la consola para más detalles."
-            );
+            console.error("Error al crear la cepa:", error)
+            alert("Error al crear la cepa. Por favor, revisa la consola para más detalles.")
         } finally {
-            loader(false);
+            setLoading(false)
         }
-    };
+    }
 
-    // Confirmar creación desde el modal (flujo archivo .txt)
     const confirmFromModal = async (): Promise<void> => {
-        const payload = buildCepaPayloadFromHeaderMap(formData, columns);
-
-        loader(true);
+        setLoading(true)
         try {
-            await createCepa(payload);
-            alert("Cepa creada con éxito");
+            const payload = buildCepaPayloadFromHeaderMap(formData, columns) as CepaCreate
+            await createCepa(payload)
+            alert("Cepa creada con éxito")
         } catch (error) {
-            console.error("Error al crear la cepa:", error);
-            alert(
-                "Error al crear la cepa. Por favor, revisa la consola para más detalles."
-            );
+            console.error("Error al crear la cepa:", error)
+            alert("Error al crear la cepa. Por favor, revisa la consola para más detalles.")
         } finally {
-            loader(false);
+            setLoading(false)
+            setFormData({})
+            setFileData({})
+            inputRefs.current = []
+            if (fileInputRef.current) fileInputRef.current.value = ""
+            setShowModal(false)
         }
-
-        setFormData({});
-        setFileData({});
-        inputRefs.current = [];
-        if (fileInputRef.current) {
-            fileInputRef.current.value = "";
-        }
-        setShowModal(false);
-    };
-
-    const closeModal = () => setShowModal(false);
+    }
 
     return {
         columns,
         formData,
         fileData,
         showModal,
+        loading,
         fileInputRef,
         inputRefs,
         handleInputChange,
@@ -189,6 +145,6 @@ export function useNewCepa() {
         handleFileUpload,
         addCepaFromForm,
         confirmFromModal,
-        closeModal,
-    };
+        closeModal: () => setShowModal(false),
+    }
 }

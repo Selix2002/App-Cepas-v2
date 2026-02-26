@@ -1,96 +1,116 @@
-export interface UserBase {
-    username: string
-    isAdmin: boolean
-    hiddenColumns?: string[];
-  }
-  
-  export interface User extends UserBase {
-    id: number
-  }
-  export interface UserCreate extends UserBase {
-    password: string
-  }
-  
-  export interface Token {
-    access_token: string
-    token_type: string
-    expires_in: number
-    refresh_token: string | null
-  }
-  export interface AuthContextType {
-    user: User | null
-    token: string | null
-    login: (username: string, password: string) => Promise<void>
-    logout: () => void
-  }
-  
-  
-  export interface CepaUpdatePayload {
-    // Campos directos de Cepa
-    nombre?: string;
-    cod_lab?: string;
-    origen?: string;
-    pigmentacion?: string;
-    latitud?: number;
-    longitud?: number;
-    datos_extra?: Record<string, any>; // Para campos JSONB adicionales
-    // … agrega aquí el resto de columnas escalares de tu tabla CEPAS
-  
-    // Relaciones uno-a-uno como objetos anidados
-    almacenamiento?: {
-      envio_puq?: string;
-      temperatura_menos80?: string;
-      
-      // … demás campos de Almacenamiento
-    };
-    medio_cultivo?: {
-      medio?: string;
-      // … demás campos de MedioCultivo
-    };
-    morfologia?: {
-      gram?: string;
-      morfologia_1?: string;
-      morfologia_2?: string;
-    };
-    actividad_enzimatica?: {
-      aia?: string;
-      amilasa?: string;
-      catalasa?: string;
-      celulasa?: string;
-      fosfatasa?: string;
-      lecitinasa?: string;
-      ureasa?: string;
-      lipasa?: string;
-      proteasa?: string;
-      // … demás campos de ActividadEnzimatica
-    };
-    crecimiento_temperatura?: {
-      temp_5?: number;
-      temp_25?: number;
-      temp_37?: number;
-      // … demás campos de CrecimientoTemperatura
-    };
-    resistencia_antibiotica?: {
-      amp?: string;
-      ctx?: string;
-      cxm?: string;
-      caz?: string;
-      ak?: string;
-      c?: string;
-      te?: string;
-      am_ecoli?: string;
-      am_saureus?: string;
-      // … demás campos de ResistenciaAntibiotica
-    };
-    caracterizacion_genetica?: {
-      gen_16s?: string;
-      metabolomica?: string;
-  
-    };
-    proyecto?: {
-      nombre_proyecto?: string;
-      responsable?: string;
-      // … demás campos de Proyecto
-    };
-  }
-  
+// ---------------------------------------------------------------------------
+// AUTH
+// ---------------------------------------------------------------------------
+
+export interface Token {
+  access_token: string
+  token_type: string
+}
+
+export interface AuthContextType {
+  user: User | null
+  token: string | null
+  login: (username: string, password: string) => Promise<void>
+  logout: () => void
+}
+
+// ---------------------------------------------------------------------------
+// USER
+// ---------------------------------------------------------------------------
+
+export interface User {
+  id: string                    // MongoDB ObjectId → string, no number
+  username: string
+  is_admin: boolean             // snake_case, igual que el backend
+  hidden_columns: string[]      // siempre array, nunca undefined
+  fecha_creacion: string        // ISO 8601
+  fecha_actualizacion: string | null
+}
+
+export interface UserCreate {
+  username: string
+  password: string
+  is_admin?: boolean            // default false en backend
+  hidden_columns?: string[]
+}
+
+export interface UserUpdate {
+  username?: string
+  is_admin?: boolean
+}
+
+// ---------------------------------------------------------------------------
+// CEPA
+// ---------------------------------------------------------------------------
+
+export interface Cepa {
+  id: string                    // MongoDB ObjectId → string, no number
+  cepa: string
+  codigo_lab: string | null
+  origen: string | null
+  latitud: number | null
+  longitud: number | null
+  gram: string | null
+  morfologia_1: string | null
+  morfologia_2: string | null
+  pigmentacion: string | null
+  envio_punta_arenas: string | null
+  temperatura_80: string | null  // es string en el backend, no number
+  medio: string | null
+
+  // Actividades enzimáticas
+  lecitinasa: string | null
+  ureasa: string | null          // ojo: "ureasa" no "ureasea"
+  lipasa: string | null
+  amilasa: string | null
+  proteasa: string | null
+  catalasa: string | null
+  celulasa: string | null
+  fosfatasa: string | null
+  aia: string | null
+
+  // Temperatura de crecimiento
+  temp_5c: string | null         // "temp_5c" no "temperatura_5c"
+  temp_25c: string | null
+  temp_37c: string | null
+
+  // Antibióticos
+  amp: string | null
+  ctx: string | null
+  cxm: string | null
+  caz: string | null
+  ak: string | null
+  c: string | null
+  te: string | null
+  am_ecoli: string | null
+  am_saureus: string | null
+
+  // Identificación molecular
+  gen_16s: string | null
+  metabolomica: string | null
+
+  // Metadata
+  nicolas: string | null
+  nombre_proyecto: string | null
+  fecha_creacion: string
+  fecha_actualizacion: string | null
+}
+
+export interface CepaCreate extends Omit<Cepa, "id" | "fecha_creacion" | "fecha_actualizacion"> {}
+
+export interface CepaUpdate extends Partial<Omit<Cepa, "id" | "fecha_creacion" | "fecha_actualizacion">> {}
+
+// ---------------------------------------------------------------------------
+// RESPONSES PAGINADOS
+// ---------------------------------------------------------------------------
+
+export interface PaginatedCepas {
+  total: number
+  offset: number
+  items: Cepa[]
+}
+
+export interface UserList {
+  total: number
+  items: User[]
+}
