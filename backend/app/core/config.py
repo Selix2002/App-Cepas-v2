@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     LLM_TEMPERATURE: float = 0.2
     LLM_MAX_TOKENS: int = 500
     
+    # Configuración de logging (DEBUG/INFO/ERROR)
+    LOG_LEVEL: str = "DEBUG"
+    
     class Config:
         env_file = ".env"
 

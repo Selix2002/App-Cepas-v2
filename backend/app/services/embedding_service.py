@@ -12,16 +12,23 @@ class EmbeddingService:
     """Servicio para generar y comparar embeddings de texto"""
     
     def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
-        logger.info(f"Inicializando modelo de embeddings: {model_name}")
+        logger.info(f"🔧 Inicializando modelo de embeddings: {model_name}")
         self.model = SentenceTransformer(model_name)
-        logger.info("Modelo de embeddings cargado exitosamente")
+        logger.info(f"✅ Modelo cargado. Dimensión de embedding: {self.model.get_sentence_embedding_dimension()}")
     
     def encode(self, text: str) -> List[float]:
         """Genera embedding para un texto"""
         if not text or not text.strip():
             raise ValueError("El texto no puede estar vacío")
         
+        logger.debug(f"📝 Generando embedding para texto de {len(text)} caracteres")
+        logger.debug(f"   Texto (primeros 100 chars): {text[:100]}...")
+        
         embedding = self.model.encode(text, convert_to_tensor=False)
+        
+        logger.debug(f"✅ Embedding generado: {len(embedding)} dimensiones")
+        logger.debug(f"   Rango de valores: [{embedding.min():.4f}, {embedding.max():.4f}]")
+        
         return embedding.tolist()
     
     def encode_batch(self, texts: List[str]) -> List[List[float]]:
@@ -29,7 +36,12 @@ class EmbeddingService:
         if not texts:
             return []
         
+        logger.info(f"📝 Generando embeddings para {len(texts)} textos en batch")
+        
         embeddings = self.model.encode(texts, convert_to_tensor=False)
+        
+        logger.info(f"✅ Batch completado: {len(embeddings)} embeddings generados")
+        
         return embeddings.tolist()
     
     @staticmethod
@@ -42,7 +54,11 @@ class EmbeddingService:
         if norm_product == 0:
             return 0.0
         
-        return float(np.dot(vec1_np, vec2_np) / norm_product)
+        similarity = float(np.dot(vec1_np, vec2_np) / norm_product)
+        
+        logger.debug(f"📊 Similitud calculada: {similarity:.4f}")
+        
+        return similarity
 
 # Singleton global
 _embedding_service_instance = None

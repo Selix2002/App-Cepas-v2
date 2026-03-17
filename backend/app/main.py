@@ -15,8 +15,22 @@ from app.core.redis_config import redis_client
 from app.middleware.login_rate_limit import LoginRateLimitMiddleware
 from app.core.logging_config import setup_logging
 from app.api.router_ia import ChatController
+import logging
 
 rate_limit_logger = setup_logging()
+
+
+# Configurar logging
+logging.basicConfig(
+    level=getattr(logging, settings.LOG_LEVEL),
+    format='%(levelname)s - %(asctime)s - %(name)s - %(funcName)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+# Reducir ruido de librerías externas
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+logging.getLogger("sentence_transformers").setLevel(logging.WARNING)
+
 
 cors = CORSConfig(
     allow_origins=["*"],

@@ -282,6 +282,8 @@ NO DEBES:
 
         return base_prompt
     
+# app/services/llm_service.py (agregar logging en generar_respuesta)
+
     async def generar_respuesta(
         self, 
         pregunta: str, 
@@ -289,30 +291,35 @@ NO DEBES:
         cepas_relevantes: List[Cepa] = None,
         usar_modo_completo: bool = False
     ) -> Dict[str, Any]:
-        """
-        Genera respuesta usando Groq API.
-        
-        Args:
-            pregunta: Pregunta del usuario
-            todas_cepas: Lista completa de cepas (para estadísticas)
-            cepas_relevantes: Cepas más relevantes (opcional)
-            usar_modo_completo: Si True, envía todas las cepas. Si False, usa modo híbrido
-        """
-        
+        """Genera respuesta usando Groq API"""
+
+        logger.info("🤖 Iniciando generación de respuesta con LLM")
+        logger.info(f"   Total de cepas: {len(todas_cepas)}")
+        logger.info(f"   Cepas relevantes: {len(cepas_relevantes) if cepas_relevantes else 0}")
+        logger.info(f"   Modo forzado completo: {usar_modo_completo}")
+
         # Decidir estrategia según tamaño de DB
         if usar_modo_completo or len(todas_cepas) <= 50:
-            # DB pequeña: enviar todo
             contexto = self._construir_contexto_completo(todas_cepas)
             modo = "completo"
-            logger.info(f"Usando modo COMPLETO con {len(todas_cepas)} cepas")
+            logger.info(f"📊 Modo COMPLETO seleccionado ({len(todas_cepas)} cepas)")
         else:
-            # DB grande: modo híbrido
             if not cepas_relevantes:
-                cepas_relevantes = todas_cepas[:10]  # Fallback
+                cepas_relevantes = todas_cepas[:10]
             contexto = self._construir_contexto_hibrido(todas_cepas, cepas_relevantes)
             modo = "hibrido"
-            logger.info(f"Usando modo HÍBRIDO: {len(todas_cepas)} total, {len(cepas_relevantes)} relevantes")
-        
+            logger.info(f"📊 Modo HÍBRIDO seleccionado")
+            logger.info(f"   Total: {len(todas_cepas)}, Relevantes: {len(cepas_relevantes)}")
+
+        logger.info(f"📄 Contexto construido:")
+        logger.info(f"   Longitud: {len(contexto)} caracteres")
+        logger.info(f"   Tokens estimados: {len(contexto) // 4}")
+
+        logger.debug("📄 Contexto completo (primeros 500 chars):")
+        logger.debug("-" * 80)
+        logger.debug(contexto[:500] + "...")
+        logger.debug("-" * 80)
+
         messages = [
             {
                 "role": "system",
@@ -323,8 +330,16 @@ NO DEBES:
                 "content": f"{contexto}\n\n{'='*60}\nPREGUNTA: {pregunta}"
             }
         ]
-        
+
+        logger.info("📨 Preparando request a Groq API:")
+        logger.info(f"   Endpoint: {self.BASE_URL}")
+        logger.info(f"   Modelo: {self.model}")
+        logger.info(f"   Temperature: {self.temperature}")
+        logger.info(f"   Max tokens: {self.max_tokens}")
+
         try:
+            logger.info("⏳ Enviando request a Groq...")
+
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.post(
                     self.BASE_URL,
@@ -341,28 +356,40 @@ NO DEBES:
                         "stream": False
                     }
                 )
+
+                logger.info(f"📥 Respuesta recibida: HTTP {response.status_code}")
+
                 response.raise_for_status()
                 data = response.json()
-                
+
+                respuesta_texto = data["choices"][0]["message"]["content"]
+                tokens = data.get("usage", {}).get("total_tokens")
+
+                logger.info("✅ Respuesta generada exitosamente")
+                logger.info(f"   Longitud: {len(respuesta_texto)} caracteres")
+                logger.info(f"   Tokens usados: {tokens}")
+                logger.debug(f"   Respuesta (primeros 200 chars): {respuesta_texto[:200]}...")
+
                 return {
-                    "respuesta": data["choices"][0]["message"]["content"],
+                    "respuesta": respuesta_texto,
                     "modelo": data["model"],
-                    "tokens_usados": data.get("usage", {}).get("total_tokens"),
+                    "tokens_usados": tokens,
                     "modo_contexto": modo
                 }
-        
-        except httpx.HTTPStatusError as e:
-            logger.error(f"Error HTTP de Groq: {e.response.status_code} - {e.response.text}")
-            raise Exception(f"Error al consultar Groq API: {e.response.status_code}")
-        
-        except httpx.TimeoutException:
-            logger.error("Timeout al consultar Groq API")
-            raise Exception("Timeout al generar respuesta. Intenta de nuevo.")
-        
-        except Exception as e:
-            logger.error(f"Error inesperado con Groq: {str(e)}", exc_info=True)
-            raise Exception(f"Error al generar respuesta: {str(e)}")
 
+        except httpx.HTTPStatusError as e:
+            logger.error(f"❌ Error HTTP de Groq: {e.response.status_code}")
+            logger.error(f"   Response: {e.response.text}")
+            raise Exception(f"Error al consultar Groq API: {e.response.status_code}")
+
+        except httpx.TimeoutException:
+            logger.error("❌ Timeout al consultar Groq API")
+            raise Exception("Timeout al generar respuesta. Intenta de nuevo.")
+
+        except Exception as e:
+            logger.error(f"❌ Error inesperado: {type(e).__name__}: {str(e)}", exc_info=True)
+            raise Exception(f"Error al generar respuesta: {str(e)}")
+        
 def get_llm_service(api_key: str, model: str, temperature: float = 0.2, max_tokens: int = 1000) -> LLMService:
     """Factory function para crear instancia del servicio LLM"""
     return LLMService(api_key, model, temperature, max_tokens)
