@@ -1,12 +1,13 @@
 import { useRef, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { MoreVertical } from 'lucide-react'
-import type { Column } from 'ag-grid-community'
+import type { CepaColumnDef } from '../../../../types/tableTypes'
 import DropdownMenu from '../../../../../../shared/components/DropdownMenu'
 
 type HomeHeaderProps = {
     isAdmin: boolean
-    columns: Column[]
+    columns: CepaColumnDef[]
+    hiddenFields: Set<string>
     onLogout: () => void
     onOpenImport: () => void
     onExport: () => void
@@ -16,6 +17,7 @@ type HomeHeaderProps = {
 export default function HomeHeader({
     isAdmin,
     columns,
+    hiddenFields,
     onLogout,
     onOpenImport,
     onExport,
@@ -112,6 +114,7 @@ export default function HomeHeader({
             <DropdownMenu
                 isOpen={menuOpen}
                 columns={columns}
+                hiddenFields={hiddenFields}
                 onToggle={onToggleColumnVisibility}
                 onClose={() => setMenuOpen(false)}
             />

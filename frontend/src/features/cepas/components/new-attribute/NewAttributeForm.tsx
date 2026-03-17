@@ -1,7 +1,7 @@
 // src/features/cepas/components/new-attribute/NewAttributeForm.tsx
 import type React from "react";
 
-type CepaLite = { id: number; nombre: string };
+type CepaLite = { id: string; nombre: string };
 
 type NewAttributeFormProps = {
     cepas: CepaLite[];

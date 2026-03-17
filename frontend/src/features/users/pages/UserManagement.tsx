@@ -1,24 +1,29 @@
 // src/features/users/pages/UserManagement.tsx
-import { useRef } from "react";
-import UserTable, { type UserTableHandles } from "../components/UserTable";
-import UserManagementHeader from "../components/UserManagementHeader";
+import { useRef } from "react"
+import UserTable, { type UserTableHandles } from "../components/UserTable"
+import UserManagementHeader from "../components/UserManagementHeader"
 
 export default function UserPage() {
-  const userTableRef = useRef<UserTableHandles>(null);
+  const userTableRef = useRef<UserTableHandles>(null)
 
   const handleAddUser = () => {
-    userTableRef.current?.onAddUser();
-  };
+    userTableRef.current?.onAddUser()
+  }
 
   return (
-    <div className="flex flex-col h-full min-h-screen bg-gray-900 text-white">
-      {/* HEADER */}
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100vh",
+        background: "#070c16",
+        overflow: "hidden",
+      }}
+    >
       <UserManagementHeader onAddUser={handleAddUser} />
-
-      {/* CONTENIDO: tabla / ag-Grid */}
-      <div className="flex-1 border-t border-gray-700 p-4 box-border">
+      <div style={{ flex: 1, overflow: "hidden" }}>
         <UserTable ref={userTableRef} />
       </div>
     </div>
-  );
+  )
 }

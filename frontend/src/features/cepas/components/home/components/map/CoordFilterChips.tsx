@@ -1,5 +1,5 @@
 // src/features/cepas/components/home/CoordFilterChips.tsx
-import type { CoordFilter } from "../../../../hooks/map/useCepasMap";
+import type { CoordFilter } from "../../../../types/tableTypes";
 
 type CoordFilterChipsProps = {
     coordFilter: CoordFilter | null;

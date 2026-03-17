@@ -1,239 +1,47 @@
-import type { ColDef } from "ag-grid-community"
+// src/features/cepas/components/CepasColumns.ts
+// Ya no depende de ag-grid-community
+import type { CepaColumnDef } from "../types/tableTypes"
 
-export const getCepasColumnDefs = (): ColDef[] => {
-  const fixedCols: ColDef[] = [
-    {
-      headerName: "Cepa",
-      field: "cepa",
-      filter: "agTextColumnFilter",
-      pinned: "left",
-      width: 120,
-      sort: "asc",
-    },
-    {
-      headerName: "Código Lab",
-      field: "codigo_lab",          // era "cod_lab"
-      filter: "agTextColumnFilter",
-      width: 120,
-    },
-    {
-      headerName: "Origen",
-      field: "origen",
-      filter: "agTextColumnFilter",
-      width: 150,
-    },
-    {
-      headerName: "Latitud",
-      field: "latitud",
-      filter: "agNumberColumnFilter",
-      width: 120,
-    },
-    {
-      headerName: "Longitud",
-      field: "longitud",
-      filter: "agNumberColumnFilter",
-      width: 120,
-    },
-    {
-      headerName: "Pigmentación",
-      field: "pigmentacion",
-      filter: "agTextColumnFilter",
-      width: 130,
-    },
-    {
-      headerName: "Envío a Punta Arenas",
-      field: "envio_punta_arenas",   // era "almacenamiento.envio_puq"
-      filter: "agTextColumnFilter",
-      wrapHeaderText: true,
-      autoHeaderHeight: true,
-      width: 150,
-    },
-    {
-      headerName: "Temperatura -80°",
-      field: "temperatura_80",       // era "almacenamiento.temperatura_menos80"
-      filter: "agTextColumnFilter",
-      width: 140,
-    },
-    {
-      headerName: "Medio",
-      field: "medio",                // era "medio_cultivo.medio"
-      filter: "agTextColumnFilter",
-      width: 100,
-    },
-    {
-      headerName: "Gram",
-      field: "gram",                 // era "morfologia.gram"
-      filter: "agTextColumnFilter",
-      width: 80,
-    },
-    {
-      headerName: "Morfología 1",
-      field: "morfologia_1",         // era "morfologia.morfologia_1"
-      filter: "agTextColumnFilter",
-      width: 130,
-    },
-    {
-      headerName: "Morfología 2",
-      field: "morfologia_2",
-      filter: "agTextColumnFilter",
-      width: 130,
-    },
-    {
-      headerName: "Lecitinasa",
-      field: "lecitinasa",           // era "actividad_enzimatica.lecitinasa"
-      filter: "agTextColumnFilter",
-      width: 110,
-    },
-    {
-      headerName: "Ureasa",
-      field: "ureasa",
-      filter: "agTextColumnFilter",
-      width: 100,
-    },
-    {
-      headerName: "Lipasa",
-      field: "lipasa",
-      filter: "agTextColumnFilter",
-      width: 100,
-    },
-    {
-      headerName: "Amilasa",
-      field: "amilasa",
-      filter: "agTextColumnFilter",
-      width: 100,
-    },
-    {
-      headerName: "Proteasa",
-      field: "proteasa",
-      filter: "agTextColumnFilter",
-      width: 100,
-    },
-    {
-      headerName: "Catalasa",
-      field: "catalasa",
-      filter: "agTextColumnFilter",
-      width: 100,
-    },
-    {
-      headerName: "Celulasa",
-      field: "celulasa",
-      filter: "agTextColumnFilter",
-      width: 100,
-    },
-    {
-      headerName: "Fosfatasa",
-      field: "fosfatasa",
-      filter: "agTextColumnFilter",
-      width: 100,
-    },
-    {
-      headerName: "AIA",
-      field: "aia",
-      filter: "agTextColumnFilter",
-      width: 80,
-    },
-    {
-      headerName: "+ 5°C",
-      field: "temp_5c",              // era "crecimiento_temperatura.temp_5"
-      filter: "agTextColumnFilter",
-      width: 90,
-    },
-    {
-      headerName: "+ 25°C",
-      field: "temp_25c",
-      filter: "agTextColumnFilter",
-      width: 90,
-    },
-    {
-      headerName: "+ 37°C",
-      field: "temp_37c",
-      filter: "agTextColumnFilter",
-      width: 90,
-    },
-    {
-      headerName: "AMP",
-      field: "amp",                  // era "resistencia_antibiotica.amp"
-      filter: "agTextColumnFilter",
-      width: 80,
-    },
-    {
-      headerName: "CTX",
-      field: "ctx",
-      filter: "agTextColumnFilter",
-      width: 80,
-    },
-    {
-      headerName: "CXM",
-      field: "cxm",
-      filter: "agTextColumnFilter",
-      width: 80,
-    },
-    {
-      headerName: "CAZ",
-      field: "caz",
-      filter: "agTextColumnFilter",
-      width: 80,
-    },
-    {
-      headerName: "AK",
-      field: "ak",
-      filter: "agTextColumnFilter",
-      width: 80,
-    },
-    {
-      headerName: "C",
-      field: "c",
-      filter: "agTextColumnFilter",
-      width: 70,
-    },
-    {
-      headerName: "TE",
-      field: "te",
-      filter: "agTextColumnFilter",
-      width: 70,
-    },
-    {
-      headerName: "AM E.COLI",
-      field: "am_ecoli",
-      filter: "agTextColumnFilter",
-      width: 110,
-    },
-    {
-      headerName: "AM SAUREUS",
-      field: "am_saureus",
-      filter: "agTextColumnFilter",
-      width: 120,
-    },
-    {
-      headerName: "Gen. 16s",
-      field: "gen_16s",              // era "caracterizacion_genetica.gen_16s"
-      filter: "agTextColumnFilter",
-      width: 150,
-    },
-    {
-      headerName: "Metabolómica",
-      field: "metabolomica",
-      filter: "agTextColumnFilter",
-      width: 130,
-    },
-    {
-      headerName: "Nicolas",
-      field: "nicolas",              // era "proyecto.responsable"
-      filter: "agTextColumnFilter",
-      width: 110,
-    },
-    {
-      headerName: "Nombre del Proyecto",
-      field: "nombre_proyecto",      // era "proyecto.nombre_proyecto"
-      filter: "agTextColumnFilter",
-      width: 180,
-    },
-  ]
+export const getCepasColumnDefs = (): CepaColumnDef[] => [
+  { field: "cepa",               headerName: "Cepa",                 pinned: true, width: 120, type: "text" },
+  { field: "codigo_lab",         headerName: "Código Lab",            width: 120,  type: "text" },
+  { field: "origen",             headerName: "Origen",                width: 150,  type: "text" },
+  { field: "latitud",            headerName: "Latitud",               width: 100,  type: "number" },
+  { field: "longitud",           headerName: "Longitud",              width: 100,  type: "number" },
+  { field: "pigmentacion",       headerName: "Pigmentación",          width: 130,  type: "text" },
+  { field: "envio_punta_arenas", headerName: "Envío Pta. Arenas",     width: 140,  type: "text" },
+  { field: "temperatura_80",     headerName: "Temp -80°",             width: 100,  type: "text" },
+  { field: "medio",              headerName: "Medio",                 width: 90,   type: "text" },
+  { field: "gram",               headerName: "Gram",                  width: 70,   type: "text" },
+  { field: "morfologia_1",       headerName: "Morfología 1",          width: 110,  type: "text" },
+  { field: "morfologia_2",       headerName: "Morfología 2",          width: 110,  type: "text" },
+  { field: "lecitinasa",         headerName: "Lecitinasa",            width: 90,   type: "text" },
+  { field: "ureasa",             headerName: "Ureasa",                width: 80,   type: "text" },
+  { field: "lipasa",             headerName: "Lipasa",                width: 75,   type: "text" },
+  { field: "amilasa",            headerName: "Amilasa",               width: 80,   type: "text" },
+  { field: "proteasa",           headerName: "Proteasa",              width: 85,   type: "text" },
+  { field: "catalasa",           headerName: "Catalasa",              width: 80,   type: "text" },
+  { field: "celulasa",           headerName: "Celulasa",              width: 80,   type: "text" },
+  { field: "fosfatasa",          headerName: "Fosfatasa",             width: 85,   type: "text" },
+  { field: "aia",                headerName: "AIA",                   width: 70,   type: "text" },
+  { field: "temp_5c",            headerName: "+ 5°C",                 width: 80,   type: "text" },
+  { field: "temp_25c",           headerName: "+ 25°C",                width: 80,   type: "text" },
+  { field: "temp_37c",           headerName: "+ 37°C",                width: 80,   type: "text" },
+  { field: "amp",                headerName: "AMP",                   width: 70,   type: "text" },
+  { field: "ctx",                headerName: "CTX",                   width: 70,   type: "text" },
+  { field: "cxm",                headerName: "CXM",                   width: 70,   type: "text" },
+  { field: "caz",                headerName: "CAZ",                   width: 70,   type: "text" },
+  { field: "ak",                 headerName: "AK",                    width: 65,   type: "text" },
+  { field: "c",                  headerName: "C",                     width: 55,   type: "text" },
+  { field: "te",                 headerName: "TE",                    width: 55,   type: "text" },
+  { field: "am_ecoli",           headerName: "AM E.Coli",             width: 100,  type: "text" },
+  { field: "am_saureus",         headerName: "AM S.Aureus",           width: 110,  type: "text" },
+  { field: "gen_16s",            headerName: "Gen. 16S",              width: 150,  type: "text" },
+  { field: "metabolomica",       headerName: "Metabolómica",          width: 120,  type: "text" },
+  { field: "nicolas",            headerName: "Nicolas",               width: 100,  type: "text" },
+  { field: "nombre_proyecto",    headerName: "Nombre Proyecto",       width: 170,  type: "text" },
+]
 
-  return fixedCols
-}
-
-// Campos fijos conocidos — para detectar los dinámicos por exclusión
 const KNOWN_FIELDS = new Set([
   "id", "cepa", "codigo_lab", "origen", "latitud", "longitud", "gram",
   "morfologia_1", "morfologia_2", "pigmentacion", "envio_punta_arenas",
@@ -244,23 +52,19 @@ const KNOWN_FIELDS = new Set([
   "nombre_proyecto", "fecha_creacion", "fecha_actualizacion",
 ])
 
-export const getCepasColumnDefsWithExtras = (data: Record<string, unknown>[]): ColDef[] => {
-  const fixedCols = getCepasColumnDefs()
-
-  // Detectar campos extra presentes en cualquier cepa
+/** Añade columnas dinámicas no previstas en el modelo base */
+export const getCepasColumnDefsWithExtras = (
+  data: Record<string, unknown>[]
+): CepaColumnDef[] => {
+  const base = getCepasColumnDefs()
   const extraKeys = Array.from(
-    new Set(
-      data.flatMap((row) =>
-        Object.keys(row).filter((key) => !KNOWN_FIELDS.has(key))
-      )
-    )
+    new Set(data.flatMap((row) => Object.keys(row).filter((k) => !KNOWN_FIELDS.has(k))))
   )
-  const extraCols: ColDef[] = extraKeys.map((key) => ({
-    headerName: key,
-    field: key,
-    filter: "agTextColumnFilter",
+  const extras: CepaColumnDef[] = extraKeys.map((k) => ({
+    field: k,
+    headerName: k,
     width: 150,
+    type: "text",
   }))
-
-  return [...fixedCols, ...extraCols]
+  return [...base, ...extras]
 }
