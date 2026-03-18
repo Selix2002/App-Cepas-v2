@@ -73,7 +73,7 @@
 
 .login-root {
   min-height: 100vh;
-  background: #070c16;
+  background: var(--bg-base);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -143,7 +143,7 @@
     #00e5b411 10%,
     #00e5b455 30%,
     #00e5b4bb 48%,
-    #00e5b4 50%,
+    var(--accent) 50%,
     #00e5b4bb 52%,
     #00e5b455 70%,
     #00e5b411 90%,
@@ -159,8 +159,8 @@
 .login-card {
   position: relative;
   z-index: 1;
-  background: #0b1220;
-  border: 1px solid #1a2f28;
+  background: var(--bg-0);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 56px 52px 48px;
   overflow: hidden;
@@ -174,7 +174,7 @@
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, transparent, #00e5b4, transparent);
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
   z-index: 2;
 }
 
@@ -214,7 +214,7 @@
 
 .login-hex {
   font-size: 52px;
-  color: #00e5b4;
+  color: var(--accent);
   line-height: 1;
   animation: dotFloat 3s ease-in-out infinite;
 }
@@ -222,13 +222,13 @@
 .login-logo-title {
   font-size: 26px;
   font-weight: 700;
-  color: #00e5b4;
+  color: var(--accent);
   letter-spacing: 6px;
 }
 
 .login-logo-sub {
   font-size: 11px;
-  color: #3a6a5a;
+  color: var(--accent-mid);
   letter-spacing: 3px;
   text-transform: uppercase;
 }
@@ -245,12 +245,12 @@
 .login-divider-line {
   flex: 1;
   height: 1px;
-  background: #1a2f28;
+  background: var(--border);
 }
 
 .login-divider-text {
   font-size: 10px;
-  color: #3a6a5a;
+  color: var(--accent-mid);
   letter-spacing: 2px;
   white-space: nowrap;
 }
@@ -278,7 +278,7 @@
 .login-input-label {
   display: block;
   font-size: 10px;
-  color: #3a6a5a;
+  color: var(--accent-mid);
   letter-spacing: 2px;
   text-transform: uppercase;
   margin-bottom: 8px;
@@ -294,17 +294,17 @@
   top: 50%;
   transform: translateY(-50%);
   font-size: 15px;
-  color: #3a6a5a;
+  color: var(--accent-mid);
   pointer-events: none;
   transition: color 0.2s;
 }
 
 .login-input {
   width: 100%;
-  background: #070c16;
-  border: 1px solid #1a2f28;
+  background: var(--bg-base);
+  border: 1px solid var(--border);
   border-radius: 5px;
-  color: #e8f4f0;
+  color: var(--text-0);
   font-family: inherit;
   font-size: 14px;
   padding: 13px 16px 13px 44px;
@@ -319,13 +319,13 @@
 }
 
 .login-input:focus {
-  border-color: #00b48e;
+  border-color: var(--accent-dim);
   box-shadow: 0 0 0 3px #00e5b411;
 }
 
 .login-input:focus + .login-input-icon,
 .login-input-wrap:focus-within .login-input-icon {
-  color: #00e5b4;
+  color: var(--accent);
 }
 
 /* ── submit button ───────────────────────────────────────────────────────── */
@@ -341,14 +341,14 @@
   letter-spacing: 2px;
   text-transform: uppercase;
   cursor: pointer;
-  color: #070c16;
+  color: var(--bg-base);
   background-image: linear-gradient(
     105deg,
-    #00e5b4 0%,
-    #00e5b4 40%,
+    var(--accent) 0%,
+    var(--accent) 40%,
     #00ffcc 50%,
-    #00e5b4 60%,
-    #00e5b4 100%
+    var(--accent) 60%,
+    var(--accent) 100%
   );
   background-size: 200% auto;
   transition:
@@ -388,7 +388,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #00e5b4;
+  background: var(--accent);
   animation: tealPulse 2s ease-in-out infinite;
 }
 
@@ -401,7 +401,7 @@
 
 .login-status-text {
   font-size: 10px;
-  color: #3a6a5a;
+  color: var(--accent-mid);
   letter-spacing: 2px;
   margin-left: 4px;
 }

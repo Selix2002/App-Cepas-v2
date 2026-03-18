@@ -47,6 +47,7 @@ type Props = {
   onFieldChange: (field: string, value: string) => void
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>, index: number) => void
   onAddCepa: () => void
+  isDuplicate?: boolean
 }
 
 // ── field component ──────────────────────────────────────────────────────────
@@ -61,7 +62,8 @@ function Field({
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>, index: number) => void
 }) {
   const isNumeric = col.type === "number"
-  const isRequired = col.field === "cepa"
+  const REQUIRED_FIELDS = new Set(["cepa", "latitud", "longitud", "origen"])
+  const isRequired = REQUIRED_FIELDS.has(col.field)
 
   return (
     <div className="nc-field">
@@ -114,7 +116,7 @@ function Section({
 
 // ── main component ───────────────────────────────────────────────────────────
 export default function NewCepaForm({
-  columns, formData, inputRefs, onFieldChange, onKeyDown, onAddCepa,
+  columns, formData, inputRefs, onFieldChange, onKeyDown, onAddCepa, isDuplicate,
 }: Props) {
   const colByField = new Map(columns.map((c) => [c.field, c]))
 
@@ -157,12 +159,61 @@ export default function NewCepaForm({
     )
   }
 
-  const canSubmit = !!(formData["cepa"]?.trim())
+  const REQUIRED_FIELDS = ["cepa", "latitud", "longitud", "origen"]
+
+  const latVal = parseFloat(formData["latitud"] ?? "")
+  const lonVal = parseFloat(formData["longitud"] ?? "")
+  const latFilled = !!(formData["latitud"]?.trim())
+  const lonFilled = !!(formData["longitud"]?.trim())
+  const invalidLat = latFilled && (isNaN(latVal) || latVal < -90  || latVal > 90)
+  const invalidLon = lonFilled && (isNaN(lonVal) || lonVal < -180 || lonVal > 180)
+
+  const canSubmit = REQUIRED_FIELDS.every((f) => !!(formData[f]?.trim()))
+    && !isDuplicate && !invalidLat && !invalidLon
 
   return (
     <>
       <form onSubmit={(e) => e.preventDefault()} style={{ display: "contents" }}>
         <div className="nc-content">
+
+          {/* ── alertas ── */}
+          {isDuplicate && (
+            <div className="nc-alert-duplicate">
+              <div className="nc-alert-icon">⚠</div>
+              <div className="nc-alert-body">
+                <span className="nc-alert-title">Cepa duplicada</span>
+                <span className="nc-alert-msg">
+                  Ya existe una cepa con el nombre{" "}
+                  <strong>"{formData["cepa"]}"</strong> en la base de datos.
+                  Elige un nombre distinto para continuar.
+                </span>
+              </div>
+            </div>
+          )}
+          {invalidLat && (
+            <div className="nc-alert-duplicate">
+              <div className="nc-alert-icon">⚠</div>
+              <div className="nc-alert-body">
+                <span className="nc-alert-title">Latitud inválida</span>
+                <span className="nc-alert-msg">
+                  La latitud debe estar entre <strong>−90°</strong> y <strong>+90°</strong>.
+                  Valor ingresado: <strong>{formData["latitud"]}</strong>.
+                </span>
+              </div>
+            </div>
+          )}
+          {invalidLon && (
+            <div className="nc-alert-duplicate">
+              <div className="nc-alert-icon">⚠</div>
+              <div className="nc-alert-body">
+                <span className="nc-alert-title">Longitud inválida</span>
+                <span className="nc-alert-msg">
+                  La longitud debe estar entre <strong>−180°</strong> y <strong>+180°</strong>.
+                  Valor ingresado: <strong>{formData["longitud"]}</strong>.
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* ── secciones estáticas + campos dinámicos asignados a ellas ── */}
           {SECTIONS.map((section) => {
@@ -206,7 +257,7 @@ export default function NewCepaForm({
       {/* footer sticky */}
       <div className="nc-footer">
         <span className="nc-footer-hint">
-          Enter para avanzar campo &nbsp;·&nbsp; * requerido
+          Enter para avanzar campo &nbsp;·&nbsp; * Cepa, Latitud, Longitud y Origen son requeridos
         </span>
         <button
           className="nc-btn-submit"

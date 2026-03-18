@@ -3,8 +3,8 @@
 /* ── root ────────────────────────────────────────────────────────────────── */
 
 .chart-root {
-  background: #0f1a2e;
-  border-bottom: 1px solid #1a2f28;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--border);
   padding: 14px 24px 12px;
   flex-shrink: 0;
   font-family: 'Courier New', monospace;
@@ -26,7 +26,7 @@
 
 .chart-label-prefix {
   font-size: 10px;
-  color: #3a6a5a;
+  color: var(--accent-mid);
   letter-spacing: 2px;
   font-weight: 700;
   text-transform: uppercase;
@@ -34,14 +34,14 @@
 
 .chart-label-name {
   font-size: 13px;
-  color: #00e5b4;
+  color: var(--accent);
   font-weight: 700;
   margin-left: 8px;
 }
 
 .chart-label-hint {
   font-size: 10px;
-  color: #3a6a5a;
+  color: var(--accent-mid);
   margin-left: 10px;
   letter-spacing: 1px;
 }
@@ -62,21 +62,21 @@
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;
-  border: 1px solid #1a2f28;
+  border: 1px solid var(--border);
   background: transparent;
-  color: #3a6a5a;
+  color: var(--accent-mid);
   transition: border-color 0.15s, color 0.15s, background 0.15s, box-shadow 0.15s;
 }
 
 .chart-type-btn:hover {
-  border-color: #3a6a5a;
-  color: #8ab0a0;
+  border-color: var(--accent-mid);
+  color: var(--text-1);
 }
 
 .chart-type-btn.active {
   background: #00e5b422;
-  border-color: #00b48e;
-  color: #00e5b4;
+  border-color: var(--accent-dim);
+  color: var(--accent);
 }
 
 .chart-type-btn.active:hover {
@@ -92,7 +92,7 @@
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;
-  border: 1px solid #1a2f28;
+  border: 1px solid var(--border);
   background: transparent;
   color: #1e3a30;
   transition: border-color 0.15s, color 0.15s, background 0.15s, box-shadow 0.15s;
@@ -100,8 +100,8 @@
 
 .chart-dl-btn.ready {
   background: #00e5b422;
-  border-color: #00b48e;
-  color: #00e5b4;
+  border-color: var(--accent-dim);
+  color: var(--accent);
   cursor: pointer;
 }
 
@@ -121,7 +121,7 @@
   justify-content: center;
   align-items: center;
   min-height: 170px;
-  background: #0b1220;
+  background: var(--bg-0);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -135,7 +135,7 @@
   font-size: 11px;
   color: #1e3a30;
   letter-spacing: 1px;
-  border: 1px dashed #1a2f28;
+  border: 1px dashed var(--border);
   border-radius: 4px;
   font-family: inherit;
 }

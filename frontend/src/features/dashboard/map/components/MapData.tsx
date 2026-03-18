@@ -2,6 +2,7 @@ import { useMemo } from "react"
 import { Marker, Popup } from "react-leaflet"
 import { Map } from "./Map"
 import type { Cepa } from "../../../../shared/interfaces"
+import "./map-data.css"
 
 export default function MapData({
   data,
@@ -18,8 +19,8 @@ export default function MapData({
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) return []
       return [{
         id: r.id,
-        nombre: r.cepa,              // era "nombre" → "cepa"
-        cod_lab: r.codigo_lab,       // era "cod_lab" → "codigo_lab"
+        nombre: r.cepa,
+        cod_lab: r.codigo_lab,
         pos: [lat, lng] as [number, number],
       }]
     })
@@ -49,24 +50,24 @@ export default function MapData({
           }}
         >
           <Popup>
-            <div className="text-sm">
-              <div className="font-semibold">
+            <div className="mpopup-wrap">
+              <div className="mpopup-title">
                 {g.items.length} cepa{g.items.length > 1 ? "s" : ""} en este punto
               </div>
-              <ul className="mt-1 space-y-1">
+              <ul className="mpopup-list">
                 {g.items.slice(0, 10).map((c) => (
                   <li key={c.id}>
                     {c.nombre}
                     {c.cod_lab && (
-                      <span className="text-xs text-gray-500"> ({c.cod_lab})</span>
+                      <span className="mpopup-cod"> ({c.cod_lab})</span>
                     )}
                   </li>
                 ))}
               </ul>
               {g.items.length > 10 && (
-                <div className="text-xs text-gray-400">…y {g.items.length - 10} más</div>
+                <div className="mpopup-more">…y {g.items.length - 10} más</div>
               )}
-              <div className="text-xs opacity-70 mt-2">
+              <div className="mpopup-coords">
                 [{g.pos[0].toFixed(5)}, {g.pos[1].toFixed(5)}]
               </div>
             </div>

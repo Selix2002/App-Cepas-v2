@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from "react"
 import type React from "react"
 
-import { createCepa } from "../../services/CepasQuery"
-import { getCepasColumnDefs } from "../../components/CepasColumns"
+import { createCepa, getCepas } from "../../services/CepasQuery"
+import { getCepasColumnDefsWithExtras } from "../../components/CepasColumns"
 import type { CepaColumnDef } from "../../types/tableTypes"
 import type { CepaCreate } from "../../../../shared/interfaces"
 import { buildCepaPayloadFromFieldMap } from "../../utils/cepaPayload"
@@ -14,19 +14,32 @@ export function useNewCepa() {
     const [formData, setFormData] = useState<Record<string, string>>({})
     const [showModal, setShowModal] = useState(false)
     const [loading, setLoading] = useState(false)
+    const [existingNames, setExistingNames] = useState<Set<string>>(new Set())
 
     const inputRefs = useRef<(HTMLInputElement | null)[]>([])
 
-    // Carga columnas estáticas al montar
+    // Carga columnas (estáticas + dinámicas) al montar
     useEffect(() => {
-        const defs = getCepasColumnDefs()
-        setColumns(defs)
+        getCepas().then(({ items }) => {
+            const defs = getCepasColumnDefsWithExtras(items as Record<string, unknown>[])
+            setColumns(defs)
+            setExistingNames(new Set(items.map((c) => c.cepa?.trim().toLowerCase()).filter(Boolean)))
 
-        const initial: Record<string, string> = {}
-        defs
-            .filter((col) => col.field !== "id")
-            .forEach((col) => { initial[col.field] = "" })
-        setFormData(initial)
+            const initial: Record<string, string> = {}
+            defs
+                .filter((col) => col.field !== "id")
+                .forEach((col) => { initial[col.field] = "" })
+            setFormData(initial)
+        }).catch(() => {
+            // Fallback a columnas estáticas si el fetch falla
+            import("../../components/CepasColumns").then(({ getCepasColumnDefs }) => {
+                const defs = getCepasColumnDefs()
+                setColumns(defs)
+                const initial: Record<string, string> = {}
+                defs.filter((col) => col.field !== "id").forEach((col) => { initial[col.field] = "" })
+                setFormData(initial)
+            })
+        })
     }, [])
 
     const handleInputChange = (field: string, value: string) => {
@@ -53,10 +66,9 @@ export function useNewCepa() {
             await createCepa(payload)
             alert("Cepa creada correctamente.")
 
-            // Resetear formulario
-            const defs = getCepasColumnDefs()
+            // Resetear formulario manteniendo columnas actuales
             const initial: Record<string, string> = {}
-            defs.filter((c) => c.field !== "id").forEach((c) => { initial[c.field] = "" })
+            columns.filter((c) => c.field !== "id").forEach((c) => { initial[c.field] = "" })
             setFormData(initial)
             setShowModal(false)
         } catch (err) {
@@ -68,12 +80,16 @@ export function useNewCepa() {
 
     const closeModal = () => setShowModal(false)
 
+    const isDuplicate = !!formData["cepa"]?.trim() &&
+        existingNames.has(formData["cepa"].trim().toLowerCase())
+
     return {
         columns,
         formData,
         inputRefs,
         showModal,
         loading,
+        isDuplicate,
         handleInputChange,
         handleKeyDown,
         addCepaFromForm,

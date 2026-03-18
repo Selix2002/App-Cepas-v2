@@ -24,6 +24,7 @@ import CoordFilterChips      from "../components/home/components/map/CoordFilter
 import MapBottomSheetSection from "../components/home/components/map/MapBottomSheetSection"
 import CepasSidebar          from "../components/CepasTable/CepasSideBar"
 import CepasTable            from "../components/CepasTable/CepasTable"
+import "./home-page.css"
 
 export function HomePage() {
   const { logout, user } = useAuth()
@@ -44,30 +45,12 @@ export function HomePage() {
   const handleLogout = () => { logout(); navigate("/login") }
 
   // ── loading / error ───────────────────────────────────────────────────────
-  if (table.loading)
-    return (
-      <div style={{
-        display: "flex", alignItems: "center", justifyContent: "center",
-        height: "100vh", background: "#070c16", color: "#00e5b4",
-        fontFamily: "monospace", letterSpacing: 2, fontSize: 13,
-      }}>
-        Cargando cepas…
-      </div>
-    )
-
-  if (table.error)
-    return (
-      <div style={{ padding: 32, color: "#ff4d6d", fontFamily: "monospace" }}>
-        Error al cargar datos: {table.error.message}
-      </div>
-    )
+  if (table.loading) return <div className="home-loading">Cargando cepas…</div>
+  if (table.error)   return <div className="home-error">Error al cargar datos: {table.error.message}</div>
 
   return (
     <>
-      <div style={{
-        display: "flex", flexDirection: "column",
-        height: "100vh", background: "#070c16", overflow: "hidden",
-      }}>
+      <div className="home-page">
         {/* ── topbar ────────────────────────────────────────────────────── */}
         <HomeHeader
           isAdmin={!!user?.is_admin}
@@ -82,7 +65,6 @@ export function HomePage() {
           onToggleColumnVisibility={table.toggleColumnVisibility}
         />
 
-        {/* import modal */}
         <ImportCepasModal
           isOpen={showImport}
           onClose={() => setShowImport(false)}
@@ -91,9 +73,7 @@ export function HomePage() {
         />
 
         {/* ── content area: [sidebar | main] ────────────────────────────── */}
-        <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
-
-          {/* sidebar — abarca toda la altura disponible */}
+        <div className="home-content">
           <CepasSidebar
             columnDefs={table.columnDefs}
             hiddenFields={table.hiddenFields}
@@ -102,10 +82,7 @@ export function HomePage() {
             onColumnToggle={charts.handleColumnToggle}
           />
 
-          {/* main — columna con chart + table */}
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-
-            {/* chart section */}
+          <div className="home-main">
             <ChartSection
               chartRef={chartRef}
               chartType={charts.chartType}
@@ -118,7 +95,6 @@ export function HomePage() {
               onOpenDownload={() => setShowDownload(true)}
             />
 
-            {/* chart download modal */}
             <ChartDownloadModal
               isOpen={showDownload}
               onClose={() => setShowDownload(false)}
@@ -126,14 +102,12 @@ export function HomePage() {
               selectedColumnName={charts.selectedColumn?.name}
             />
 
-            {/* coord filter chips */}
             <CoordFilterChips
               coordFilter={map.coordFilter}
               onClear={map.clearCoordFilters}
             />
 
-            {/* tabla — ocupa el espacio restante */}
-            <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
+            <div className="home-table-wrap">
               <CepasTable
                 columnDefs={table.columnDefs}
                 visibleColumnDefs={table.visibleColumnDefs}
@@ -177,7 +151,6 @@ export function HomePage() {
         </div>
       </div>
 
-      {/* mapa bottom sheet */}
       <MapBottomSheetSection
         open={map.mapOpen}
         onOpenChange={map.setMapOpen}

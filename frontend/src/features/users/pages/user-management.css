@@ -1,0 +1,14 @@
+/* src/features/users/pages/user-management.css */
+
+.um-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--bg-base);
+  overflow: hidden;
+}
+
+.um-content {
+  flex: 1;
+  overflow: hidden;
+}

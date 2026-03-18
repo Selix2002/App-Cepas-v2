@@ -1,0 +1,35 @@
+/* src/features/dashboard/map/components/map-data.css */
+
+.mpopup-wrap {
+  font-size: 0.875rem;
+}
+
+.mpopup-title {
+  font-weight: 600;
+}
+
+.mpopup-list {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  list-style: none;
+  padding: 0;
+  margin-bottom: 0;
+}
+
+.mpopup-cod {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.mpopup-more {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.mpopup-coords {
+  font-size: 0.75rem;
+  opacity: 0.7;
+  margin-top: 8px;
+}

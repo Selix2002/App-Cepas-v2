@@ -1,0 +1,68 @@
+/* src/features/users/components/user-management-header.css */
+
+.umh-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 52px;
+  background: var(--bg-0);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  font-family: 'Courier New', monospace;
+  position: relative;
+}
+
+.umh-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.umh-back-link {
+  color: var(--text-1);
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-decoration: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 12px;
+  transition: border-color 0.15s, color 0.15s;
+}
+.umh-back-link:hover { border-color: var(--accent-dim); color: var(--accent); }
+
+.umh-add-btn {
+  background: var(--accent);
+  color: var(--bg-base);
+  border: none;
+  border-radius: 4px;
+  padding: 5px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  letter-spacing: 0.5px;
+  transition: box-shadow 0.2s, transform 0.15s;
+}
+.umh-add-btn:hover { box-shadow: 0 0 12px #00e5b444; transform: translateY(-1px); }
+.umh-add-btn:active { transform: scale(0.97); }
+
+.umh-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.umh-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.umh-logo-hex  { color: var(--accent); font-size: 16px; }
+.umh-logo-text { font-size: 12px; color: var(--accent-mid); letter-spacing: 1px; }

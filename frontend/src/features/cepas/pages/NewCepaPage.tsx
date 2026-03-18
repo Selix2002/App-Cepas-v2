@@ -1,5 +1,5 @@
 // src/features/cepas/pages/NewCepaPage.tsx
-import ModalConfirmation from "../../../shared/components/ModalConfirmation"
+import ModalConfirmation from "../../../shared/components/addnew-modal/ModalConfirmation"
 import NewCepaHeader     from "../components/new-cepa/NewCepaHeader"
 import NewCepaForm       from "../components/new-cepa/NewCepaForm"
 import { useNewCepa }    from "../hooks/new-cepa/useNewCepa"
@@ -11,6 +11,7 @@ export default function NewCepaPage() {
     formData,
     inputRefs,
     showModal,
+    isDuplicate,
     handleInputChange,
     handleKeyDown,
     addCepaFromForm,
@@ -30,6 +31,7 @@ export default function NewCepaPage() {
           onFieldChange={handleInputChange}
           onKeyDown={handleKeyDown}
           onAddCepa={addCepaFromForm}
+          isDuplicate={isDuplicate}
         />
       </main>
 
@@ -39,6 +41,7 @@ export default function NewCepaPage() {
         data={formData}
         onConfirm={confirmFromInputs}
         onCancel={closeModal}
+        labels={Object.fromEntries(columns.map((c) => [c.field, c.headerName]))}
       />
     </div>
   )

@@ -1,6 +1,6 @@
 /* src/app/index.css */
+@import "./tokens.css";
 @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap");
-@import "tailwindcss";
 
 :root {
   font-family: "Space Grotesk", sans-serif;
@@ -11,14 +11,12 @@
   text-rendering: optimizeLegibility;
 }
 
-@layer base {
-  html,
-  body,
-  #root {
-    height: 100%;
-    margin: 0;
-    background-color: #070c16;
-  }
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  background-color: var(--bg-base);
 }
 
 /* scrollbar global (fuera de las tablas bioluminiscentes) */
@@ -28,10 +26,10 @@
 }
 ::-webkit-scrollbar-thumb {
   border-radius: 3px;
-  background-color: #1a2f28;
+  background-color: var(--border);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background-color: #00b48e;
+  background-color: var(--accent-dim);
 }
 
 /* reset de los botones globales heredados del antiguo index.css */

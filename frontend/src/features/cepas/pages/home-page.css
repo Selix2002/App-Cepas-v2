@@ -1,0 +1,46 @@
+/* src/features/cepas/pages/home-page.css */
+
+.home-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--bg-base);
+  overflow: hidden;
+}
+
+.home-content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.home-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.home-table-wrap {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.home-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: var(--bg-base);
+  color: var(--accent);
+  font-family: monospace;
+  letter-spacing: 2px;
+  font-size: 13px;
+}
+
+.home-error {
+  padding: 32px;
+  color: #ff4d6d;
+  font-family: monospace;
+}

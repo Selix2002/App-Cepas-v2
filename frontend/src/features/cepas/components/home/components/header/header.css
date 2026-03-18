@@ -7,7 +7,7 @@
   align-items: center;
   padding: 0 20px;
   height: 56px;
-  background: #0b1220;
+  background: var(--bg-0);
   border-bottom: 2px solid #00e5b422;
   flex-shrink: 0;
   position: relative;
@@ -24,7 +24,7 @@
 }
 
 .hdr-logo-icon {
-  color: #00e5b4;
+  color: var(--accent);
   font-size: 22px;
   line-height: 1;
 }
@@ -32,13 +32,13 @@
 .hdr-logo-name {
   font-size: 15px;
   font-weight: 700;
-  color: #00e5b4;
+  color: var(--accent);
   letter-spacing: 2px;
 }
 
 .hdr-logo-sub {
   font-size: 9px;
-  color: #3a6a5a;
+  color: var(--accent-mid);
   letter-spacing: 1px;
   margin-top: 1px;
 }
@@ -53,9 +53,9 @@
 }
 
 .hdr-title {
-  font-size: 13px;
+  font-size: 17px;
   font-weight: 700;
-  color: #00e5b4;
+  color: var(--accent);
   letter-spacing: 3px;
   text-transform: uppercase;
 }
@@ -69,7 +69,7 @@
 
 .hdr-status-text {
   font-size: 10px;
-  color: #3a6a5a;
+  color: var(--accent-mid);
   letter-spacing: 1px;
 }
 
@@ -88,7 +88,7 @@
 
 /* pulso del dot de estado */
 @keyframes statusPulse {
-  0%, 100% { opacity: 1; box-shadow: 0 0 4px #00e5b4; }
+  0%, 100% { opacity: 1; box-shadow: 0 0 4px var(--accent); }
   50%       { opacity: 0.4; box-shadow: 0 0 10px #00e5b466; }
 }
 
@@ -159,13 +159,13 @@
 
 .hdr-btn-ghost {
   background: transparent;
-  border: 1px solid #1a2f28;
-  color: #8ab0a0;
+  border: 1px solid var(--border);
+  color: var(--text-1);
 }
 
 .hdr-btn-ghost:hover {
-  border-color: #00b48e;
-  color: #00e5b4;
+  border-color: var(--accent-dim);
+  color: var(--accent);
   box-shadow: 0 0 8px #00e5b422, inset 0 0 8px #00e5b408;
   transform: translateY(-1px);
 }
@@ -189,20 +189,20 @@
 
 .hdr-btn-map {
   background: transparent;
-  border: 1px solid #1a2f28;
-  color: #8ab0a0;
+  border: 1px solid var(--border);
+  color: var(--text-1);
 }
 
 .hdr-btn-map:hover {
-  border-color: #00b48e;
-  color: #00e5b4;
+  border-color: var(--accent-dim);
+  color: var(--accent);
   box-shadow: 0 0 8px #00e5b422;
   transform: translateY(-1px);
 }
 
 .hdr-btn-map.active {
-  border-color: #00b48e;
-  color: #00e5b4;
+  border-color: var(--accent-dim);
+  color: var(--accent);
   background: #00e5b411;
   box-shadow: 0 0 12px #00e5b433;
 }
@@ -214,17 +214,17 @@
 /* ── teal button (crear nuevo) ───────────────────────────────────────────── */
 
 .hdr-btn-teal {
-  background: #00e5b4;
+  background: var(--accent);
   border: none;
-  color: #070c16;
+  color: var(--bg-base);
   /* shimmer background */
   background-image: linear-gradient(
     105deg,
-    #00e5b4 0%,
-    #00e5b4 40%,
+    var(--accent) 0%,
+    var(--accent) 40%,
     #00ffcc 50%,
-    #00e5b4 60%,
-    #00e5b4 100%
+    var(--accent) 60%,
+    var(--accent) 100%
   );
   background-size: 200% auto;
 }
@@ -246,12 +246,12 @@
 }
 
 .hdr-status-dot.active {
-  background: #00e5b4;
+  background: var(--accent);
   animation: statusPulse 2s ease-in-out infinite;
 }
 
 .hdr-status-dot.idle {
-  background: #3a6a5a;
+  background: var(--accent-mid);
 }
 
 /* ── dropdown ────────────────────────────────────────────────────────────── */
@@ -260,8 +260,8 @@
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  background: #0f1a2e;
-  border: 1px solid #1a2f28;
+  background: var(--bg-1);
+  border: 1px solid var(--border);
   border-radius: 4px;
   z-index: 400;
   min-width: 185px;
@@ -274,7 +274,7 @@
 .hdr-dropdown-item {
   display: block;
   padding: 9px 16px;
-  color: #8ab0a0;
+  color: var(--text-1);
   font-size: 12px;
   text-decoration: none;
   font-family: 'Courier New', monospace;
@@ -285,7 +285,7 @@
 
 .hdr-dropdown-item:hover {
   background: #162038;
-  color: #00e5b4;
+  color: var(--accent);
   padding-left: 20px;
-  border-left-color: #00e5b4;
+  border-left-color: var(--accent);
 }

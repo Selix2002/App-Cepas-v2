@@ -1,23 +1,5 @@
 /* src/shared/components/download-modal.css */
 
-/* ── variables ───────────────────────────────────────────────────────────── */
-:root {
-  --dm-bg0:    #070c16;
-  --dm-bg1:    #0b1220;
-  --dm-bg2:    #0f1a2e;
-  --dm-bg3:    #162038;
-  --dm-teal:   #00e5b4;
-  --dm-teal2:  #00b48e;
-  --dm-red:    #ff4d6d;
-  --dm-text0:  #e8f4f0;
-  --dm-text1:  #8ab0a0;
-  --dm-text2:  #3a6a5a;
-  --dm-text3:  #1e3a30;
-  --dm-border: #1a2f28;
-  --dm-border2:#0f2020;
-  --dm-mono:   'Courier New', monospace;
-}
-
 /* ── overlay ─────────────────────────────────────────────────────────────── */
 .dm-overlay {
   position: fixed;
@@ -41,20 +23,20 @@
   z-index: 1;
   width: 100%;
   max-width: 520px;
-  background: var(--dm-bg1);
-  border: 1px solid var(--dm-border);
+  background: var(--bg-0);
+  border: 1px solid var(--border);
   border-radius: 8px;
   box-shadow: 0 24px 64px #00000099;
   overflow: hidden;
-  font-family: var(--dm-mono);
-  color: var(--dm-text0);
+  font-family: 'Courier New', monospace;
+  color: var(--text-0);
   font-size: 12px;
 }
 
 /* top accent line */
 .dm-accent-line {
   height: 2px;
-  background: linear-gradient(90deg, transparent, var(--dm-teal), transparent);
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
 }
 
 /* ── header ──────────────────────────────────────────────────────────────── */
@@ -63,7 +45,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px 24px 14px;
-  border-bottom: 1px solid var(--dm-border2);
+  border-bottom: 1px solid var(--border-dim);
 }
 
 .dm-header-left {
@@ -73,7 +55,7 @@
 }
 
 .dm-hex {
-  color: var(--dm-teal);
+  color: var(--accent);
   font-size: 16px;
   line-height: 1;
 }
@@ -81,23 +63,23 @@
 .dm-title {
   font-size: 11px;
   font-weight: 700;
-  color: var(--dm-teal);
+  color: var(--accent);
   letter-spacing: 2px;
   text-transform: uppercase;
 }
 
 .dm-subtitle {
   font-size: 9px;
-  color: var(--dm-text2);
+  color: var(--accent-mid);
   letter-spacing: 1px;
   margin-left: 4px;
 }
 
 .dm-close {
   background: transparent;
-  border: 1px solid var(--dm-border);
+  border: 1px solid var(--border);
   border-radius: 4px;
-  color: var(--dm-text2);
+  color: var(--accent-mid);
   cursor: pointer;
   font-size: 12px;
   padding: 3px 10px;
@@ -107,7 +89,7 @@
 
 .dm-close:hover {
   border-color: #ff4d6d44;
-  color: var(--dm-red);
+  color: var(--error);
 }
 
 /* ── body ────────────────────────────────────────────────────────────────── */
@@ -122,7 +104,7 @@
 .dm-label {
   display: block;
   font-size: 9px;
-  color: var(--dm-text2);
+  color: var(--accent-mid);
   letter-spacing: 2px;
   text-transform: uppercase;
   margin-bottom: 7px;
@@ -131,10 +113,10 @@
 /* ── text input ──────────────────────────────────────────────────────────── */
 .dm-input {
   width: 100%;
-  background: var(--dm-bg0);
-  border: 1px solid var(--dm-border);
+  background: var(--bg-base);
+  border: 1px solid var(--border);
   border-radius: 4px;
-  color: var(--dm-text0);
+  color: var(--text-0);
   font-family: inherit;
   font-size: 12px;
   padding: 8px 12px;
@@ -144,21 +126,21 @@
 }
 
 .dm-input::placeholder {
-  color: var(--dm-text3);
+  color: #1e3a30;
 }
 
 .dm-input:focus {
-  border-color: var(--dm-teal2);
+  border-color: var(--accent-dim);
   box-shadow: 0 0 0 3px #00e5b411;
 }
 
 /* ── select ──────────────────────────────────────────────────────────────── */
 .dm-select {
   width: 100%;
-  background: var(--dm-bg0);
-  border: 1px solid var(--dm-border);
+  background: var(--bg-base);
+  border: 1px solid var(--border);
   border-radius: 4px;
-  color: var(--dm-text0);
+  color: var(--text-0);
   font-family: inherit;
   font-size: 12px;
   padding: 8px 12px;
@@ -173,13 +155,13 @@
 }
 
 .dm-select:focus {
-  border-color: var(--dm-teal2);
+  border-color: var(--accent-dim);
   box-shadow: 0 0 0 3px #00e5b411;
 }
 
 .dm-select option {
-  background: var(--dm-bg2);
-  color: var(--dm-text0);
+  background: var(--bg-1);
+  color: var(--text-0);
 }
 
 /* ── two-col row (filename + format) ─────────────────────────────────────── */
@@ -199,7 +181,7 @@
 
 .dm-res-title {
   font-size: 9px;
-  color: var(--dm-text2);
+  color: var(--accent-mid);
   letter-spacing: 2px;
   text-transform: uppercase;
 }
@@ -210,17 +192,17 @@
   gap: 7px;
   cursor: pointer;
   font-size: 10px;
-  color: var(--dm-text2);
+  color: var(--accent-mid);
   transition: color 0.15s;
   user-select: none;
 }
 
 .dm-lock-label:hover {
-  color: var(--dm-text1);
+  color: var(--text-1);
 }
 
 .dm-lock-label input[type="checkbox"] {
-  accent-color: var(--dm-teal);
+  accent-color: var(--accent);
   cursor: pointer;
   width: 12px;
   height: 12px;
@@ -228,7 +210,7 @@
 
 .dm-res-hint {
   font-size: 9px;
-  color: var(--dm-text3);
+  color: #1e3a30;
   margin-top: 6px;
   letter-spacing: 0.5px;
 }
@@ -244,7 +226,7 @@
   top: 50%;
   transform: translateY(-50%);
   font-size: 9px;
-  color: var(--dm-text3);
+  color: #1e3a30;
   pointer-events: none;
   letter-spacing: 1px;
 }
@@ -259,7 +241,7 @@
 
 .dm-quality-title {
   font-size: 9px;
-  color: var(--dm-text2);
+  color: var(--accent-mid);
   letter-spacing: 2px;
   text-transform: uppercase;
 }
@@ -267,11 +249,11 @@
 .dm-quality-val {
   font-size: 11px;
   font-weight: 700;
-  color: var(--dm-teal);
+  color: var(--accent);
 }
 
 .dm-quality-val.disabled {
-  color: var(--dm-text3);
+  color: #1e3a30;
 }
 
 .dm-slider {
@@ -279,7 +261,7 @@
   appearance: none;
   height: 3px;
   border-radius: 2px;
-  background: var(--dm-border);
+  background: var(--border);
   outline: none;
   cursor: pointer;
   transition: opacity 0.2s;
@@ -295,23 +277,23 @@
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: var(--dm-teal);
+  background: var(--accent);
   cursor: pointer;
-  border: 2px solid var(--dm-bg1);
+  border: 2px solid var(--bg-0);
   transition: box-shadow 0.15s;
 }
 
 .dm-slider:not(:disabled)::-webkit-slider-thumb:hover {
-  box-shadow: 0 0 8px var(--dm-teal);
+  box-shadow: 0 0 8px var(--accent);
 }
 
 .dm-slider::-moz-range-thumb {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: var(--dm-teal);
+  background: var(--accent);
   cursor: pointer;
-  border: 2px solid var(--dm-bg1);
+  border: 2px solid var(--bg-0);
 }
 
 /* ── footer ──────────────────────────────────────────────────────────────── */
@@ -320,20 +302,20 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 24px 16px;
-  border-top: 1px solid var(--dm-border2);
+  border-top: 1px solid var(--border-dim);
   gap: 12px;
 }
 
 .dm-summary {
   font-size: 9px;
-  color: var(--dm-text3);
+  color: #1e3a30;
   letter-spacing: 1px;
   flex: 1;
   line-height: 1.6;
 }
 
 .dm-summary strong {
-  color: var(--dm-teal);
+  color: var(--accent);
   font-weight: 700;
 }
 
@@ -351,7 +333,7 @@
   font-weight: 700;
   letter-spacing: 1px;
   text-transform: uppercase;
-  font-family: var(--dm-mono);
+  font-family: 'Courier New', monospace;
   cursor: pointer;
   transition: box-shadow 0.2s, transform 0.15s, opacity 0.15s, border-color 0.15s, color 0.15s;
 }
@@ -362,19 +344,19 @@
 
 .dm-btn-ghost {
   background: transparent;
-  border: 1px solid var(--dm-border);
-  color: var(--dm-text1);
+  border: 1px solid var(--border);
+  color: var(--text-1);
 }
 
 .dm-btn-ghost:hover {
-  border-color: var(--dm-teal2);
-  color: var(--dm-teal);
+  border-color: var(--accent-dim);
+  color: var(--accent);
 }
 
 .dm-btn-primary {
-  background: var(--dm-teal);
+  background: var(--accent);
   border: none;
-  color: var(--dm-bg0);
+  color: var(--bg-base);
 }
 
 .dm-btn-primary:hover:not(:disabled) {
@@ -384,8 +366,8 @@
 
 .dm-btn-primary:disabled {
   background: transparent;
-  border: 1px solid var(--dm-border);
-  color: var(--dm-text3);
+  border: 1px solid var(--border);
+  color: #1e3a30;
   cursor: not-allowed;
   opacity: 0.5;
 }
@@ -406,20 +388,20 @@
   text-transform: uppercase;
   text-align: center;
   cursor: pointer;
-  font-family: var(--dm-mono);
-  border: 1px solid var(--dm-border);
+  font-family: 'Courier New', monospace;
+  border: 1px solid var(--border);
   background: transparent;
-  color: var(--dm-text2);
+  color: var(--accent-mid);
   transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
 
 .dm-format-pill:hover {
-  border-color: var(--dm-teal2);
-  color: var(--dm-text1);
+  border-color: var(--accent-dim);
+  color: var(--text-1);
 }
 
 .dm-format-pill.active {
   background: #00e5b422;
-  border-color: var(--dm-teal2);
-  color: var(--dm-teal);
+  border-color: var(--accent-dim);
+  color: var(--accent);
 }

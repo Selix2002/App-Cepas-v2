@@ -1,16 +1,17 @@
 // src/features/cepas/hooks/new-attribute/useNewAttribute.ts
-// Versión simplificada: eliminadas descarga de plantilla y subida de archivo.
 import { useEffect, useRef, useState } from "react"
 import type React from "react"
 import { getCepas, addAttribute } from "../../services/CepasQuery"
 import type { Cepa } from "../../../../shared/interfaces"
-import {loader} from "../../../../shared/utils/loader" // para mostrar spinner durante operaciones async
+import { loader } from "../../../../shared/utils/loader"
 
 type CepaLite = { id: string; nombre: string }
 
 export function useNewAttribute() {
     const [cepas, setCepas] = useState<CepaLite[]>([])
     const [loading, setLoading] = useState(false)
+    const [showModal, setShowModal] = useState(false)
+    const [modalData, setModalData] = useState<Record<string, string>>({})
 
     const inputRefs = useRef<(HTMLInputElement | null)[]>([])
 
@@ -36,27 +37,38 @@ export function useNewAttribute() {
         }
     }
 
-    // Lee el nombre del atributo (inputRefs[0]) y los valores por cepa (inputRefs[1..n])
-    const confirmFromInputs = async () => {
+    // Lee los inputs y abre el modal de confirmación
+    const confirmFromInputs = () => {
         const attributeName = inputRefs.current[0]?.value?.trim()
         if (!attributeName) {
             alert('Debes ingresar un nombre para el atributo.')
             return
         }
 
-        const dict: Record<string, string | null> = { attribute_name: attributeName }
+        const data: Record<string, string> = { attribute_name: attributeName }
         cepas.forEach((cepa, idx) => {
             const val = inputRefs.current[idx + 1]?.value?.trim()
-            dict[cepa.nombre] = val || null   // vacío → null (N/I en backend)
+            data[cepa.nombre] = val ?? ""
         })
+
+        setModalData(data)
+        setShowModal(true)
+    }
+
+    // Envía al API tras confirmar en el modal
+    const confirmSubmit = async () => {
+        setShowModal(false)
+        const { attribute_name, ...values } = modalData
+        const nullableValues: Record<string, string | null> = {}
+        for (const [k, v] of Object.entries(values)) {
+            nullableValues[k] = v === "" ? null : v
+        }
 
         setLoading(true)
         loader(true)
         try {
-            const { attribute_name, ...values } = dict
-            const result = await addAttribute(attribute_name!, values)
+            const result = await addAttribute(attribute_name, nullableValues)
             alert(`¡Atributo añadido! (${result.updated} cepas actualizadas)`)
-            // Resetear inputs
             inputRefs.current.forEach((el) => { if (el) el.value = "" })
         } catch (err: unknown) {
             const axiosErr = err as { response?: { data?: { detail?: string } }; message?: string }
@@ -68,11 +80,17 @@ export function useNewAttribute() {
         }
     }
 
+    const closeModal = () => setShowModal(false)
+
     return {
         cepas,
         loading,
         inputRefs,
+        showModal,
+        modalData,
         handleKeyDown,
         confirmFromInputs,
+        confirmSubmit,
+        closeModal,
     }
 }

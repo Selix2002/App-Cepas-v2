@@ -1,0 +1,70 @@
+/* ============================================================
+   DESIGN TOKENS — DB Cepas
+   Dark mode es el default (:root).
+   El usuario define los valores light en [data-theme="light"].
+   ============================================================ */
+
+:root {
+  /* Backgrounds */
+  --bg-base:    #070c16;   /* html / body — fondo más profundo */
+  --bg-0:       #0b1220;   /* superficie principal */
+  --bg-1:       #0f1a2e;   /* superficie elevada (cards, panels) */
+  --bg-2:       #1a2f28;   /* superficie con tinte verde (tablas, modales) */
+  --bg-3:       #0d1f1a;   /* variante oscura del verde (headers de tabla) */
+
+  /* Accent */
+  --accent:     #00e5b4;   /* teal principal — CTAs, highlights */
+  --accent-dim: #00b48e;   /* teal secundario — hover, scrollbar */
+  --accent-mid: #3a6a5a;   /* teal muted — bordes secundarios, row hover */
+
+  /* Text */
+  --text-0:     #e8f4f0;   /* texto primario */
+  --text-1:     #8ab0a0;   /* texto secundario / subtítulos */
+  --text-muted: #4a7a6a;   /* placeholder, deshabilitado */
+
+  /* Borders */
+  --border:     #1a2f28;   /* borde estándar */
+  --border-dim: #0f2820;   /* borde sutil */
+
+  /* Status */
+  --error:      #e57373;
+  --warning:    #ffb74d;
+  --success:    #00e5b4;
+
+  /* Overlay */
+  --overlay:    rgba(7, 12, 22, 0.7);
+}
+
+/* ============================================================
+   LIGHT MODE — rellenar con la paleta clara cuando esté lista
+   ============================================================ */
+[data-theme="light"] {
+  /* Backgrounds */
+  --bg-base:    #f0f4f8;
+  --bg-0:       #ffffff;
+  --bg-1:       #f8fafc;
+  --bg-2:       #e8f4f0;
+  --bg-3:       #d0ece5;
+
+  /* Accent */
+  --accent:     #00967a;
+  --accent-dim: #00b48e;
+  --accent-mid: #4aaa90;
+
+  /* Text */
+  --text-0:     #0b1a14;
+  --text-1:     #2d5a4a;
+  --text-muted: #6a9a8a;
+
+  /* Borders */
+  --border:     #c0ddd6;
+  --border-dim: #daeee8;
+
+  /* Status */
+  --error:      #c62828;
+  --warning:    #e65100;
+  --success:    #00967a;
+
+  /* Overlay */
+  --overlay:    rgba(240, 244, 248, 0.7);
+}

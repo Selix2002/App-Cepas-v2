@@ -129,7 +129,6 @@ export default function CepasTable({
   const colColorIndex = (field: string) => columnDefs.findIndex((c) => c.field === field)
 
   return (
-    /* bio-main — sin bio-layout wrapper, ya que el sidebar vive fuera */
     <div className="bio-main" style={{ height: "100%" }}>
 
       {/* stats */}
@@ -176,17 +175,7 @@ export default function CepasTable({
 
       {/* toast */}
       {notification && (
-        <div
-          style={{
-            position: "absolute", top: 12, left: "50%", transform: "translateX(-50%)",
-            zIndex: 999,
-            background: notification.type === "success" ? "#00e5b422" : "#ff4d6d22",
-            border: `1px solid ${notification.type === "success" ? "#00e5b4" : "#ff4d6d"}`,
-            color: notification.type === "success" ? "#00e5b4" : "#ff4d6d",
-            padding: "6px 20px", borderRadius: 4, fontSize: 12,
-            fontFamily: "inherit", letterSpacing: 1,
-          }}
-        >
+        <div className={`bio-toast ${notification.type === "success" ? "bio-toast-success" : "bio-toast-error"}`}>
           {notification.text}
         </div>
       )}
@@ -196,7 +185,7 @@ export default function CepasTable({
         {filteredData.length === 0 ? (
           <div className="bio-no-results">Sin resultados para los filtros aplicados</div>
         ) : (
-          <table className="bio-table">
+          <table className={`bio-table${isAdmin ? " bio-table--admin" : ""}`}>
             <thead>
               {/* header row */}
               <tr>
@@ -224,28 +213,18 @@ export default function CepasTable({
                       <div className="bio-th-inner">
                         {/* checkbox de selección para gráfico */}
                         <div
+                          className={`bio-col-checkbox${isSelected ? " bio-col-checkbox--active" : ""}`}
+                          style={{ '--col-color': color } as React.CSSProperties}
                           onClick={(e) => {
                             e.stopPropagation()
                             onColumnToggle({ field: col.field, name: col.headerName }, !isSelected)
                           }}
                           title={isSelected ? "Quitar del gráfico" : "Añadir al gráfico"}
-                          style={{
-                            width: 11, height: 11, borderRadius: 2,
-                            border: isSelected ? `1px solid ${color}` : "1px solid #3a6a5a",
-                            background: isSelected ? color : "transparent",
-                            cursor: "pointer",
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            flexShrink: 0, transition: "all 0.1s",
-                          }}
                         >
-                          {isSelected && (
-                            <span style={{ fontSize: 7, color: "#070c16", lineHeight: 1 }}>✓</span>
-                          )}
+                          {isSelected && <span className="bio-col-checkbox-check">✓</span>}
                         </div>
 
-                        <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
-                          {col.headerName}
-                        </span>
+                        <span className="bio-th-text">{col.headerName}</span>
 
                         <span className="bio-sort-arrow">
                           {isSorted ? (sortConfig.dir === "asc" ? "▲" : "▼") : "⇅"}
@@ -272,7 +251,7 @@ export default function CepasTable({
                   if (i === 0 && col.pinned) {
                     return (
                       <td key={col.field} className={tdClass} style={{ width: col.width ?? 120 }}>
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#1e3a30", fontSize: 10 }}>—</div>
+                        <div className="bio-filter-empty">—</div>
                       </td>
                     )
                   }
@@ -288,11 +267,11 @@ export default function CepasTable({
                           onChange={(e) => setColumnFilter(col.field, e.target.value)}
                         />
                         {hasFilter && (
-                          <span
-                            style={{ fontSize: 10, color: "#ff4d6d", cursor: "pointer", padding: "0 2px", flexShrink: 0 }}
+                          <button
+                            className="bio-filter-clear-btn"
                             onClick={() => clearColumnFilter(col.field)}
                             title="Limpiar"
-                          >✕</span>
+                          >✕</button>
                         )}
                       </div>
                     </td>
@@ -321,11 +300,6 @@ export default function CepasTable({
                       <td
                         key={col.field}
                         className={tdClass}
-                        style={
-                          col.pinned
-                            ? { fontWeight: 700, color: "#00e5b4", cursor: isAdmin ? "pointer" : "default" }
-                            : { cursor: isAdmin ? "pointer" : "default" }
-                        }
                         onDoubleClick={() => {
                           if (isAdmin && !col.pinned)
                             startEdit(String(row.id), col.field, strValue)
@@ -371,9 +345,7 @@ export default function CepasTable({
           </select>
           <button className="bio-page-btn" disabled={page <= 1}          onClick={() => setPage(1)}>«</button>
           <button className="bio-page-btn" disabled={page <= 1}          onClick={() => setPage(page - 1)}>‹</button>
-          <span style={{ fontSize: 10, color: "#8ab0a0", minWidth: 40, textAlign: "center" }}>
-            {page} / {totalPages}
-          </span>
+          <span className="bio-page-num">{page} / {totalPages}</span>
           <button className="bio-page-btn" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>›</button>
           <button className="bio-page-btn" disabled={page >= totalPages} onClick={() => setPage(totalPages)}>»</button>
         </div>

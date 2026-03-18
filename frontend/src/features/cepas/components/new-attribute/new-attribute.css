@@ -1,29 +1,13 @@
 /* src/features/cepas/components/new-attribute/new-attribute.css */
 
-:root {
-  --na-bg0: #070c16;
-  --na-bg1: #0b1220;
-  --na-bg2: #0f1a2e;
-  --na-sep: #0f2020;
-  --na-teal: #00e5b4;
-  --na-teal2: #00b48e;
-  --na-text0: #e8f4f0;
-  --na-text1: #8ab0a0;
-  --na-text2: #6aaa90;
-  --na-text3: #4a7a6a;
-  --na-text4: #3a6a5a;
-  --na-border: #1a2f28;
-  --na-mono: "Courier New", monospace;
-}
-
 /* ── page ────────────────────────────────────────────────────────────────── */
 .na-page {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background: var(--na-bg0);
-  font-family: var(--na-mono);
-  color: var(--na-text0);
+  background: var(--bg-base);
+  font-family: "Courier New", monospace;
+  color: var(--text-0);
   font-size: 13px;
 }
 
@@ -34,7 +18,7 @@
   justify-content: space-between;
   padding: 0 32px;
   height: 58px;
-  background: var(--na-bg1);
+  background: var(--bg-0);
   border-bottom: 2px solid #00e5b422;
   position: sticky;
   top: 0;
@@ -44,9 +28,9 @@
 
 .na-btn-back {
   background: transparent;
-  border: 1px solid var(--na-border);
+  border: 1px solid var(--border);
   border-radius: 4px;
-  color: var(--na-text1);
+  color: var(--text-1);
   font-family: inherit;
   font-size: 12px;
   font-weight: 700;
@@ -61,14 +45,14 @@
 }
 
 .na-btn-back:hover {
-  border-color: var(--na-teal2);
-  color: var(--na-teal);
+  border-color: var(--accent-dim);
+  color: var(--accent);
 }
 
 .na-topbar-title {
   font-size: 14px;
   font-weight: 700;
-  color: var(--na-teal);
+  color: var(--accent);
   letter-spacing: 4px;
   text-transform: uppercase;
 }
@@ -83,8 +67,8 @@
 
 /* ── section card ────────────────────────────────────────────────────────── */
 .na-card {
-  background: var(--na-bg1);
-  border: 1px solid var(--na-border);
+  background: var(--bg-0);
+  border: 1px solid var(--border);
   border-radius: 6px;
   margin-bottom: 28px;
   overflow: visible;
@@ -95,8 +79,8 @@
   align-items: center;
   gap: 12px;
   padding: 13px 22px;
-  background: var(--na-bg2);
-  border-bottom: 1px solid var(--na-sep);
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--border-dim);
   border-radius: 6px 6px 0 0;
 }
 
@@ -112,12 +96,12 @@
   font-weight: 700;
   letter-spacing: 2px;
   text-transform: uppercase;
-  color: var(--na-text1);
+  color: var(--text-1);
 }
 
 .na-card-count {
   font-size: 9px;
-  color: var(--na-text3);
+  color: var(--text-muted);
   letter-spacing: 1px;
   margin-left: auto;
 }
@@ -127,13 +111,13 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1px;
-  background: var(--na-sep);
+  background: var(--border-dim);
   border-radius: 0 0 6px 6px;
   overflow: visible;
 }
 
 .na-config-field {
-  background: var(--na-bg1);
+  background: var(--bg-0);
   padding: 18px 22px;
   overflow: visible;
 }
@@ -153,7 +137,7 @@
   display: block;
   font-size: 10px;
   font-weight: 700;
-  color: var(--na-text2);
+  color: #6aaa90;
   letter-spacing: 2px;
   text-transform: uppercase;
   margin-bottom: 9px;
@@ -161,16 +145,16 @@
 
 .na-label.required::after {
   content: " *";
-  color: var(--na-teal);
+  color: var(--accent);
 }
 
 /* ── text input ──────────────────────────────────────────────────────────── */
 .na-input {
   width: 100%;
-  background: var(--na-bg0);
-  border: 1px solid var(--na-border);
+  background: var(--bg-base);
+  border: 1px solid var(--border);
   border-radius: 4px;
-  color: var(--na-text0);
+  color: var(--text-0);
   font-family: inherit;
   font-size: 13px;
   padding: 10px 14px;
@@ -182,11 +166,11 @@
 }
 
 .na-input::placeholder {
-  color: var(--na-text4);
+  color: var(--accent-mid);
 }
 
 .na-input:focus {
-  border-color: var(--na-teal2);
+  border-color: var(--accent-dim);
   box-shadow: 0 0 0 3px #00e5b411;
 }
 
@@ -197,10 +181,10 @@
 
 .na-select-btn {
   width: 100%;
-  background: var(--na-bg0);
-  border: 1px solid var(--na-border);
+  background: var(--bg-base);
+  border: 1px solid var(--border);
   border-radius: 4px;
-  color: var(--na-text0);
+  color: var(--text-0);
   font-family: inherit;
   font-size: 12px;
   padding: 10px 40px 10px 14px;
@@ -217,11 +201,11 @@
 }
 
 .na-select-btn:hover {
-  border-color: var(--na-text4);
+  border-color: var(--accent-mid);
 }
 
 .na-select-btn.open {
-  border-color: var(--na-teal2);
+  border-color: var(--accent-dim);
   box-shadow: 0 0 0 3px #00e5b411;
   border-radius: 4px 4px 0 0;
 }
@@ -247,7 +231,7 @@
   top: 50%;
   transform: translateY(-50%);
   font-size: 8px;
-  color: var(--na-text4);
+  color: var(--accent-mid);
   transition:
     transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
     color 0.2s;
@@ -256,7 +240,7 @@
 
 .na-select-btn.open .na-select-btn-arrow {
   transform: translateY(-50%) rotate(180deg);
-  color: var(--na-teal);
+  color: var(--accent);
 }
 
 /* ── dropdown ────────────────────────────────────────────────────────────── */
@@ -266,8 +250,8 @@
   left: 0;
   right: 0;
   z-index: 500;
-  background: var(--na-bg1);
-  border: 1px solid var(--na-teal2);
+  background: var(--bg-0);
+  border: 1px solid var(--accent-dim);
   border-top: none;
   border-radius: 0 0 4px 4px;
   box-shadow: 0 12px 32px #00000099;
@@ -299,11 +283,11 @@
   padding: 10px 14px;
   cursor: pointer;
   font-size: 11px;
-  color: var(--na-text1);
+  color: var(--text-1);
   transition:
     background 0.12s,
     color 0.12s;
-  border-bottom: 1px solid var(--na-sep);
+  border-bottom: 1px solid var(--border-dim);
 }
 
 .na-option:last-child {
@@ -312,12 +296,12 @@
 
 .na-option:hover {
   background: #162038;
-  color: var(--na-text0);
+  color: var(--text-0);
 }
 
 .na-option.selected {
   background: #00e5b411;
-  color: var(--na-teal);
+  color: var(--accent);
 }
 
 .na-option-dot {
@@ -333,7 +317,7 @@
 
 .na-option-check {
   font-size: 10px;
-  color: var(--na-teal);
+  color: var(--accent);
   margin-left: auto;
 }
 
@@ -376,7 +360,7 @@
 
 .na-pill-hint {
   font-size: 9px;
-  color: var(--na-text4);
+  color: var(--accent-mid);
   letter-spacing: 1px;
 }
 
@@ -385,13 +369,13 @@
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 1px;
-  background: var(--na-sep);
+  background: var(--border-dim);
   border-radius: 0 0 6px 6px;
   overflow: hidden;
 }
 
 .na-cepa-field {
-  background: var(--na-bg1);
+  background: var(--bg-0);
   padding: 14px 18px;
   display: grid;
   grid-template-columns: auto 1fr;
@@ -402,17 +386,17 @@
 .na-cepa-name {
   font-size: 10px;
   font-weight: 700;
-  color: var(--na-teal);
+  color: var(--accent);
   letter-spacing: 1px;
   white-space: nowrap;
   min-width: 70px;
 }
 
 .na-cepa-input {
-  background: var(--na-bg0);
-  border: 1px solid var(--na-border);
+  background: var(--bg-base);
+  border: 1px solid var(--border);
   border-radius: 4px;
-  color: var(--na-text0);
+  color: var(--text-0);
   font-family: inherit;
   font-size: 12px;
   padding: 7px 10px;
@@ -425,11 +409,11 @@
 }
 
 .na-cepa-input::placeholder {
-  color: var(--na-text4);
+  color: var(--accent-mid);
 }
 
 .na-cepa-input:focus {
-  border-color: var(--na-teal2);
+  border-color: var(--accent-dim);
   box-shadow: 0 0 0 2px #00e5b411;
 }
 
@@ -439,8 +423,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px 32px;
-  background: var(--na-bg1);
-  border-top: 1px solid var(--na-border);
+  background: var(--bg-0);
+  border-top: 1px solid var(--border);
   position: sticky;
   bottom: 0;
   z-index: 100;
@@ -448,15 +432,15 @@
 
 .na-footer-hint {
   font-size: 10px;
-  color: var(--na-text3);
+  color: var(--text-muted);
   letter-spacing: 1px;
 }
 
 .na-btn-submit {
-  background: var(--na-teal);
+  background: var(--accent);
   border: none;
   border-radius: 4px;
-  color: var(--na-bg0);
+  color: var(--bg-base);
   font-family: inherit;
   font-size: 12px;
   font-weight: 700;

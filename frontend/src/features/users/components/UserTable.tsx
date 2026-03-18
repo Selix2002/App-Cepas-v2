@@ -1,7 +1,4 @@
 // src/features/users/components/UserTable.tsx
-// Reemplaza completamente ag-grid. Sin imports de ag-grid-react ni ag-grid-community.
-// Conserva exactamente la misma lógica: editar username, toggle admin, eliminar, no auto-eliminar.
-
 import {
   useState,
   useEffect,
@@ -9,12 +6,14 @@ import {
   useImperativeHandle,
   type KeyboardEvent,
 } from "react"
-import { getUsers, createUser, updateUser, deleteUser } from "../services/UsersQuery"
+import { getUsers, updateUser, deleteUser } from "../services/UsersQuery"
 import type { User } from "../../../shared/interfaces"
 import { useAuth } from "../../auth/store/AuthContext"
 import { loader } from "../../../shared/utils/loader"
+import "./user-table.css"
+
 export interface UserTableHandles {
-  onAddUser: () => Promise<void>
+  addUser: (user: User) => void
 }
 
 type EditingCell = {
@@ -25,132 +24,12 @@ type EditingCell = {
 
 type SortDir = "asc" | "desc"
 
-// ── helpers ──────────────────────────────────────────────────────────────────
-const S = {
-  wrap: {
-    height: "100%",
-    background: "#070c16",
-    display: "flex",
-    flexDirection: "column" as const,
-    fontFamily: "'Courier New', monospace",
-    fontSize: 13,
-    color: "#e8f4f0",
-  },
-  searchWrap: {
-    padding: "7px 16px",
-    background: "#0b1220",
-    borderBottom: "1px solid #1a2f28",
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    flexShrink: 0,
-  },
-  searchInput: {
-    flex: 1,
-    background: "#0f1a2e",
-    border: "1px solid #1a2f28",
-    borderRadius: 4,
-    color: "#e8f4f0",
-    fontFamily: "inherit",
-    fontSize: 12,
-    padding: "5px 12px",
-    outline: "none",
-  },
-  tableWrap: {
-    flex: 1,
-    overflowY: "auto" as const,
-    overflowX: "auto" as const,
-  },
-  table: {
-    borderCollapse: "collapse" as const,
-    width: "100%",
-    tableLayout: "fixed" as const,
-    whiteSpace: "nowrap" as const,
-  },
-  th: {
-    position: "sticky" as const,
-    top: 0,
-    background: "#0f1a2e",
-    color: "#3a6a5a",
-    fontSize: 9,
-    letterSpacing: 1,
-    textTransform: "uppercase" as const,
-    fontWeight: 700,
-    padding: "7px 12px",
-    borderBottom: "1px solid #1a2f28",
-    borderRight: "1px solid #0f2020",
-    cursor: "pointer",
-    userSelect: "none" as const,
-    zIndex: 10,
-  },
-  td: {
-    padding: "6px 12px",
-    borderBottom: "1px solid #0f2020",
-    borderRight: "1px solid #0f2020",
-    fontSize: 12,
-    color: "#8ab0a0",
-    verticalAlign: "middle" as const,
-  },
-  tdFrozen: {
-    position: "sticky" as const,
-    left: 0,
-    background: "#0b1220",
-    zIndex: 5,
-    borderRight: "1px solid #00e5b422",
-    fontWeight: 700,
-    color: "#00e5b4",
-  },
-  editInput: {
-    background: "#00e5b408",
-    border: "1px solid #00b48e",
-    borderRadius: 3,
-    color: "#e8f4f0",
-    fontFamily: "inherit",
-    fontSize: 12,
-    padding: "2px 8px",
-    outline: "none",
-    width: "100%",
-  },
-  pill: (val: boolean) => ({
-    display: "inline-block",
-    padding: "1px 8px",
-    borderRadius: 3,
-    fontSize: 10,
-    fontWeight: 700,
-    background: val ? "#00e5b422" : "#ff4d6d22",
-    color:      val ? "#00e5b4"   : "#ff4d6d",
-    border:     val ? "1px solid #00e5b433" : "1px solid #ff4d6d33",
-    cursor: "pointer",
-  }),
-  deleteBtn: (disabled: boolean) => ({
-    background: "transparent",
-    border: "none",
-    cursor: disabled ? "not-allowed" : "pointer",
-    fontSize: 15,
-    opacity: disabled ? 0.3 : 1,
-    padding: 0,
-  }),
-  pagination: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: "6px 16px",
-    background: "#0b1220",
-    borderTop: "1px solid #1a2f28",
-    flexShrink: 0,
-  },
-  pageBtn: {
-    padding: "3px 10px",
-    borderRadius: 3,
-    fontSize: 10,
-    fontWeight: 700,
-    border: "1px solid #1a2f28",
-    background: "transparent",
-    color: "#8ab0a0",
-    cursor: "pointer",
-    fontFamily: "inherit",
-  },
-}
+const COLS = [
+  { field: "id",       label: "ID",            width: 240, frozen: true  },
+  { field: "username", label: "Usuario",        width: 200, frozen: false },
+  { field: "is_admin", label: "Administrador",  width: 140, frozen: false },
+  { field: null,       label: "Eliminar",       width: 80,  frozen: false },
+] as const
 
 // ── component ─────────────────────────────────────────────────────────────────
 const UserTable = forwardRef<UserTableHandles>((_, ref) => {
@@ -164,10 +43,7 @@ const UserTable = forwardRef<UserTableHandles>((_, ref) => {
   const [page, setPage]             = useState(1)
   const PAGE_SIZE = 20
 
-  // ── load ─────────────────────────────────────────────────────────────────
-  useEffect(() => {
-    loadUsers()
-  }, [])
+  useEffect(() => { loadUsers() }, [])
 
   async function loadUsers() {
     setLoading(true)
@@ -183,22 +59,8 @@ const UserTable = forwardRef<UserTableHandles>((_, ref) => {
     }
   }
 
-  // ── add (imperative handle — llamado desde header) ────────────────────────
-  const onAddUser = async () => {
-    const username = window.prompt("Nombre de usuario:")
-    if (!username?.trim()) return
-    const pwd = window.prompt("Contraseña (mínimo 8 caracteres):")
-    if (!pwd) return
-    try {
-      const nuevo = await createUser({ username: username.trim(), password: pwd, is_admin: false })
-      setUsers((prev) => [...prev, nuevo])
-    } catch (err) {
-      console.error("Error creando usuario:", err)
-      window.alert("No se pudo crear el usuario.")
-    }
-  }
-
-  useImperativeHandle(ref, () => ({ onAddUser }))
+  const addUser = (user: User) => setUsers((prev) => [...prev, user])
+  useImperativeHandle(ref, () => ({ addUser }))
 
   // ── delete ────────────────────────────────────────────────────────────────
   const handleDelete = async (u: User) => {
@@ -263,9 +125,10 @@ const UserTable = forwardRef<UserTableHandles>((_, ref) => {
   }
 
   const sortArrow = (field: string) => {
-    if (sortField !== field) return <span style={{ color: "#1e3a30", marginLeft: 3 }}>⇅</span>
+    if (sortField !== field)
+      return <span className="ut-sort-arrow ut-sort-arrow-inactive">⇅</span>
     return (
-      <span style={{ color: "#00e5b4", marginLeft: 3 }}>
+      <span className="ut-sort-arrow ut-sort-arrow-active">
         {sortDir === "asc" ? "▲" : "▼"}
       </span>
     )
@@ -292,78 +155,54 @@ const UserTable = forwardRef<UserTableHandles>((_, ref) => {
 
   // ── render ────────────────────────────────────────────────────────────────
   return (
-    <div style={S.wrap}>
+    <div className="ut-wrap">
       {/* stats bar */}
-      <div
-        style={{
-          display: "flex",
-          gap: 1,
-          background: "#1a2f28",
-          borderBottom: "1px solid #1a2f28",
-          flexShrink: 0,
-        }}
-      >
+      <div className="ut-stats-bar">
         {[
           { val: users.length,    lbl: "Usuarios totales" },
           { val: filtered.length, lbl: "Mostrando" },
           { val: users.filter((u) => u.is_admin).length, lbl: "Administradores" },
         ].map(({ val, lbl }) => (
-          <div key={lbl} style={{ flex: 1, background: "#0b1220", padding: "6px 16px" }}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: "#00e5b4" }}>{val}</div>
-            <div style={{ fontSize: 9, color: "#3a6a5a", letterSpacing: 1, textTransform: "uppercase" }}>{lbl}</div>
+          <div key={lbl} className="ut-stat-block">
+            <div className="ut-stat-val">{val}</div>
+            <div className="ut-stat-lbl">{lbl}</div>
           </div>
         ))}
       </div>
 
       {/* search */}
-      <div style={S.searchWrap}>
-        <span style={{ fontSize: 14, color: "#3a6a5a" }}>⌕</span>
+      <div className="ut-search-wrap">
+        <span className="ut-search-icon">⌕</span>
         <input
-          style={S.searchInput}
+          className="ut-search-input"
           placeholder="Buscar por nombre o ID…"
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1) }}
         />
         {search && (
-          <button
-            onClick={() => setSearch("")}
-            style={{ background: "transparent", border: "none", color: "#3a6a5a", cursor: "pointer", fontSize: 14, padding: "0 4px", fontFamily: "inherit" }}
-          >
-            ✕
-          </button>
+          <button className="ut-search-clear" onClick={() => setSearch("")}>✕</button>
         )}
-        <span style={{ fontSize: 10, color: "#3a6a5a", letterSpacing: 1, whiteSpace: "nowrap" }}>
+        <span className="ut-search-count">
           {filtered.length} / {users.length} usuarios
         </span>
       </div>
 
       {/* table */}
       {loading ? (
-        <div style={{ padding: 32, textAlign: "center", color: "#3a6a5a", letterSpacing: 2, fontSize: 12 }}>
-          Cargando usuarios…
-        </div>
+        <div className="ut-loading">Cargando usuarios…</div>
       ) : (
-        <div style={S.tableWrap}>
-          <table style={S.table}>
+        <div className="ut-table-wrap">
+          <table className="ut-table">
             <thead>
               <tr>
-                {(
-                  [
-                    { field: "id",       label: "ID",              width: 240 },
-                    { field: "username", label: "Usuario",         width: 200 },
-                    { field: "is_admin", label: "Administrador",   width: 140 },
-                    { field: null,       label: "Eliminar",        width: 80  },
-                  ] as const
-                ).map((col) => (
+                {COLS.map((col) => (
                   <th
                     key={col.label}
-                    style={{
-                      ...S.th,
-                      width: col.width,
-                      minWidth: col.width,
-                      ...(col.field === "id" ? S.tdFrozen : {}),
-                      color: sortField === col.field ? "#00e5b4" : "#3a6a5a",
-                    }}
+                    className={[
+                      col.frozen ? "ut-th-frozen" : "",
+                      col.field && sortField === col.field ? "sorted" : "",
+                    ].filter(Boolean).join(" ")}
+                    style={{ width: col.width, minWidth: col.width }}
                     onClick={() => col.field && handleSort(col.field as typeof sortField)}
                   >
                     {col.label}{col.field && sortArrow(col.field)}
@@ -374,37 +213,29 @@ const UserTable = forwardRef<UserTableHandles>((_, ref) => {
             <tbody>
               {displayed.length === 0 ? (
                 <tr>
-                  <td colSpan={4} style={{ ...S.td, textAlign: "center", color: "#1e3a30", letterSpacing: 1, padding: 28 }}>
-                    Sin resultados
-                  </td>
+                  <td colSpan={4} className="ut-no-results">Sin resultados</td>
                 </tr>
               ) : (
-                displayed.map((u, i) => {
-                  const isSelf   = u.id === currentUser?.id
+                displayed.map((u) => {
+                  const isSelf    = u.id === currentUser?.id
                   const isEditing = editingCell?.id === u.id && editingCell.field === "username"
-                  const rowBg     = i % 2 === 0 ? "#0d1628" : "#0b1220"
 
                   return (
-                    <tr
-                      key={u.id}
-                      style={{ background: rowBg }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "#162038")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = rowBg)}
-                    >
+                    <tr key={u.id}>
                       {/* ID — frozen */}
-                      <td style={{ ...S.td, ...S.tdFrozen, background: rowBg }}>
-                        <span style={{ fontFamily: "monospace", fontSize: 11 }}>{u.id}</span>
+                      <td className="ut-td-frozen">
+                        <span className="ut-id-cell">{u.id}</span>
                       </td>
 
-                      {/* username — doble click edita */}
+                      {/* username */}
                       <td
-                        style={{ ...S.td, cursor: isSelf ? "default" : "pointer" }}
+                        className={isSelf ? "ut-td-readonly" : "ut-td-editable"}
                         onDoubleClick={() => startEdit(u)}
                         title={isSelf ? "No puedes editar tu propio usuario" : "Doble click para editar"}
                       >
                         {isEditing ? (
                           <input
-                            style={S.editInput}
+                            className="ut-edit-input"
                             autoFocus
                             value={editingCell!.value}
                             onChange={(e) =>
@@ -414,14 +245,17 @@ const UserTable = forwardRef<UserTableHandles>((_, ref) => {
                             onBlur={commitEdit}
                           />
                         ) : (
-                          <span>{u.username}{isSelf && <span style={{ fontSize: 9, color: "#3a6a5a", marginLeft: 6 }}>(tú)</span>}</span>
+                          <span>
+                            {u.username}
+                            {isSelf && <span className="ut-self-badge">(tú)</span>}
+                          </span>
                         )}
                       </td>
 
-                      {/* is_admin — pill clickeable */}
-                      <td style={{ ...S.td, textAlign: "center" }}>
+                      {/* is_admin — pill */}
+                      <td style={{ textAlign: "center" }}>
                         <span
-                          style={S.pill(u.is_admin)}
+                          className={`ut-pill ${u.is_admin ? "ut-pill-yes" : "ut-pill-no"}`}
                           onClick={() => !isSelf && toggleAdmin(u)}
                           title={isSelf ? "No puedes cambiar tu propio rol" : "Click para alternar"}
                         >
@@ -430,9 +264,9 @@ const UserTable = forwardRef<UserTableHandles>((_, ref) => {
                       </td>
 
                       {/* delete */}
-                      <td style={{ ...S.td, textAlign: "center" }}>
+                      <td style={{ textAlign: "center" }}>
                         <button
-                          style={S.deleteBtn(isSelf)}
+                          className="ut-delete-btn"
                           disabled={isSelf}
                           onClick={() => handleDelete(u)}
                           title={isSelf ? "No puedes eliminarte a ti mismo" : `Eliminar "${u.username}"`}
@@ -450,18 +284,16 @@ const UserTable = forwardRef<UserTableHandles>((_, ref) => {
       )}
 
       {/* pagination */}
-      <div style={S.pagination}>
-        <span style={{ fontSize: 10, color: "#3a6a5a", letterSpacing: 1 }}>
+      <div className="ut-pagination">
+        <span className="ut-page-info">
           Página {page} de {totalPages} · {filtered.length} usuarios
         </span>
-        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          <button style={S.pageBtn} disabled={page <= 1}          onClick={() => setPage(1)}>«</button>
-          <button style={S.pageBtn} disabled={page <= 1}          onClick={() => setPage((p) => p - 1)}>‹</button>
-          <span style={{ fontSize: 10, color: "#8ab0a0", minWidth: 40, textAlign: "center" }}>
-            {page} / {totalPages}
-          </span>
-          <button style={S.pageBtn} disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>›</button>
-          <button style={S.pageBtn} disabled={page >= totalPages} onClick={() => setPage(totalPages)}>»</button>
+        <div className="ut-page-controls">
+          <button className="ut-page-btn" disabled={page <= 1}          onClick={() => setPage(1)}>«</button>
+          <button className="ut-page-btn" disabled={page <= 1}          onClick={() => setPage((p) => p - 1)}>‹</button>
+          <span className="ut-page-num">{page} / {totalPages}</span>
+          <button className="ut-page-btn" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>›</button>
+          <button className="ut-page-btn" disabled={page >= totalPages} onClick={() => setPage(totalPages)}>»</button>
         </div>
       </div>
     </div>
