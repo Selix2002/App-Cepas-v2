@@ -1,0 +1,410 @@
+/* src/features/cepas/components/import-modal.css */
+
+/* ── variables locales ───────────────────────────────────────────────────── */
+:root {
+  --im-bg0:     #070c16;
+  --im-bg1:     #0b1220;
+  --im-bg2:     #0f2020;
+  --im-teal:    #00e5b4;
+  --im-teal2:   #00b48e;
+  --im-amber:   #ffb347;
+  --im-red:     #ff4d6d;
+  --im-text0:   #e8f4f0;
+  --im-text1:   #8ab0a0;
+  --im-text2:   #3a6a5a;
+  --im-text3:   #1e3a30;
+  --im-border:  #1a2f28;
+  --im-border2: #0f2020;
+  --im-mono:    'Courier New', monospace;
+}
+
+/* ── overlay / backdrop ──────────────────────────────────────────────────── */
+
+.im-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.im-backdrop {
+  position: absolute;
+  inset: 0;
+  background: #000000cc;
+  backdrop-filter: blur(2px);
+}
+
+/* ── modal card ──────────────────────────────────────────────────────────── */
+
+.im-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 560px;
+  background: var(--im-bg1);
+  border: 1px solid var(--im-border);
+  border-radius: 8px;
+  box-shadow: 0 24px 64px #00000099;
+  overflow: hidden;
+  font-family: var(--im-mono);
+  color: var(--im-text0);
+}
+
+/* top teal accent */
+.im-accent-line {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--im-teal), transparent);
+}
+
+/* ── header ──────────────────────────────────────────────────────────────── */
+
+.im-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px 14px;
+  border-bottom: 1px solid var(--im-border2);
+}
+
+.im-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.im-hex {
+  color: var(--im-teal);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.im-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--im-teal);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.im-subtitle {
+  font-size: 9px;
+  color: var(--im-text2);
+  letter-spacing: 1px;
+  margin-left: 4px;
+}
+
+.im-close {
+  background: transparent;
+  border: 1px solid var(--im-border);
+  border-radius: 4px;
+  color: var(--im-text2);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 3px 10px;
+  font-family: inherit;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.im-close:hover {
+  border-color: #ff4d6d44;
+  color: var(--im-red);
+}
+
+/* ── body ────────────────────────────────────────────────────────────────── */
+
+.im-body {
+  padding: 20px 24px 24px;
+}
+
+/* ── label ───────────────────────────────────────────────────────────────── */
+
+.im-label {
+  display: block;
+  font-size: 9px;
+  color: var(--im-text2);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  font-family: var(--im-mono);
+}
+
+/* ── dropzone ────────────────────────────────────────────────────────────── */
+
+.im-dropzone {
+  background: var(--im-bg0);
+  border: 1px dashed var(--im-border);
+  border-radius: 5px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  transition: border-color 0.2s;
+}
+
+.im-dropzone.drag-over {
+  border-color: var(--im-teal2);
+}
+
+.im-file-input {
+  display: block;
+  width: 100%;
+  font-size: 11px;
+  color: var(--im-text1);
+  font-family: var(--im-mono);
+  cursor: pointer;
+}
+
+.im-filename {
+  margin-top: 8px;
+  font-size: 10px;
+  color: var(--im-text2);
+  letter-spacing: 1px;
+}
+
+.im-drag-hint {
+  margin-top: 6px;
+  font-size: 9px;
+  color: var(--im-text3);
+  letter-spacing: 1px;
+}
+
+/* ── error banner ────────────────────────────────────────────────────────── */
+
+.im-error {
+  background: #ff4d6d11;
+  border: 1px solid #ff4d6d44;
+  border-radius: 4px;
+  padding: 8px 14px;
+  margin-bottom: 16px;
+  font-size: 11px;
+  color: var(--im-red);
+  letter-spacing: 0.5px;
+}
+
+/* ── buttons ─────────────────────────────────────────────────────────────── */
+
+.im-btn {
+  padding: 8px 18px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-family: var(--im-mono);
+  cursor: pointer;
+  transition: box-shadow 0.2s, transform 0.15s, opacity 0.15s;
+}
+
+.im-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.im-btn-primary {
+  background: var(--im-teal);
+  border: none;
+  color: var(--im-bg0);
+}
+
+.im-btn-primary:hover:not(:disabled) {
+  box-shadow: 0 0 16px #00e5b455;
+  transform: translateY(-1px);
+}
+
+.im-btn-primary:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.im-btn-primary:disabled {
+  background: transparent;
+  border: 1px solid var(--im-border);
+  color: var(--im-text2);
+}
+
+.im-btn-ghost {
+  background: transparent;
+  border: 1px solid var(--im-border);
+  color: var(--im-text1);
+}
+
+.im-btn-ghost:hover:not(:disabled) {
+  border-color: var(--im-teal2);
+  color: var(--im-teal);
+}
+
+.im-btn-ghost:disabled {
+  color: var(--im-text2);
+}
+
+/* ── button row ──────────────────────────────────────────────────────────── */
+
+.im-btn-row {
+  display: flex;
+  gap: 8px;
+}
+
+/* ── stats strip ─────────────────────────────────────────────────────────── */
+
+.im-stats {
+  display: flex;
+  gap: 1px;
+  background: var(--im-border2);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.im-stat-block {
+  flex: 1;
+  background: var(--im-bg1);
+  padding: 8px 12px;
+}
+
+.im-stat-val {
+  font-size: 18px;
+  font-weight: 700;
+  /* color set inline — depends on runtime values */
+}
+
+.im-stat-lbl {
+  font-size: 8px;
+  color: var(--im-text2);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* ── duplicates panel ────────────────────────────────────────────────────── */
+
+.im-dup-panel {
+  background: #ffb34708;
+  border: 1px solid #ffb34733;
+  border-radius: 4px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+}
+
+.im-dup-title {
+  font-size: 9px;
+  color: var(--im-amber);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.im-dup-list {
+  max-height: 100px;
+  overflow-y: auto;
+  margin-bottom: 12px;
+  font-size: 11px;
+  color: var(--im-text1);
+  line-height: 1.8;
+}
+
+.im-dup-list::-webkit-scrollbar { width: 3px; }
+.im-dup-list::-webkit-scrollbar-thumb { background: var(--im-border); }
+
+.im-dup-item {
+  border-bottom: 1px solid var(--im-border2);
+  padding-bottom: 2px;
+}
+
+.im-dup-icon {
+  color: var(--im-amber);
+  margin-right: 8px;
+}
+
+.im-dup-confirm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--im-text1);
+  font-family: var(--im-mono);
+}
+
+.im-dup-confirm input[type="checkbox"] {
+  accent-color: var(--im-teal);
+  cursor: pointer;
+}
+
+/* ── results list ────────────────────────────────────────────────────────── */
+
+.im-results-list {
+  max-height: 180px;
+  overflow-y: auto;
+  font-size: 11px;
+  color: var(--im-text1);
+  margin-bottom: 14px;
+}
+
+.im-results-list::-webkit-scrollbar { width: 3px; }
+.im-results-list::-webkit-scrollbar-thumb { background: var(--im-border); }
+
+.im-result-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--im-border2);
+}
+
+.im-result-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.im-result-meta {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.im-row-error {
+  font-size: 9px;
+  color: var(--im-red);
+  letter-spacing: 0.5px;
+  max-width: 200px;
+  text-align: right;
+}
+
+/* ── status pills ────────────────────────────────────────────────────────── */
+
+.im-pill {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  font-family: var(--im-mono);
+  letter-spacing: 1px;
+}
+
+.im-pill-ok {
+  background: #00e5b422;
+  color: var(--im-teal);
+  border: 1px solid #00e5b433;
+}
+
+.im-pill-duplicate {
+  background: #ffb34722;
+  color: var(--im-amber);
+  border: 1px solid #ffb34733;
+}
+
+.im-pill-error {
+  background: #ff4d6d22;
+  color: var(--im-red);
+  border: 1px solid #ff4d6d33;
+}
+
+.im-pill-pending {
+  background: #3a6a5a22;
+  color: var(--im-text2);
+  border: 1px solid #3a6a5a33;
+}

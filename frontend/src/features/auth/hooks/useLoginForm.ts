@@ -2,6 +2,7 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../store/AuthContext'
+import { loader } from '../../../shared/utils/loader'
 
 export function useLoginForm() {
     const { login } = useAuth()
@@ -16,6 +17,7 @@ export function useLoginForm() {
         e.preventDefault()
         setError(null)
         setIsSubmitting(true)
+        loader(true)
 
         try {
             await login(username, password) // ya maneja token + user
@@ -24,6 +26,7 @@ export function useLoginForm() {
             setError('Usuario o contraseña inválidos')
         } finally {
             setIsSubmitting(false)
+            loader(false)
         }
     }
 

@@ -51,62 +51,26 @@ export default function HomeHeader({
         return () => document.removeEventListener("mousedown", handler)
     }, [createMenuOpen])
 
-    const mono: React.CSSProperties = { fontFamily: "'Courier New', monospace" }
-
     return (
-        <div
-            style={{
-                ...mono,
-                display: "flex",
-                alignItems: "center",
-                padding: "0 20px",
-                height: 56,
-                background: "#0b1220",
-                borderBottom: "2px solid #00e5b422",
-                flexShrink: 0,
-                position: "relative",
-                zIndex: 200,
-                gap: 16,
-            }}
-        >
+        <div className="hdr-root">
+
             {/* ── LEFT: logo ──────────────────────────────────────────────────── */}
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-                <span style={{ color: "#00e5b4", fontSize: 22, lineHeight: 1 }}>⬡</span>
+            <div className="hdr-logo">
+                <span className="hdr-logo-icon">⬡</span>
                 <div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: "#00e5b4", letterSpacing: 2 }}>
-                        CEPADB
-                    </div>
-                    <div style={{ fontSize: 9, color: "#3a6a5a", letterSpacing: 1, marginTop: 1 }}>
-                        Patagonia · Cepas
-                    </div>
+                    <div className="hdr-logo-name">CEPADB</div>
+                    <div className="hdr-logo-sub">Patagonia · Cepas</div>
                 </div>
             </div>
 
             {/* ── CENTER: título + estado ──────────────────────────────────────── */}
-            <div
-                style={{
-                    flex: 1,
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    pointerEvents: "none",
-                }}
-            >
-                <div
-                    style={{
-                        fontSize: 13,
-                        fontWeight: 700,
-                        color: "#00e5b4",
-                        letterSpacing: 3,
-                        textTransform: "uppercase",
-                    }}
-                >
+            <div className="hdr-center">
+                <div className="hdr-title">
                     Dashboard para Gestión de Cepas Bacterianas
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
+                <div className="hdr-status-row">
                     <span className={`hdr-status-dot ${selectedColumnName ? "active" : "idle"}`} />
-                    <span style={{ fontSize: 10, color: "#3a6a5a", letterSpacing: 1 }}>
+                    <span className="hdr-status-text">
                         {selectedColumnName
                             ? `Analizando: ${selectedColumnName}`
                             : "Selecciona una columna para analizar"}
@@ -115,7 +79,7 @@ export default function HomeHeader({
             </div>
 
             {/* ── RIGHT: botones ──────────────────────────────────────────────── */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+            <div className="hdr-actions">
 
                 {/* cerrar sesión */}
                 <button
@@ -154,7 +118,7 @@ export default function HomeHeader({
 
                 {/* crear nuevo — solo admin */}
                 {isAdmin && (
-                    <div style={{ position: "relative" }} ref={createMenuRef}>
+                    <div className="hdr-dropdown-wrap" ref={createMenuRef}>
                         <button
                             className="hdr-btn hdr-btn-teal"
                             onClick={(e) => { addRipple(e); setCreateMenuOpen((v) => !v) }}

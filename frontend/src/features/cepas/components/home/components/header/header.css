@@ -1,5 +1,89 @@
 /* src/features/cepas/components/home/components/header/header.css */
 
+/* ── layout ──────────────────────────────────────────────────────────────── */
+
+.hdr-root {
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  height: 56px;
+  background: #0b1220;
+  border-bottom: 2px solid #00e5b422;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 200;
+  gap: 16px;
+  font-family: 'Courier New', monospace;
+}
+
+.hdr-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.hdr-logo-icon {
+  color: #00e5b4;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.hdr-logo-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #00e5b4;
+  letter-spacing: 2px;
+}
+
+.hdr-logo-sub {
+  font-size: 9px;
+  color: #3a6a5a;
+  letter-spacing: 1px;
+  margin-top: 1px;
+}
+
+.hdr-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.hdr-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #00e5b4;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+.hdr-status-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.hdr-status-text {
+  font-size: 10px;
+  color: #3a6a5a;
+  letter-spacing: 1px;
+}
+
+.hdr-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.hdr-dropdown-wrap {
+  position: relative;
+}
+
 /* ── keyframes ───────────────────────────────────────────────────────────── */
 
 /* pulso del dot de estado */

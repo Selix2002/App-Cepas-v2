@@ -1,36 +1,28 @@
 // src/features/cepas/pages/NewCepaPage.tsx
-import ModalConfirmation from "../../../shared/components/ModalConfirmation";
-
-import NewCepaHeader from "../components/new-cepa/NewCepaHeader";
-import NewCepaForm from "../components/new-cepa/NewCepaForm";
-import { useNewCepa } from "../hooks/new-cepa/useNewCepa";
+import ModalConfirmation from "../../../shared/components/ModalConfirmation"
+import NewCepaHeader     from "../components/new-cepa/NewCepaHeader"
+import NewCepaForm       from "../components/new-cepa/NewCepaForm"
+import { useNewCepa }    from "../hooks/new-cepa/useNewCepa"
+import "../components/new-cepa/new-cepa.css"
 
 export default function NewCepaPage() {
   const {
     columns,
     formData,
-    fileData,
-    showModal,
-    fileInputRef,
     inputRefs,
+    showModal,
     handleInputChange,
     handleKeyDown,
-    downloadTemplate,
-    handleFileUpload,
     addCepaFromForm,
-    confirmFromModal,
+    confirmFromInputs,
     closeModal,
-  } = useNewCepa();
+  } = useNewCepa()
 
   return (
-    <div className="flex flex-col h-screen bg-gray-900 text-white">
-      <NewCepaHeader
-        onDownloadTemplate={downloadTemplate}
-        fileInputRef={fileInputRef}
-        onFileChange={handleFileUpload}
-      />
+    <div className="nc-page">
+      <NewCepaHeader />
 
-      <main className="flex-grow p-6 overflow-y-auto">
+      <main style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" }}>
         <NewCepaForm
           columns={columns}
           formData={formData}
@@ -41,12 +33,13 @@ export default function NewCepaPage() {
         />
       </main>
 
+      {/* Modal de confirmación antes de crear */}
       <ModalConfirmation
         visible={showModal}
-        data={Object.keys(fileData).length ? fileData : formData}
-        onConfirm={confirmFromModal}
+        data={formData}
+        onConfirm={confirmFromInputs}
         onCancel={closeModal}
       />
     </div>
-  );
+  )
 }

@@ -1,0 +1,146 @@
+/* src/features/cepas/components/home/components/chart/chart.css */
+
+/* ── root ────────────────────────────────────────────────────────────────── */
+
+.chart-root {
+  background: #0f1a2e;
+  border-bottom: 1px solid #1a2f28;
+  padding: 14px 24px 12px;
+  flex-shrink: 0;
+  font-family: 'Courier New', monospace;
+}
+
+/* ── header row ──────────────────────────────────────────────────────────── */
+
+.chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.chart-label-wrap {
+  display: flex;
+  align-items: center;
+}
+
+.chart-label-prefix {
+  font-size: 10px;
+  color: #3a6a5a;
+  letter-spacing: 2px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.chart-label-name {
+  font-size: 13px;
+  color: #00e5b4;
+  font-weight: 700;
+  margin-left: 8px;
+}
+
+.chart-label-hint {
+  font-size: 10px;
+  color: #3a6a5a;
+  margin-left: 10px;
+  letter-spacing: 1px;
+}
+
+/* ── controls (right side) ───────────────────────────────────────────────── */
+
+.chart-controls {
+  display: flex;
+  gap: 8px;
+}
+
+/* ── type toggle buttons ─────────────────────────────────────────────────── */
+
+.chart-type-btn {
+  padding: 4px 14px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid #1a2f28;
+  background: transparent;
+  color: #3a6a5a;
+  transition: border-color 0.15s, color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+
+.chart-type-btn:hover {
+  border-color: #3a6a5a;
+  color: #8ab0a0;
+}
+
+.chart-type-btn.active {
+  background: #00e5b422;
+  border-color: #00b48e;
+  color: #00e5b4;
+}
+
+.chart-type-btn.active:hover {
+  box-shadow: 0 0 6px #00e5b430;
+}
+
+/* ── download button ─────────────────────────────────────────────────────── */
+
+.chart-dl-btn {
+  padding: 4px 14px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid #1a2f28;
+  background: transparent;
+  color: #1e3a30;
+  transition: border-color 0.15s, color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+
+.chart-dl-btn.ready {
+  background: #00e5b422;
+  border-color: #00b48e;
+  color: #00e5b4;
+  cursor: pointer;
+}
+
+.chart-dl-btn.ready:hover {
+  background: #00e5b433;
+  box-shadow: 0 0 8px #00e5b430;
+}
+
+.chart-dl-btn:disabled {
+  cursor: not-allowed;
+}
+
+/* ── chart body ──────────────────────────────────────────────────────────── */
+
+.chart-body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 170px;
+  background: #0b1220;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.chart-empty {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 170px;
+  font-size: 11px;
+  color: #1e3a30;
+  letter-spacing: 1px;
+  border: 1px dashed #1a2f28;
+  border-radius: 4px;
+  font-family: inherit;
+}
+
+.chart-canvas {
+  width: 100%;
+  height: 260px;
+}

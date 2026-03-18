@@ -12,7 +12,7 @@ import {
 import { getUsers, createUser, updateUser, deleteUser } from "../services/UsersQuery"
 import type { User } from "../../../shared/interfaces"
 import { useAuth } from "../../auth/store/AuthContext"
-
+import { loader } from "../../../shared/utils/loader"
 export interface UserTableHandles {
   onAddUser: () => Promise<void>
 }
@@ -171,6 +171,7 @@ const UserTable = forwardRef<UserTableHandles>((_, ref) => {
 
   async function loadUsers() {
     setLoading(true)
+    loader(true)
     try {
       const { items } = await getUsers()
       setUsers(items)
@@ -178,6 +179,7 @@ const UserTable = forwardRef<UserTableHandles>((_, ref) => {
       console.error("Error cargando usuarios:", err)
     } finally {
       setLoading(false)
+      loader(false)
     }
   }
 

@@ -1,7 +1,7 @@
 // src/features/cepas/components/home/components/chart/ChartSection.tsx
 import type { RefObject } from "react"
 import MyPieChart from "../../../../../dashboard/pieChart/components/PieChart"
-import BarChart   from "../../../../../dashboard/barChart/components/barChart"
+import BarChart from "../../../../../dashboard/barChart/components/barChart"
 import type {
   ChartType,
   ColumnSelection,
@@ -19,6 +19,9 @@ type Props = {
   canDownload: boolean
   onOpenDownload: () => void
 }
+
+
+const CHART_HEIGHT = 380
 
 export default function ChartSection({
   chartRef,
@@ -45,7 +48,7 @@ export default function ChartSection({
         fontFamily: "'Courier New', monospace",
       }}
     >
-      {/* ── header row ───────────────────────────────────────────────────── */}
+      {/* ── header row ─────────────────────────────────────────────────── */}
       <div
         style={{
           display: "flex",
@@ -107,16 +110,8 @@ export default function ChartSection({
                 border: "1px solid",
                 transition: "all 0.1s",
                 ...(chartType === t
-                  ? {
-                      background: "#00e5b422",
-                      borderColor: "#00b48e",
-                      color: "#00e5b4",
-                    }
-                  : {
-                      background: "transparent",
-                      borderColor: "#1a2f28",
-                      color: "#3a6a5a",
-                    }),
+                  ? { background: "#00e5b422", borderColor: "#00b48e", color: "#00e5b4" }
+                  : { background: "transparent", borderColor: "#1a2f28", color: "#3a6a5a" }),
               }}
             >
               {t === "bar" ? "Barras" : "Torta"}
@@ -137,16 +132,8 @@ export default function ChartSection({
                 border: "1px solid",
                 transition: "all 0.15s",
                 ...(hasChart
-                  ? {
-                      background: "#00e5b422",
-                      borderColor: "#00b48e",
-                      color: "#00e5b4",
-                    }
-                  : {
-                      background: "transparent",
-                      borderColor: "#1a2f28",
-                      color: "#1e3a30",
-                    }),
+                  ? { background: "#00e5b422", borderColor: "#00b48e", color: "#00e5b4" }
+                  : { background: "transparent", borderColor: "#1a2f28", color: "#1e3a30" }),
               }}
             >
               ↓ Descargar
@@ -155,57 +142,69 @@ export default function ChartSection({
         </div>
       </div>
 
-      {/* ── chart body ───────────────────────────────────────────────────── */}
+      {/* ── chart body ─────────────────────────────────────────────────── */}
+      {/*
+        overflow: visible  → las etiquetas de arco (arcLinkLabels) pueden
+                             sobresalir del contenedor sin cortarse.
+        background sobre el wrapper exterior, no sobre el div con ref,
+        para que html2canvas capture el fondo correctamente.
+      */}
       <div
-        ref={chartRef}
         style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          minHeight: 170,
           background: "#0b1220",
           borderRadius: 4,
-          overflow: "hidden",
+          /* sin overflow:hidden — las etiquetas necesitan espacio */
         }}
       >
-        {!hasChart ? (
-          /* empty placeholder */
-          <div
-            style={{
-              width: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              height: 170,
-              fontSize: 11,
-              color: "#1e3a30",
-              letterSpacing: 1,
-              border: "1px dashed #1a2f28",
-              borderRadius: 4,
-              fontFamily: "inherit",
-            }}
-          >
-            {chartType === "pie"
-              ? "— Selecciona una columna del panel izquierdo —"
-              : "— Selecciona dos columnas para el gráfico de barras —"}
-          </div>
-        ) : (
-          <div style={{ width: "100%", height: 260 }}>
-            {chartType === "pie" && pieChartData.length > 0 && (
-              <MyPieChart data={pieChartData} />
-            )}
-            {chartType === "bar" && barDataset && (
-              <BarChart
-                data={barDataset.data}
-                keys={barDataset.keys}
-                indexBy={barDataset.indexBy}
-                xLabel={selectedColumns[0]?.name ?? ""}
-                yLabel="Cantidad"
-                groupMode="stacked"
-              />
-            )}
-          </div>
-        )}
+        <div
+          ref={chartRef}
+          style={{
+            width: "100%",
+            height: hasChart ? CHART_HEIGHT : 130,
+            /* overflow visible para que NIVO pueda pintar fuera del rect */
+            overflow: "visible",
+            position: "relative",
+          }}
+        >
+          {!hasChart ? (
+            <div
+              style={{
+                width: "100%",
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 11,
+                color: "#1e3a30",
+                letterSpacing: 1,
+                border: "1px dashed #1a2f28",
+                borderRadius: 4,
+                fontFamily: "inherit",
+                boxSizing: "border-box",
+              }}
+            >
+              {chartType === "pie"
+                ? "— Selecciona una columna del panel izquierdo —"
+                : "— Selecciona dos columnas para el gráfico de barras —"}
+            </div>
+          ) : (
+            <>
+              {chartType === "pie" && pieChartData.length > 0 && (
+                <MyPieChart data={pieChartData} />
+              )}
+              {chartType === "bar" && barDataset && (
+                <BarChart
+                  data={barDataset.data}
+                  keys={barDataset.keys}
+                  indexBy={barDataset.indexBy}
+                  xLabel={selectedColumns[0]?.name ?? ""}
+                  yLabel="Cantidad"
+                  groupMode="stacked"
+                />
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   )

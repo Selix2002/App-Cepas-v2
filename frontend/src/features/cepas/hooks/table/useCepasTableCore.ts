@@ -14,6 +14,7 @@ import type {
 } from "../../types/tableTypes"
 import ExcelJS from "exceljs"
 import { saveAs } from "file-saver"
+import { loader } from "../../../../shared/utils/loader"
 
 // ─── localStorage helpers ────────────────────────────────────────────────────
 const hiddenKey = (userId: string) => `bio_hidden_cols_${userId}`
@@ -70,6 +71,7 @@ export function useCepasTableCore({ user, onDataLoaded }: Params) {
     // ── fetch ─────────────────────────────────────────────────────────────────
     useEffect(() => {
         setLoading(true)
+        loader(true)
         getCepas()
             .then(({ items }) => {
                 setRawData(items)
@@ -84,7 +86,10 @@ export function useCepasTableCore({ user, onDataLoaded }: Params) {
                 }
             })
             .catch((err) => setError(err instanceof Error ? err : new Error(String(err))))
-            .finally(() => setLoading(false))
+            .finally(() => {
+                setLoading(false)
+                loader(false)
+            })
     }, [refreshToken]) // eslint-disable-line react-hooks/exhaustive-deps
 
     // ── derived: visible columns ───────────────────────────────────────────────
