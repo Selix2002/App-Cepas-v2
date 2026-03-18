@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react"
 import type { GridApi, Column } from "ag-grid-community"
-import type { GridReadyCallback } from "../../components/CepasTable"
 import { exportToExcel } from "../../../../shared/utils/exportExcel"
 import type { User, Cepa } from "../../../../shared/interfaces"
+
+type GridReadyCallback = (params: { api: GridApi }) => void
 
 type UseCepasGridParams = {
     user: User | null

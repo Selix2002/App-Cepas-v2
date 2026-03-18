@@ -1,0 +1,38 @@
+/* src/features/dashboard/pieChart/components/pie-chart.css */
+
+.pie-chart-tooltip {
+  background: var(--bg-0);
+  border: 1px solid var(--tip-ca, var(--border));
+  border-left: 2px solid var(--tip-c, var(--accent));
+  border-radius: 4px;
+  padding: 8px 14px;
+  font-family: 'Courier New', monospace;
+  box-shadow: 0 8px 24px #00000088;
+  min-width: 140px;
+}
+
+.pie-chart-tooltip-label {
+  font-size: 9px;
+  color: var(--accent-mid);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.pie-chart-tooltip-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.pie-chart-tooltip-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--tip-c, var(--accent));
+  line-height: 1;
+}
+
+.pie-chart-tooltip-formatted {
+  font-size: 10px;
+  color: var(--accent-mid);
+}

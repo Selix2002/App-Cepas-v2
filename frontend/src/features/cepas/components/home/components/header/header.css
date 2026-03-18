@@ -1,0 +1,344 @@
+/* src/features/cepas/components/home/components/header/header.css */
+
+/* ── layout ──────────────────────────────────────────────────────────────── */
+
+.hdr-root {
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  height: 56px;
+  background: var(--bg-0);
+  border-bottom: 2px solid #00e5b422;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 200;
+  gap: 16px;
+  font-family: 'Courier New', monospace;
+}
+
+.hdr-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.hdr-logo-icon {
+  color: var(--accent);
+  font-size: 22px;
+  line-height: 1;
+}
+
+.hdr-logo-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 2px;
+}
+
+.hdr-logo-sub {
+  font-size: 9px;
+  color: var(--accent-mid);
+  letter-spacing: 1px;
+  margin-top: 1px;
+}
+
+.hdr-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.hdr-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+.hdr-status-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.hdr-status-text {
+  font-size: 10px;
+  color: var(--accent-mid);
+  letter-spacing: 1px;
+}
+
+.hdr-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.hdr-dropdown-wrap {
+  position: relative;
+}
+
+/* ── keyframes ───────────────────────────────────────────────────────────── */
+
+/* pulso del dot de estado */
+@keyframes statusPulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 4px var(--accent); }
+  50%       { opacity: 0.4; box-shadow: 0 0 10px #00e5b466; }
+}
+
+/* ripple al hacer click */
+@keyframes ripple {
+  0%   { transform: scale(0); opacity: 0.5; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+/* entrada del dropdown */
+@keyframes dropdownIn {
+  0%   { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  100% { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+/* glow lateral que recorre el botón */
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+/* rebote suave al hover del botón teal */
+@keyframes tealPop {
+  0%   { transform: translateY(0) scale(1); }
+  40%  { transform: translateY(-2px) scale(1.04); }
+  70%  { transform: translateY(0px) scale(0.98); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+/* ── botones genéricos ───────────────────────────────────────────────────── */
+
+.hdr-btn {
+  position: relative;
+  overflow: hidden;           /* para el ripple */
+  border-radius: 4px;
+  padding: 5px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.5px;
+  transition:
+    border-color  0.2s ease,
+    color         0.2s ease,
+    background    0.2s ease,
+    box-shadow    0.2s ease,
+    transform     0.15s ease;
+}
+
+.hdr-btn:active {
+  transform: scale(0.95) !important;
+}
+
+/* ripple element (añadido vía JS) */
+.hdr-btn .ripple {
+  position: absolute;
+  border-radius: 50%;
+  width: 80px;
+  height: 80px;
+  margin-top: -40px;
+  margin-left: -40px;
+  background: rgba(255, 255, 255, 0.15);
+  animation: ripple 0.5s linear;
+  pointer-events: none;
+}
+
+/* ── ghost button ───────────────────────────────────────────────────────── */
+
+.hdr-btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-1);
+}
+
+.hdr-btn-ghost:hover {
+  border-color: var(--accent-dim);
+  color: var(--accent);
+  box-shadow: 0 0 8px #00e5b422, inset 0 0 8px #00e5b408;
+  transform: translateY(-1px);
+}
+
+/* ── danger button (cerrar sesión) ────────────────────────────────────────── */
+
+.hdr-btn-danger {
+  background: transparent;
+  border: 1px solid #ff4d6d44;
+  color: #ff4d6d;
+}
+
+.hdr-btn-danger:hover {
+  border-color: #ff4d6d;
+  background: #ff4d6d11;
+  box-shadow: 0 0 10px #ff4d6d33;
+  transform: translateY(-1px);
+}
+
+/* ── mapa button (toggle) ────────────────────────────────────────────────── */
+
+.hdr-btn-map {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-1);
+}
+
+.hdr-btn-map:hover {
+  border-color: var(--accent-dim);
+  color: var(--accent);
+  box-shadow: 0 0 8px #00e5b422;
+  transform: translateY(-1px);
+}
+
+.hdr-btn-map.active {
+  border-color: var(--accent-dim);
+  color: var(--accent);
+  background: #00e5b411;
+  box-shadow: 0 0 12px #00e5b433;
+}
+
+.hdr-btn-map.active:hover {
+  box-shadow: 0 0 18px #00e5b455;
+}
+
+/* ── teal button (crear nuevo) ───────────────────────────────────────────── */
+
+.hdr-btn-teal {
+  background: var(--accent);
+  border: none;
+  color: var(--bg-base);
+  /* shimmer background */
+  background-image: linear-gradient(
+    105deg,
+    var(--accent) 0%,
+    var(--accent) 40%,
+    #00ffcc 50%,
+    var(--accent) 60%,
+    var(--accent) 100%
+  );
+  background-size: 200% auto;
+}
+
+.hdr-btn-teal:hover {
+  animation: tealPop 0.35s ease forwards, shimmer 0.8s linear;
+  background-position: right center;
+  box-shadow: 0 0 16px #00e5b466, 0 2px 8px #00000044;
+}
+
+/* ── status dot pulse ───────────────────────────────────────────────────── */
+
+.hdr-status-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.hdr-status-dot.active {
+  background: var(--accent);
+  animation: statusPulse 2s ease-in-out infinite;
+}
+
+.hdr-status-dot.idle {
+  background: var(--accent-mid);
+}
+
+/* ── theme toggle pill ───────────────────────────────────────────────────── */
+
+.hdr-theme-toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.hdr-theme-pill-track {
+  display: flex;
+  align-items: center;
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-1);
+  position: relative;
+  transition: background 0.25s, border-color 0.25s, box-shadow 0.25s;
+}
+
+.hdr-theme-toggle.light .hdr-theme-pill-track {
+  border-color: var(--accent-mid);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.hdr-theme-pill-thumb {
+  position: absolute;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--bg-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.25s;
+}
+
+.hdr-theme-toggle.light .hdr-theme-pill-thumb {
+  transform: translateX(20px);
+  background: var(--accent);
+  color: var(--bg-0);
+}
+
+.hdr-theme-toggle:hover .hdr-theme-pill-track {
+  border-color: var(--accent-dim);
+}
+
+/* ── dropdown ────────────────────────────────────────────────────────────── */
+
+.hdr-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  z-index: 400;
+  min-width: 185px;
+  padding: 4px 0;
+  box-shadow: 0 8px 32px #00000088, 0 0 0 1px #00e5b411;
+  animation: dropdownIn 0.18s ease-out forwards;
+  transform-origin: top right;
+}
+
+.hdr-dropdown-item {
+  display: block;
+  padding: 9px 16px;
+  color: var(--text-1);
+  font-size: 12px;
+  text-decoration: none;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.5px;
+  transition: background 0.12s, color 0.12s, padding-left 0.15s;
+  border-left: 2px solid transparent;
+}
+
+.hdr-dropdown-item:hover {
+  background: var(--bg-hover);
+  color: var(--accent);
+  padding-left: 20px;
+  border-left-color: var(--accent);
+}

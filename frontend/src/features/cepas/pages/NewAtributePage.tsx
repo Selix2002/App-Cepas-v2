@@ -1,6 +1,5 @@
 // src/features/cepas/pages/NewAtributePage.tsx
-import ModalConfirmation from "../../../shared/components/ModalConfirmation";
-
+import ModalConfirmation from "../../../shared/components/addnew-modal/ModalConfirmation";
 import NewAttributeHeader from "../components/new-attribute/NewAttributeHeader";
 import NewAttributeForm from "../components/new-attribute/NewAttributeForm";
 import { useNewAttribute } from "../hooks/new-attribute/useNewAttribute";
@@ -9,32 +8,19 @@ export default function NewAttributePage() {
   const {
     cepas,
     inputRefs,
-    fileInputRef,
-    fileDict,
     showModal,
-    downloadTemplate,
-    handleFileChange,
+    modalData,
     handleKeyDown,
-    confirmFromFile,
     confirmFromInputs,
+    confirmSubmit,
     closeModal,
   } = useNewAttribute();
 
   return (
     <div className="min-h-screen bg-[#213547]">
-      {/* Header fijo */}
-      <NewAttributeHeader
-        onDownloadTemplate={downloadTemplate}
-        fileInputRef={fileInputRef}
-        onFileChange={handleFileChange}
-      />
+      <NewAttributeHeader />
 
-      {/* Formulario principal */}
       <main className="pt-32 p-8">
-        <h1 className="text-2xl text-center font-bold text-white mb-6">
-          Añadir Nuevo Atributo
-        </h1>
-
         <NewAttributeForm
           cepas={cepas}
           inputRefs={inputRefs}
@@ -42,11 +28,10 @@ export default function NewAttributePage() {
           onSubmit={confirmFromInputs}
         />
 
-        {/* Modal de confirmación (datos provenientes del archivo txt) */}
         <ModalConfirmation
           visible={showModal}
-          data={fileDict}
-          onConfirm={confirmFromFile}
+          data={modalData}
+          onConfirm={confirmSubmit}
           onCancel={closeModal}
         />
       </main>

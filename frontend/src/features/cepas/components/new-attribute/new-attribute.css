@@ -1,0 +1,470 @@
+/* src/features/cepas/components/new-attribute/new-attribute.css */
+
+/* ── page ────────────────────────────────────────────────────────────────── */
+.na-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--bg-base);
+  font-family: "Courier New", monospace;
+  color: var(--text-0);
+  font-size: 13px;
+}
+
+/* ── topbar ──────────────────────────────────────────────────────────────── */
+.na-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  height: 58px;
+  background: var(--bg-0);
+  border-bottom: 2px solid #00e5b422;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  flex-shrink: 0;
+}
+
+.na-btn-back {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-1);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 7px 18px;
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
+  display: inline-block;
+}
+
+.na-btn-back:hover {
+  border-color: var(--accent-dim);
+  color: var(--accent);
+}
+
+.na-topbar-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 4px;
+  text-transform: uppercase;
+}
+
+/* ── content ─────────────────────────────────────────────────────────────── */
+.na-content {
+  max-width: 1000px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 36px 32px 100px;
+}
+
+/* ── section card ────────────────────────────────────────────────────────── */
+.na-card {
+  background: var(--bg-0);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 28px;
+  overflow: visible;
+}
+
+.na-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 22px;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--border-dim);
+  border-radius: 6px 6px 0 0;
+}
+
+.na-card-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.na-card-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-1);
+}
+
+.na-card-count {
+  font-size: 9px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  margin-left: auto;
+}
+
+/* ── config grid (2 cols) ────────────────────────────────────────────────── */
+.na-config-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border-dim);
+  border-radius: 0 0 6px 6px;
+  overflow: visible;
+}
+
+.na-config-field {
+  background: var(--bg-0);
+  padding: 18px 22px;
+  overflow: visible;
+}
+
+.na-config-field:first-child {
+  border-radius: 0 0 0 6px;
+}
+
+.na-config-field:last-child {
+  border-radius: 0 0 6px 0;
+  position: relative;
+  z-index: 10;
+}
+
+/* ── field label ─────────────────────────────────────────────────────────── */
+.na-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  color: #6aaa90;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 9px;
+}
+
+.na-label.required::after {
+  content: " *";
+  color: var(--accent);
+}
+
+/* ── text input ──────────────────────────────────────────────────────────── */
+.na-input {
+  width: 100%;
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-0);
+  font-family: inherit;
+  font-size: 13px;
+  padding: 10px 14px;
+  outline: none;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+.na-input::placeholder {
+  color: var(--accent-mid);
+}
+
+.na-input:focus {
+  border-color: var(--accent-dim);
+  box-shadow: 0 0 0 3px #00e5b411;
+}
+
+/* ── custom select ───────────────────────────────────────────────────────── */
+.na-select-wrap {
+  position: relative;
+}
+
+.na-select-btn {
+  width: 100%;
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-0);
+  font-family: inherit;
+  font-size: 12px;
+  padding: 10px 40px 10px 14px;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s,
+    border-radius 0.15s;
+}
+
+.na-select-btn:hover {
+  border-color: var(--accent-mid);
+}
+
+.na-select-btn.open {
+  border-color: var(--accent-dim);
+  box-shadow: 0 0 0 3px #00e5b411;
+  border-radius: 4px 4px 0 0;
+}
+
+.na-select-btn-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+
+.na-select-btn-label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.na-select-btn-arrow {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 8px;
+  color: var(--accent-mid);
+  transition:
+    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.2s;
+  pointer-events: none;
+}
+
+.na-select-btn.open .na-select-btn-arrow {
+  transform: translateY(-50%) rotate(180deg);
+  color: var(--accent);
+}
+
+/* ── dropdown ────────────────────────────────────────────────────────────── */
+.na-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 500;
+  background: var(--bg-0);
+  border: 1px solid var(--accent-dim);
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  box-shadow: 0 12px 32px #00000099;
+  overflow: hidden;
+
+  /* estado cerrado */
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+
+  transition:
+    max-height 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.na-dropdown.open {
+  max-height: 360px;
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.na-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--text-1);
+  transition:
+    background 0.12s,
+    color 0.12s;
+  border-bottom: 1px solid var(--border-dim);
+}
+
+.na-option:last-child {
+  border-bottom: none;
+}
+
+.na-option:hover {
+  background: #162038;
+  color: var(--text-0);
+}
+
+.na-option.selected {
+  background: #00e5b411;
+  color: var(--accent);
+}
+
+.na-option-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.na-option-label {
+  flex: 1;
+}
+
+.na-option-check {
+  font-size: 10px;
+  color: var(--accent);
+  margin-left: auto;
+}
+
+/* ── pill preview ────────────────────────────────────────────────────────── */
+.na-pill-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  min-height: 22px;
+}
+
+.na-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transition:
+    background 0.25s,
+    border-color 0.25s;
+  border: 1px solid transparent;
+}
+
+.na-pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background 0.25s;
+}
+
+.na-pill-label {
+  transition: color 0.25s;
+}
+
+.na-pill-hint {
+  font-size: 9px;
+  color: var(--accent-mid);
+  letter-spacing: 1px;
+}
+
+/* ── cepas grid ──────────────────────────────────────────────────────────── */
+.na-cepas-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1px;
+  background: var(--border-dim);
+  border-radius: 0 0 6px 6px;
+  overflow: hidden;
+}
+
+.na-cepa-field {
+  background: var(--bg-0);
+  padding: 14px 18px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 12px;
+}
+
+.na-cepa-name {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 1px;
+  white-space: nowrap;
+  min-width: 70px;
+}
+
+.na-cepa-input {
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-0);
+  font-family: inherit;
+  font-size: 12px;
+  padding: 7px 10px;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.na-cepa-input::placeholder {
+  color: var(--accent-mid);
+}
+
+.na-cepa-input:focus {
+  border-color: var(--accent-dim);
+  box-shadow: 0 0 0 2px #00e5b411;
+}
+
+/* ── footer ──────────────────────────────────────────────────────────────── */
+.na-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 32px;
+  background: var(--bg-0);
+  border-top: 1px solid var(--border);
+  position: sticky;
+  bottom: 0;
+  z-index: 100;
+}
+
+.na-footer-hint {
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+}
+
+.na-btn-submit {
+  background: var(--accent);
+  border: none;
+  border-radius: 4px;
+  color: var(--bg-base);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 12px 32px;
+  cursor: pointer;
+  transition:
+    box-shadow 0.2s,
+    transform 0.15s;
+}
+
+.na-btn-submit:hover {
+  box-shadow: 0 0 20px #00e5b455;
+  transform: translateY(-1px);
+}
+
+.na-btn-submit:active {
+  transform: scale(0.97);
+}
+
+.na-btn-submit:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}

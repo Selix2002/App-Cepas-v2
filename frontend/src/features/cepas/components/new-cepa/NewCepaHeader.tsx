@@ -1,51 +1,18 @@
 // src/features/cepas/components/new-cepa/NewCepaHeader.tsx
 import { Link } from "react-router-dom"
-import type React from "react"
+import "./new-cepa.css"
 
-type NewCepaHeaderProps = {
-    onDownloadTemplate: () => void
-    fileInputRef: React.RefObject<HTMLInputElement | null>
-    onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void
-}
+export default function NewCepaHeader() {
+  return (
+    <header className="nc-topbar">
+      <Link to="/home" className="nc-btn-back">
+        ← Volver
+      </Link>
 
-export default function NewCepaHeader({
-    onDownloadTemplate,
-    fileInputRef,
-    onFileChange,
-}: NewCepaHeaderProps) {
-    return (
-        <header className="flex items-center justify-between p-4 border-b border-gray-700">
-            {/* Botón Volver */}
-            <Link
-                to="/home"
-                className="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded"
-            >
-                Volver
-            </Link>
+      <span className="nc-topbar-title">Nueva Cepa</span>
 
-            <h1 className="text-2xl font-bold">Agregar Nueva Cepa</h1>
-
-            <div className="space-x-2">
-                <button
-                    onClick={onDownloadTemplate}
-                    className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded"
-                >
-                    Descargar Plantilla
-                </button>
-                <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded"
-                >
-                    Subir Archivo
-                </button>
-                <input
-                    type="file"
-                    accept=".txt"
-                    ref={fileInputRef}
-                    className="hidden"
-                    onChange={onFileChange}
-                />
-            </div>
-        </header>
-    )
+      {/* espacio para mantener el título centrado */}
+      <div style={{ width: 100 }} />
+    </header>
+  )
 }

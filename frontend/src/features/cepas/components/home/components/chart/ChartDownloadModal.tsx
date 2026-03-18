@@ -1,7 +1,7 @@
 // src/features/cepas/components/home/ChartDownloadModal.tsx
 import type { RefObject } from "react";
 import html2canvas from "html2canvas-pro";
-import DownloadModal from "../../../../../../shared/components/DownloadModal";
+import DownloadModal from "../../../../../../shared/components/download-modal/DownloadModal";
 
 type ChartDownloadModalProps = {
     isOpen: boolean;

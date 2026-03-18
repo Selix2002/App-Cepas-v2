@@ -1,37 +1,40 @@
+// src/features/dashboard/pieChart/components/PieData.tsx
+// Paleta sincronizada con BIO_COLORS de PieChart.tsx y DOT_COLORS del sidebar.
+
 import type { Cepa } from "../../../../shared/interfaces"
 import type { PieDataItem } from "../../../../shared/interfaces/index_charts"
 
-const PREDEFINED_COLORS: string[] = [
-  "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
-  "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf",
-  "#aec7e8", "#ffbb78", "#98df8a", "#ff9896", "#c5b0d5",
-  "#c49c94", "#f7b6d2", "#c7c7c7", "#dbdb8d", "#9edae5",
-  "#393b79", "#637939", "#8c6d31", "#843c39", "#7b4173",
+const BIO_COLORS: string[] = [
+  "#00e5b4", "#4d9fff", "#ff8c42", "#a78bfa", "#ff4d6d",
+  "#00c4a0", "#3a8aff", "#ffb347", "#c084fc", "#ff6b8a",
+  "#00a888", "#2878dd", "#ff9830", "#9060e0", "#ff5277",
+  "#1de9b6", "#29b6f6", "#ffa726", "#ab47bc", "#ef5350",
+  "#26c6da", "#66bb6a", "#ffca28", "#8d6e63", "#78909c",
 ]
 
-const generateHSLColorFromString = (str: string): string => {
+// Fallback para etiquetas que excedan la paleta predefinida
+const generateBioColor = (str: string): string => {
   let hash = 0
   for (let i = 0; i < str.length; i++) {
     hash = (hash * 31 + str.charCodeAt(i)) | 0
   }
-  const h = (hash * 137.508) % 360
-  const hue = ((h % 360) + 360) % 360
-  const saturation = 60 + (hash % 11) * 2
-  const lightness = 45 + (hash % 11)
-  return `hsl(${hue}, ${saturation}%, ${lightness}%)`
+  // Usa hues del rango teal-cian-verde para mantenerse coherente con el tema
+  const h = ((hash * 137.508) % 120 + 160 + 360) % 360   // rango 160–280
+  const s = 60 + (Math.abs(hash) % 20)
+  const l = 52 + (Math.abs(hash) % 12)
+  return `hsl(${h}, ${s}%, ${l}%)`
 }
 
 export const processDataForPieChart = (
   rawData: Cepa[],
   column: { field: string; name: string }
 ): PieDataItem[] => {
-  if (!rawData || rawData.length === 0 || !column?.field) return []
+  if (!rawData?.length || !column?.field) return []
 
   const counts: Record<string, number> = {}
   const originalCaseMap: Record<string, string> = {}
 
   for (const row of rawData) {
-    // Acceso directo al campo plano — sin getValueByPath
     const raw = row[column.field as keyof Cepa]
     const valueAsString = raw !== null && raw !== undefined ? String(raw) : "N/I"
     const lowerKey = valueAsString.toLowerCase()
@@ -46,9 +49,9 @@ export const processDataForPieChart = (
   const colorMap: Record<string, string> = {}
   uniqueLabels.forEach((label, index) => {
     colorMap[label] =
-      index < PREDEFINED_COLORS.length
-        ? PREDEFINED_COLORS[index]
-        : generateHSLColorFromString(label)
+      index < BIO_COLORS.length
+        ? BIO_COLORS[index]
+        : generateBioColor(label)
   })
 
   return Object.entries(counts).map(([lowerKey, count]) => {

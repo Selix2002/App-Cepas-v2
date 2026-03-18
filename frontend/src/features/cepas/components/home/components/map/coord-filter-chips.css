@@ -1,0 +1,48 @@
+/* src/features/cepas/components/home/components/map/coord-filter-chips.css */
+
+.cfc-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 16px;
+  background: var(--bg-0);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  font-family: 'Courier New', monospace;
+}
+
+.cfc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 3px;
+  border: 1px solid #00e5b433;
+  background: #00e5b411;
+  padding: 2px 10px;
+  font-size: 10px;
+  color: var(--text-1);
+  letter-spacing: 0.5px;
+}
+
+.cfc-chip-icon { color: var(--accent); font-size: 9px; }
+
+.cfc-chip code {
+  color: var(--accent);
+  font-size: 10px;
+  font-family: inherit;
+}
+
+.cfc-clear-btn {
+  background: transparent;
+  border: 1px solid #ff4d6d33;
+  border-radius: 3px;
+  color: #ff4d6d;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 10px;
+  cursor: pointer;
+  font-family: inherit;
+  letter-spacing: 0.5px;
+  transition: background 0.15s;
+}
+.cfc-clear-btn:hover { background: #ff4d6d11; }

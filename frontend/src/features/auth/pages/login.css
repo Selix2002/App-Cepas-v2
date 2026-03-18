@@ -1,0 +1,420 @@
+/* src/features/auth/pages/login.css */
+
+/* ── keyframes ───────────────────────────────────────────────────────────── */
+
+@keyframes gridPulse {
+  0%,
+  100% {
+    opacity: 0.06;
+  }
+  50% {
+    opacity: 0.12;
+  }
+}
+
+@keyframes dotFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes scanBounce {
+  0% {
+    top: 0;
+  }
+  100% {
+    top: 100%;
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes tealPulse {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+@keyframes errorShake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20%,
+  60% {
+    transform: translateX(-6px);
+  }
+  40%,
+  80% {
+    transform: translateX(6px);
+  }
+}
+
+/* ── root ────────────────────────────────────────────────────────────────── */
+
+.login-root {
+  min-height: 100vh;
+  background: var(--bg-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Courier New", monospace;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── grid background ─────────────────────────────────────────────────────── */
+
+.login-grid-bg {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(#1a2f2822 1px, transparent 1px),
+    linear-gradient(90deg, #1a2f2822 1px, transparent 1px);
+  background-size: 48px 48px;
+  animation: gridPulse 4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* ── light orbs ──────────────────────────────────────────────────────────── */
+
+.login-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+}
+
+.login-orb-1 {
+  width: 340px;
+  height: 340px;
+  background: #00e5b40d;
+  top: -80px;
+  left: -100px;
+}
+
+.login-orb-2 {
+  width: 280px;
+  height: 280px;
+  background: #00e5b408;
+  bottom: -60px;
+  right: -80px;
+}
+
+/* ── wrapper (scan lives here, card on top) ──────────────────────────────── */
+
+.login-card-wrap {
+  position: relative;
+  width: 520px;
+  animation: fadeUp 0.5s ease-out both;
+}
+
+/* ── scan line ───────────────────────────────────────────────────────────── */
+
+.login-scan {
+  position: absolute;
+  /* center relative to card-wrap, span full viewport width */
+  left: calc(260px - 50vw);
+  width: 100vw;
+  height: 2px;
+  top: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    #00e5b411 10%,
+    #00e5b455 30%,
+    #00e5b4bb 48%,
+    var(--accent) 50%,
+    #00e5b4bb 52%,
+    #00e5b455 70%,
+    #00e5b411 90%,
+    transparent 100%
+  );
+  animation: scanBounce 2.4s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── card ────────────────────────────────────────────────────────────────── */
+
+.login-card {
+  position: relative;
+  z-index: 1;
+  background: var(--bg-0);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 56px 52px 48px;
+  overflow: hidden;
+}
+
+/* top teal accent line */
+.login-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  z-index: 2;
+}
+
+/* bottom-right corner bracket */
+.login-card::after {
+  content: "";
+  position: absolute;
+  bottom: 18px;
+  right: 18px;
+  width: 22px;
+  height: 22px;
+  border-bottom: 1px solid #00e5b444;
+  border-right: 1px solid #00e5b444;
+}
+
+/* top-left corner bracket */
+.login-corner-tl {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  width: 22px;
+  height: 22px;
+  border-top: 1px solid #00e5b444;
+  border-left: 1px solid #00e5b444;
+  z-index: 2;
+}
+
+/* ── logo ────────────────────────────────────────────────────────────────── */
+
+.login-logo-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 40px;
+  gap: 13px;
+}
+
+.login-hex {
+  font-size: 52px;
+  color: var(--accent);
+  line-height: 1;
+  animation: dotFloat 3s ease-in-out infinite;
+}
+
+.login-logo-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 6px;
+}
+
+.login-logo-sub {
+  font-size: 11px;
+  color: var(--accent-mid);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+/* ── divider ─────────────────────────────────────────────────────────────── */
+
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 32px;
+}
+
+.login-divider-line {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.login-divider-text {
+  font-size: 10px;
+  color: var(--accent-mid);
+  letter-spacing: 2px;
+  white-space: nowrap;
+}
+
+/* ── error banner ────────────────────────────────────────────────────────── */
+
+.login-error {
+  background: #ff4d6d11;
+  border: 1px solid #ff4d6d44;
+  border-radius: 4px;
+  padding: 10px 14px;
+  margin-bottom: 20px;
+  font-size: 11px;
+  color: #ff4d6d;
+  letter-spacing: 0.5px;
+  animation: errorShake 0.35s ease-out;
+}
+
+/* ── input group ─────────────────────────────────────────────────────────── */
+
+.login-input-group {
+  margin-bottom: 20px;
+}
+
+.login-input-label {
+  display: block;
+  font-size: 10px;
+  color: var(--accent-mid);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.login-input-wrap {
+  position: relative;
+}
+
+.login-input-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 15px;
+  color: var(--accent-mid);
+  pointer-events: none;
+  transition: color 0.2s;
+}
+
+.login-input {
+  width: 100%;
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text-0);
+  font-family: inherit;
+  font-size: 14px;
+  padding: 13px 16px 13px 44px;
+  outline: none;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.login-input::placeholder {
+  color: #1e3a30;
+}
+
+.login-input:focus {
+  border-color: var(--accent-dim);
+  box-shadow: 0 0 0 3px #00e5b411;
+}
+
+.login-input:focus + .login-input-icon,
+.login-input-wrap:focus-within .login-input-icon {
+  color: var(--accent);
+}
+
+/* ── submit button ───────────────────────────────────────────────────────── */
+
+.login-btn {
+  width: 100%;
+  padding: 14px 0;
+  border: none;
+  border-radius: 5px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  color: var(--bg-base);
+  background-image: linear-gradient(
+    105deg,
+    var(--accent) 0%,
+    var(--accent) 40%,
+    #00ffcc 50%,
+    var(--accent) 60%,
+    var(--accent) 100%
+  );
+  background-size: 200% auto;
+  transition:
+    background-position 0.4s,
+    box-shadow 0.2s,
+    transform 0.15s,
+    opacity 0.2s;
+  margin-top: 10px;
+}
+
+.login-btn:hover:not(:disabled) {
+  background-position: right center;
+  box-shadow: 0 0 24px #00e5b455;
+  transform: translateY(-1px);
+}
+
+.login-btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+}
+
+.login-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── status dots ─────────────────────────────────────────────────────────── */
+
+.login-status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 30px;
+}
+
+.login-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: tealPulse 2s ease-in-out infinite;
+}
+
+.login-status-dot:nth-child(2) {
+  animation-delay: 0.4s;
+}
+.login-status-dot:nth-child(3) {
+  animation-delay: 0.8s;
+}
+
+.login-status-text {
+  font-size: 10px;
+  color: var(--accent-mid);
+  letter-spacing: 2px;
+  margin-left: 4px;
+}
+
+/* ── footer ──────────────────────────────────────────────────────────────── */
+
+.login-footer {
+  position: absolute;
+  bottom: 20px;
+  width: 100%;
+  text-align: center;
+  font-size: 10px;
+  color: #1e3a30;
+  letter-spacing: 1px;
+  font-family: "Courier New", monospace;
+}

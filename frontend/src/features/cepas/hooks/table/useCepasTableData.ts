@@ -3,10 +3,7 @@ import type { ColDef } from "ag-grid-community"
 import { getCepas } from "../../services/CepasQuery"
 import { getCepasColumnDefsWithExtras } from "../../components/CepasColumns"
 import type { Cepa } from "../../../../shared/interfaces"
-import CheckboxCellRenderer, {
-  type ChartType,
-  type ColumnSelection,
-} from "../../components/table/CheckboxCellRenderer"
+import type { ChartType, ColumnSelection } from "../charts/useCepasCharts"
 
 export type NotificationState = {
   text: string
@@ -58,7 +55,6 @@ export function useCepasTableData({
     const baseColumnDefs = getCepasColumnDefsWithExtras(rowData as unknown as Record<string, unknown>[])
     const enhancedColumnDefs = baseColumnDefs.map((colDef) => ({
       ...colDef,
-      cellRenderer: CheckboxCellRenderer,
       cellRendererParams: {
         chartType,
         onColumnToggle,

@@ -1,0 +1,40 @@
+/* src/features/cepas/components/home/components/map/map-bottom-sheet-section.css */
+
+.mbs-inner {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.mbs-header {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mbs-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-0);
+}
+
+.mbs-count {
+  margin-left: 8px;
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--text-1);
+}
+
+.mbs-hint {
+  font-size: 0.75rem;
+  color: var(--text-1);
+}
+
+.mbs-body {
+  flex-grow: 1;
+  min-height: 0;
+}

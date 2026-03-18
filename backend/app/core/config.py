@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     db_name: str = "cepas_db"
     secret_key: SecretStr = SecretStr("secret123")
     class Config:
-        env_file = ".env"
+        env_file = ".env",
+        extra="ignore"
 
 settings = Settings()

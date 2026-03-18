@@ -1,66 +1,43 @@
+// src/features/cepas/hooks/map/useCepasMap.ts
+// Sin ninguna dependencia de ag-grid.
 import { useState, useMemo, useCallback } from "react"
-import type { GridApi } from "ag-grid-community"
 import type { Cepa } from "../../../../shared/interfaces"
+import type { CoordFilter } from "../../types/tableTypes"
 
-export type CoordFilter = { lat: number; lng: number }
-
-type UseCepasMapParams = {
-    gridApi?: GridApi
-    rawTableData: Cepa[]
-    filterVersion: number
+type Params = {
+    filteredData: Cepa[]
+    coordFilter: CoordFilter | null
+    setCoordFilter: (f: CoordFilter | null) => void
 }
 
-export function useCepasMap({ gridApi, rawTableData, filterVersion }: UseCepasMapParams) {
+export function useCepasMap({ filteredData, coordFilter, setCoordFilter }: Params) {
     const [mapOpen, setMapOpen] = useState(true)
-    const [coordFilter, setCoordFilter] = useState<CoordFilter | null>(null)
 
-    const visibleRows = useMemo((): Cepa[] => {
-        if (!gridApi) return rawTableData
-        const rows: Cepa[] = []
-        if (gridApi.isAnyFilterPresent()) {
-            gridApi.forEachNodeAfterFilter((n) => rows.push(n.data))
-        } else {
-            gridApi.forEachNode((n) => rows.push(n.data))
-        }
-        return rows
-    }, [gridApi, rawTableData, filterVersion]) // eslint-disable-line react-hooks/exhaustive-deps
-
+    // Solo filas con coordenadas válidas
     const validRowsForMap = useMemo(
-        () => visibleRows.filter((r) => Number.isFinite(r.latitud) && Number.isFinite(r.longitud)),
-        [visibleRows]
+        () =>
+            filteredData.filter(
+                (r) => Number.isFinite(r.latitud) && Number.isFinite(r.longitud)
+            ),
+        [filteredData]
     )
 
     const markersCount = validRowsForMap.length
 
+    // Doble click en el mapa → aplica filtro de coordenadas a la tabla
     const handleMapPointDblClick = useCallback(
         (lat: number, lng: number) => {
             setMapOpen(false)
-            if (!gridApi) return
-
             const lat6 = Number(lat.toFixed(6))
             const lng6 = Number(lng.toFixed(6))
-
-            gridApi.setFilterModel({
-                ...(gridApi.getFilterModel() ?? {}),
-                latitud: { filterType: "number", type: "equals", filter: lat6 },
-                longitud: { filterType: "number", type: "equals", filter: lng6 },
-            })
-            gridApi.onFilterChanged()
-            gridApi.setColumnsVisible(["latitud", "longitud"], true)
             setCoordFilter({ lat: lat6, lng: lng6 })
         },
-        [gridApi]
+        [setCoordFilter]
     )
 
     const clearCoordFilters = useCallback(() => {
-        if (!gridApi) return
-        const model = { ...(gridApi.getFilterModel() ?? {}) }
-        delete (model as Record<string, unknown>).latitud
-        delete (model as Record<string, unknown>).longitud
-        gridApi.setFilterModel(model)
-        gridApi.onFilterChanged()
         setCoordFilter(null)
-    }, [gridApi])
+    }, [setCoordFilter])
 
     return {
         mapOpen,
