@@ -1,7 +1,9 @@
 // src/features/cepas/components/home/components/header/HomeHeader.tsx
 import { useRef, useEffect, useState } from "react"
 import { Link } from "react-router-dom"
+import { Moon, Sun } from "lucide-react"
 import type { CepaColumnDef } from "../../../../types/tableTypes"
+import { useTheme } from "../../../../../../app/ThemeContext"
 import "./header.css"
 
 type HomeHeaderProps = {
@@ -38,6 +40,7 @@ export default function HomeHeader({
     onOpenImport,
     onExport,
 }: HomeHeaderProps) {
+    const { theme, toggle } = useTheme()
     const [createMenuOpen, setCreateMenuOpen] = useState(false)
     const createMenuRef = useRef<HTMLDivElement>(null)
 
@@ -62,6 +65,20 @@ export default function HomeHeader({
                     <div className="hdr-logo-sub">Patagonia · Cepas</div>
                 </div>
             </div>
+
+            {/* ── THEME TOGGLE ─────────────────────────────────────────────────── */}
+            <button
+                className={`hdr-theme-toggle ${theme}`}
+                onClick={toggle}
+                aria-label={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+                title={theme === "dark" ? "Modo claro" : "Modo oscuro"}
+            >
+                <span className="hdr-theme-pill-track">
+                    <span className="hdr-theme-pill-thumb">
+                        {theme === "dark" ? <Moon size={11} /> : <Sun size={11} />}
+                    </span>
+                </span>
+            </button>
 
             {/* ── CENTER: título + estado ──────────────────────────────────────── */}
             <div className="hdr-center">

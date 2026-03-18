@@ -46,7 +46,7 @@
   transition: background 0.1s;
   user-select: none;
 }
-.bio-col-item:hover { background: #162038; }
+.bio-col-item:hover { background: var(--bg-hover); }
 .bio-col-item.active {
   background: #00e5b411;
   border-left-color: var(--accent);
@@ -123,10 +123,11 @@
   font-size: 12px;
   padding: 5px 12px;
   outline: none;
-  transition: border-color 0.15s;
+  transition: background-color 0.9s ease, color 0.9s ease, border-color 0.15s;
 }
 .bio-search-input::placeholder { color: #1e3a30; }
 .bio-search-input:focus { border-color: var(--accent-dim); }
+
 .bio-search-count {
   font-size: 10px;
   color: var(--accent-mid);
@@ -213,7 +214,7 @@
   position: sticky;
   top: 33px;
   z-index: 49;
-  background: #07111a;
+  background: var(--bg-filter);
   border-bottom: 2px solid #00e5b422;
   padding: 3px 3px;
   height: 32px;
@@ -223,10 +224,10 @@
 /* frozen first col */
 .bio-table th.frozen { position: sticky; left: 0; top: 0; z-index: 60; background: var(--bg-2); border-right: 1px solid #00e5b422; }
 .bio-table th.frozen.col-selected { background: #00e5b422; }
-.bio-filter-td.frozen { position: sticky; left: 0; z-index: 59; background: #07111a; border-right: 1px solid #00e5b422; }
+.bio-filter-td.frozen { position: sticky; left: 0; z-index: 59; background: var(--bg-filter); border-right: 1px solid #00e5b422; }
 .bio-table td.frozen { position: sticky; left: 0; z-index: 8; background: var(--bg-2); border-right: 1px solid #00e5b422; }
 .bio-table tr:nth-child(even) td.frozen { background: var(--bg-0); }
-.bio-table tr:hover td.frozen { background: #162038; }
+.bio-table tr:hover td.frozen { background: var(--bg-hover); }
 
 /* body td */
 .bio-table td {
@@ -235,9 +236,9 @@
   padding: 5px 8px;
   font-family: inherit;
 }
-.bio-table tr:nth-child(odd) td  { background: #0d1628; }
+.bio-table tr:nth-child(odd) td  { background: var(--bg-row-alt); }
 .bio-table tr:nth-child(even) td { background: var(--bg-0); }
-.bio-table tr:hover td { background: #162038; }
+.bio-table tr:hover td { background: var(--bg-hover); }
 .bio-table td.col-selected { background: #00e5b40d; }
 .bio-table tr:nth-child(even) td.col-selected { background: #00e5b409; }
 .bio-table tr:hover td.col-selected { background: #00e5b420; }

@@ -21,10 +21,6 @@ export default function NewAttributePage() {
       <NewAttributeHeader />
 
       <main className="pt-32 p-8">
-        <h1 className="text-2xl text-center font-bold text-white mb-6">
-          Añadir Nuevo Atributo
-        </h1>
-
         <NewAttributeForm
           cepas={cepas}
           inputRefs={inputRefs}

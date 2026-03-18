@@ -26,6 +26,11 @@
   --border:     #1a2f28;   /* borde estándar */
   --border-dim: #0f2820;   /* borde sutil */
 
+  /* Table */
+  --bg-row-alt: #0d1628;   /* fila impar de tabla */
+  --bg-hover:   #162038;   /* hover de fila / sidebar item */
+  --bg-filter:  #07111a;   /* fila de filtros de tabla */
+
   /* Status */
   --error:      #e57373;
   --warning:    #ffb74d;
@@ -36,35 +41,50 @@
 }
 
 /* ============================================================
-   LIGHT MODE — rellenar con la paleta clara cuando esté lista
+   LIGHT MODE — paleta "Ártico" (azul hielo)
    ============================================================ */
 [data-theme="light"] {
   /* Backgrounds */
-  --bg-base:    #f0f4f8;
-  --bg-0:       #ffffff;
-  --bg-1:       #f8fafc;
-  --bg-2:       #e8f4f0;
-  --bg-3:       #d0ece5;
+  --bg-base:    #F7F9FC;   /* fondo más profundo */
+  --bg-0:       #FFFFFF;   /* superficie principal */
+  --bg-1:       #EBF2FA;   /* superficie elevada (cards, panels) */
+  --bg-2:       #D6E8F7;   /* superficie con tinte azul (tablas, modales) */
+  --bg-3:       #B5D4F4;   /* variante más saturada (headers de tabla) */
 
-  /* Accent */
-  --accent:     #00967a;
-  --accent-dim: #00b48e;
-  --accent-mid: #4aaa90;
+  /* Accent — azul eléctrico */
+  --accent:     #1A56DB;   /* azul principal — CTAs, highlights */
+  --accent-dim: #1345BB;   /* azul secundario — hover, scrollbar */
+  --accent-mid: #5B8DEF;   /* azul muted — bordes secundarios, row hover */
 
   /* Text */
-  --text-0:     #0b1a14;
-  --text-1:     #2d5a4a;
-  --text-muted: #6a9a8a;
+  --text-0:     #1A202C;   /* texto primario */
+  --text-1:     #4A5568;   /* texto secundario / subtítulos */
+  --text-muted: #718096;   /* placeholder, deshabilitado */
 
   /* Borders */
-  --border:     #c0ddd6;
-  --border-dim: #daeee8;
+  --border:     #CBD5E0;   /* borde estándar */
+  --border-dim: #E2E8F0;   /* borde sutil */
+
+  /* Table */
+  --bg-row-alt: #F0F6FF;   /* fila impar de tabla */
+  --bg-hover:   #D6E8F7;   /* hover de fila / sidebar item */
+  --bg-filter:  #EBF2FA;   /* fila de filtros de tabla */
 
   /* Status */
-  --error:      #c62828;
-  --warning:    #e65100;
-  --success:    #00967a;
+  --error:      #C53030;
+  --warning:    #C05621;
+  --success:    #276749;
 
   /* Overlay */
-  --overlay:    rgba(240, 244, 248, 0.7);
+  --overlay:    rgba(247, 249, 252, 0.7);
+}
+
+/* Transiciones globales para suavizar el cambio de tema */
+
+*, *::before, *::after {
+  transition:
+    background-color 0.9s ease,
+    border-color     0.9s ease,
+    color            0.9s ease,
+    box-shadow       0.9s ease;
 }
