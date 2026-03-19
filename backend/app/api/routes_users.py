@@ -31,9 +31,8 @@ def _to_response(user) -> UserResponseDTO:
 
 class UserController(Controller):
     path = "/users"
-    guards = [admin_guard]   # todos los endpoints requieren admin
     dependencies = {"repo": Provide(user_repository,sync_to_thread=False)}
-    
+
     # ------------------------------------------------------------------
     # GET ME — cualquier usuario autenticado
     # ------------------------------------------------------------------
@@ -47,7 +46,7 @@ class UserController(Controller):
     # ------------------------------------------------------------------
     # GET ALL
     # ------------------------------------------------------------------
-    @get("/")
+    @get("/", guards=[admin_guard])
     async def get_all(self, repo: UserRepository) -> UserListDTO:
         users, total = await repo.get_all()
         return UserListDTO(
@@ -58,7 +57,7 @@ class UserController(Controller):
     # ------------------------------------------------------------------
     # POST
     # ------------------------------------------------------------------
-    @post("/")
+    @post("/", guards=[admin_guard])
     async def create(
         self,
         data: UserCreateDTO,
@@ -74,7 +73,7 @@ class UserController(Controller):
     # ------------------------------------------------------------------
     # PATCH
     # ------------------------------------------------------------------
-    @patch("/{user_id:str}")
+    @patch("/{user_id:str}", guards=[admin_guard])
     async def update(
         self,
         user_id: str,
@@ -93,7 +92,7 @@ class UserController(Controller):
     # ------------------------------------------------------------------
     # DELETE
     # ------------------------------------------------------------------
-    @delete("/{user_id:str}", status_code=HTTP_204_NO_CONTENT)
+    @delete("/{user_id:str}", guards=[admin_guard], status_code=HTTP_204_NO_CONTENT)
     async def delete(
         self,
         user_id: str,

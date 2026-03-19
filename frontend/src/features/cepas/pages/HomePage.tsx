@@ -5,7 +5,7 @@
 //   ├────────┬────────────────────────┤
 //   │        │  ChartSection          │
 //   │Sidebar │  CoordFilterChips      │
-//   │        │  CepasTable (sin sb)   │
+//   │        │  CepasTable            │
 //   └────────┴────────────────────────┘
 
 import { useRef, useState } from "react"

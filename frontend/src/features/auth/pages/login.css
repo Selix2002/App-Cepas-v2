@@ -300,7 +300,7 @@
 }
 
 .login-input {
-  width: 100%;
+  width: 85%;
   background: var(--bg-base);
   border: 1px solid var(--border);
   border-radius: 5px;

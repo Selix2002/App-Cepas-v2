@@ -117,12 +117,15 @@ export default function HomeHeader({
                 )}
 
                 {/* exportar */}
-                <button
-                    className="hdr-btn hdr-btn-ghost"
-                    onClick={(e) => { addRipple(e); onExport() }}
-                >
-                    Exportar
-                </button>
+                {isAdmin && (
+                    <button
+                        className="hdr-btn hdr-btn-ghost"
+                        onClick={(e) => { addRipple(e); onExport() }}
+                    >
+                        Exportar
+                    </button>
+                )}
+
 
                 {/* mapa */}
                 <button
