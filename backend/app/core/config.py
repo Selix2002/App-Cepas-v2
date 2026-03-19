@@ -15,7 +15,11 @@ class Settings(BaseSettings):
     # Configuración de embeddings
     EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
     MAX_CONTEXT_CEPAS: int = 30
-    SIMILARITY_THRESHOLD: float = 0.3
+    SIMILARITY_THRESHOLD: float = 0.3  # usado solo como fallback si hay < 3 scores
+
+    # Umbral dinámico: threshold = median + THRESHOLD_STD_FACTOR * MAD
+    THRESHOLD_STD_FACTOR: float = 0.5   # ajustar según pruebas
+    THRESHOLD_MIN_FLOOR: float = 0.15   # piso absoluto (mitiga riesgo off-domain)
     
     # Configuración LLM
     LLM_TEMPERATURE: float = 0.2

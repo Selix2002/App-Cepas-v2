@@ -1,5 +1,5 @@
 #// app/schema/dtos.py
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 from typing import Any,Optional
 from datetime import datetime
 
@@ -236,6 +236,7 @@ class CepaResponseDTO(BaseModel):
     nombre_proyecto: Optional[str] = None
     fecha_creacion: datetime
     fecha_actualizacion: Optional[datetime] = None
+    embedding: Optional[Any] = Field(default=None, exclude=True)
 
     model_config = {"from_attributes": True, "extra": "allow"}
 

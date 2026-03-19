@@ -240,62 +240,96 @@ class LLMService:
         
         return dinamicos
     
-    def _construir_system_prompt(self, modo_contexto: str = "hibrido") -> str:
-        """Prompt del sistema especializado"""
-        base_prompt = """Eres un asistente experto en microbiología y gestión de colecciones de cepas bacterianas.
+    def _construir_system_prompt(
+        self,
+        modo: str = "semántico",
+        n_cepas: int = 0,
+        total_en_db: int = 0,
+    ) -> str:
+        """Prompt del sistema adaptado al modo de búsqueda."""
+        base_prompt = (
+            "Eres un asistente experto en microbiología y gestión de colecciones "
+            "de cepas bacterianas.\n\n"
+            "TUS RESPONSABILIDADES:\n"
+            "- Responder preguntas sobre cepas bacterianas basándote EXCLUSIVAMENTE "
+            "en el contexto proporcionado\n"
+            "- Proporcionar información precisa sobre taxonomía, características, "
+            "pruebas bioquímicas y resistencia antimicrobiana\n"
+            "- Realizar análisis comparativos cuando se solicite\n"
+            "- Usar terminología científica correcta"
+        )
 
-TUS RESPONSABILIDADES:
-- Responder preguntas sobre cepas bacterianas basándote en el contexto proporcionado
-- Proporcionar información precisa sobre taxonomía, características, pruebas bioquímicas y resistencia antimicrobiana
-- Realizar análisis comparativos cuando se solicite
-- Identificar patrones y tendencias en los datos
-- Usar terminología científica correcta"""
+        if modo == "estadístico":
+            base_prompt += (
+                f"\n\nMODO: ESTADÍSTICO\n"
+                f"- El contexto contiene el resultado EXACTO de una consulta estructurada "
+                f"a la base de datos ({n_cepas} cepas de {total_en_db} totales).\n"
+                f"- Para preguntas de conteo usa el número exacto: {n_cepas}.\n"
+                f"- NO estimes ni aproximes: los datos son precisos."
+            )
+        elif modo == "híbrido":
+            base_prompt += (
+                f"\n\nMODO: HÍBRIDO\n"
+                f"- Las {n_cepas} cepas del contexto fueron primero filtradas por "
+                f"criterios exactos en la base de datos ({total_en_db} cepas totales) "
+                f"y luego rankeadas por relevancia semántica.\n"
+                f"- Los conteos sobre este conjunto son precisos."
+            )
+        elif modo in ("semántico", "semántico_fallback"):
+            extra = (
+                " (los filtros estructurados no produjeron resultados, "
+                "se usó búsqueda semántica de respaldo)"
+                if modo == "semántico_fallback"
+                else ""
+            )
+            base_prompt += (
+                f"\n\nMODO: SEMÁNTICO{extra}\n"
+                f"- Las {n_cepas} cepas del contexto son las más similares "
+                f"semánticamente a la pregunta (de {total_en_db} totales).\n"
+                f"- Para conteos exactos, indica que solo ves una muestra relevante."
+            )
+        elif modo == "híbrido_sin_vector":
+            base_prompt += (
+                f"\n\nMODO: HÍBRIDO (sin ranking vectorial)\n"
+                f"- Las {n_cepas} cepas son el resultado exacto del filtro "
+                f"estructurado. No hay embeddings para rankearlas."
+            )
 
-        if modo_contexto == "completo":
-            base_prompt += """
-
-CONTEXTO DISPONIBLE:
-- Tienes acceso a TODA la base de datos de cepas
-- Puedes realizar comparaciones, conteos y análisis estadísticos
-- Puedes identificar cepas con características específicas"""
-
-        elif modo_contexto == "hibrido":
-            base_prompt += """
-
-CONTEXTO DISPONIBLE:
-- Estadísticas globales de toda la base de datos
-- Detalles completos de las cepas más relevantes para la pregunta
-- Puedes referenciar estadísticas globales y dar detalles específicos"""
-
-        base_prompt += """
-
-FORMATO DE RESPUESTA:
-- Responde en español de forma clara y estructurada
-- Incluye códigos de cepa cuando sea relevante
-- Para conteos y estadísticas, sé preciso con los números
-- Si no tienes información suficiente, indícalo claramente
-
-NO DEBES:
-- Inventar información que no esté en el contexto
-- Proporcionar consejos médicos sin supervisión
-- Hacer suposiciones sobre características no mencionadas"""
-
+        base_prompt += (
+            "\n\nFORMATO DE RESPUESTA:\n"
+            "- Responde en español de forma clara y estructurada\n"
+            "- Incluye códigos de cepa cuando sea relevante\n"
+            "- Para conteos y estadísticas, sé preciso con los números\n"
+            "- Si no tienes información suficiente, indícalo claramente\n\n"
+            "NO DEBES:\n"
+            "- Inventar información que no esté en el contexto\n"
+            "- Proporcionar consejos médicos sin supervisión\n"
+            "- Hacer suposiciones sobre características no mencionadas"
+        )
         return base_prompt
     
 # app/services/llm_service.py (agregar logging en generar_respuesta)
 
     async def generar_respuesta(
-        self, 
-        pregunta: str, 
-        todas_cepas: List[Cepa],
+        self,
+        pregunta: str,
+        cepas: List[Cepa],
+        modo: str = "semántico",
+        total_en_db: int = 0,
     ) -> Dict[str, Any]:
-        """Genera respuesta usando Groq API"""
+        """Genera respuesta usando Groq API con contexto adaptado al modo de búsqueda."""
 
         logger.info("🤖 Iniciando generación de respuesta con LLM")
-        logger.info(f"   Total de cepas: {len(todas_cepas)}")
-        
-        contexto = self._construir_contexto_completo(todas_cepas)
-        system_prompt = self._construir_system_prompt(modo_contexto="completo")
+        logger.info(f"   Modo de búsqueda: {modo}")
+        logger.info(f"   Cepas en contexto: {len(cepas)}")
+        logger.info(f"   Total en DB: {total_en_db}")
+
+        contexto = self._construir_contexto_completo(cepas)
+        system_prompt = self._construir_system_prompt(
+            modo=modo,
+            n_cepas=len(cepas),
+            total_en_db=total_en_db,
+        )
 
         messages = [
             {"role": "system", "content": f"{system_prompt}\n\nCONTEXTO:\n{contexto}"},
