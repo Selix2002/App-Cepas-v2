@@ -11,6 +11,7 @@ from app.schema.dto_grok import (
     ChatResponseDTO,
     EmbeddingStatsDTO,
     EmbeddingGenerationDTO,
+    SearchDebugInfo,
 )
 from app.services.dbSearch_service import get_database_service, DatabaseService
 from app.services.llm_service import get_llm_service, LLMService
@@ -92,8 +93,17 @@ class ChatController(Controller):
             return ChatResponseDTO(
                 respuesta=resultado["respuesta"],
                 modelo_usado=resultado["modelo"],
+                tokens_enviados=resultado.get("tokens_enviados"),
+                tokens_recibidos=resultado.get("tokens_recibidos"),
                 tokens_usados=resultado.get("tokens_usados"),
                 tiempo_respuesta_ms=tiempo_respuesta,
+                debug=SearchDebugInfo(
+                    modo_busqueda=modo_efectivo,
+                    filtros_aplicados=parsed.filtros,
+                    terminos_detectados=parsed.terminos_detectados,
+                    cepas_en_contexto=len(cepas),
+                    total_en_db=total_en_db,
+                ),
             )
 
         except ValueError as e:

@@ -19,18 +19,24 @@ class ChatQueryDTO(BaseModel):
 
 
 
+class SearchDebugInfo(BaseModel):
+    """Metadatos del proceso de búsqueda, útiles para debugging y testing"""
+    modo_busqueda: str
+    filtros_aplicados: dict
+    terminos_detectados: List[str]
+    cepas_en_contexto: int
+    total_en_db: int
+
+
 class ChatResponseDTO(BaseModel):
     """DTO para respuesta del chat"""
     respuesta: str = Field(..., description="Respuesta generada por la IA")
     modelo_usado: str = Field(..., description="Modelo LLM utilizado")
-    tokens_usados: Optional[int] = Field(
-        default=None,
-        description="Tokens consumidos en la generación"
-    )
-    tiempo_respuesta_ms: Optional[int] = Field(
-        default=None,
-        description="Tiempo de respuesta en milisegundos"
-    )
+    tokens_enviados: Optional[int] = Field(default=None, description="Tokens del prompt (entrada)")
+    tokens_recibidos: Optional[int] = Field(default=None, description="Tokens de la respuesta (salida)")
+    tokens_usados: Optional[int] = Field(default=None, description="Tokens totales")
+    tiempo_respuesta_ms: Optional[int] = Field(default=None, description="Tiempo de respuesta en ms")
+    debug: Optional[SearchDebugInfo] = Field(default=None, description="Info del proceso de búsqueda")
 
 class EmbeddingStatsDTO(BaseModel):
     """DTO para estadísticas de embeddings"""

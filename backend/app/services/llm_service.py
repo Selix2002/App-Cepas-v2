@@ -248,63 +248,48 @@ class LLMService:
     ) -> str:
         """Prompt del sistema adaptado al modo de búsqueda."""
         base_prompt = (
-            "Eres un asistente experto en microbiología y gestión de colecciones "
-            "de cepas bacterianas.\n\n"
+            "Eres un asistente experto en microbiología con acceso directo a la base de datos "
+            "de cepas bacterianas del laboratorio. Puedes consultar, filtrar y analizar "
+            "todos los registros de la colección en tiempo real.\n\n"
             "TUS RESPONSABILIDADES:\n"
-            "- Responder preguntas sobre cepas bacterianas basándote EXCLUSIVAMENTE "
-            "en el contexto proporcionado\n"
+            "- Responder preguntas sobre las cepas usando los datos de la base de datos\n"
             "- Proporcionar información precisa sobre taxonomía, características, "
             "pruebas bioquímicas y resistencia antimicrobiana\n"
-            "- Realizar análisis comparativos cuando se solicite\n"
+            "- Realizar análisis comparativos y estadísticos cuando se solicite\n"
             "- Usar terminología científica correcta"
         )
 
         if modo == "estadístico":
             base_prompt += (
-                f"\n\nMODO: ESTADÍSTICO\n"
-                f"- El contexto contiene el resultado EXACTO de una consulta estructurada "
-                f"a la base de datos ({n_cepas} cepas de {total_en_db} totales).\n"
-                f"- Para preguntas de conteo usa el número exacto: {n_cepas}.\n"
-                f"- NO estimes ni aproximes: los datos son precisos."
+                f"\n\nDATA: Has consultado la base de datos y encontraste exactamente "
+                f"{n_cepas} cepas que cumplen los criterios (de {total_en_db} en total).\n"
+                f"- Usa ese número exacto al responder. No estimes ni aproximes."
             )
-        elif modo == "híbrido":
+        elif modo in ("híbrido", "híbrido_sin_vector"):
             base_prompt += (
-                f"\n\nMODO: HÍBRIDO\n"
-                f"- Las {n_cepas} cepas del contexto fueron primero filtradas por "
-                f"criterios exactos en la base de datos ({total_en_db} cepas totales) "
-                f"y luego rankeadas por relevancia semántica.\n"
-                f"- Los conteos sobre este conjunto son precisos."
+                f"\n\nDATA: La base de datos contiene {total_en_db} cepas en total. "
+                f"Has filtrado y recuperado {n_cepas} cepas relevantes para esta consulta."
             )
         elif modo in ("semántico", "semántico_fallback"):
-            extra = (
-                " (los filtros estructurados no produjeron resultados, "
-                "se usó búsqueda semántica de respaldo)"
-                if modo == "semántico_fallback"
-                else ""
-            )
             base_prompt += (
-                f"\n\nMODO: SEMÁNTICO{extra}\n"
-                f"- Las {n_cepas} cepas del contexto son las más similares "
-                f"semánticamente a la pregunta (de {total_en_db} totales).\n"
-                f"- Para conteos exactos, indica que solo ves una muestra relevante."
-            )
-        elif modo == "híbrido_sin_vector":
-            base_prompt += (
-                f"\n\nMODO: HÍBRIDO (sin ranking vectorial)\n"
-                f"- Las {n_cepas} cepas son el resultado exacto del filtro "
-                f"estructurado. No hay embeddings para rankearlas."
+                f"\n\nDATA: La base de datos contiene {total_en_db} cepas en total. "
+                f"Has recuperado las {n_cepas} más relevantes para esta consulta."
             )
 
         base_prompt += (
             "\n\nFORMATO DE RESPUESTA:\n"
             "- Responde en español de forma clara y estructurada\n"
+            "- Habla siempre en primera persona como si consultaras la base de datos directamente "
+            "(ej: 'En la base de datos hay...', 'He encontrado X cepas...', 'Los registros muestran...')\n"
             "- Incluye códigos de cepa cuando sea relevante\n"
             "- Para conteos y estadísticas, sé preciso con los números\n"
-            "- Si no tienes información suficiente, indícalo claramente\n\n"
-            "NO DEBES:\n"
-            "- Inventar información que no esté en el contexto\n"
-            "- Proporcionar consejos médicos sin supervisión\n"
-            "- Hacer suposiciones sobre características no mencionadas"
+            "- Si no tienes datos suficientes para responder, indícalo\n\n"
+            "PROHIBIDO — nunca uses estas frases ni similares:\n"
+            "- 'según el contexto', 'de acuerdo al contexto', 'en el contexto proporcionado'\n"
+            "- 'según la información proporcionada', 'basándome en el contexto'\n"
+            "- 'las cepas listadas', 'las cepas del contexto', 'cepas bacterianas listadas'\n"
+            "- 'información del contexto', 'datos del contexto'\n"
+            "- Cualquier frase que revele que trabajas con un subconjunto o contexto limitado"
         )
         return base_prompt
     
@@ -369,17 +354,24 @@ class LLMService:
                 data = response.json()
 
                 respuesta_texto = data["choices"][0]["message"]["content"]
-                tokens = data.get("usage", {}).get("total_tokens")
+                usage = data.get("usage", {})
+                tokens_enviados   = usage.get("prompt_tokens")
+                tokens_recibidos  = usage.get("completion_tokens")
+                tokens_total      = usage.get("total_tokens")
 
                 logger.info("✅ Respuesta generada exitosamente")
-                logger.info(f"   Longitud: {len(respuesta_texto)} caracteres")
-                logger.info(f"   Tokens usados: {tokens}")
+                logger.info(f"   Longitud respuesta: {len(respuesta_texto)} caracteres")
+                logger.info(f"   Tokens enviados (prompt):    {tokens_enviados}")
+                logger.info(f"   Tokens recibidos (completion): {tokens_recibidos}")
+                logger.info(f"   Tokens totales:              {tokens_total}")
                 logger.debug(f"   Respuesta (primeros 200 chars): {respuesta_texto[:200]}...")
 
                 return {
                     "respuesta": respuesta_texto,
                     "modelo": data["model"],
-                    "tokens_usados": tokens,
+                    "tokens_enviados": tokens_enviados,
+                    "tokens_recibidos": tokens_recibidos,
+                    "tokens_usados": tokens_total,
                 }
 
         except httpx.HTTPStatusError as e:
