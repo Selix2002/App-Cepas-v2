@@ -15,28 +15,13 @@ class ChatQueryDTO(BaseModel):
         default=True,
         description="Si se deben incluir las cepas usadas como contexto"
     )
-    max_resultados: int = Field(
-        default=5,
-        ge=1,
-        le=10,
-        description="Número máximo de cepas a usar como contexto"
-    )
 
-class CepaFuenteDTO(BaseModel):
-    """DTO para cepa usada como fuente"""
-    id: str
-    cepa: str
-    genero: Optional[str] = None
-    especie: Optional[str] = None
-    codigo_cepa: Optional[str] = None
+
+
 
 class ChatResponseDTO(BaseModel):
     """DTO para respuesta del chat"""
     respuesta: str = Field(..., description="Respuesta generada por la IA")
-    fuentes: Optional[List[CepaFuenteDTO]] = Field(
-        default=None,
-        description="Cepas usadas como contexto"
-    )
     modelo_usado: str = Field(..., description="Modelo LLM utilizado")
     tokens_usados: Optional[int] = Field(
         default=None,

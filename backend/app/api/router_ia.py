@@ -9,7 +9,6 @@ from litestar.status_codes import HTTP_500_INTERNAL_SERVER_ERROR, HTTP_400_BAD_R
 from app.schema.dto_grok import (
     ChatQueryDTO,
     ChatResponseDTO,
-    CepaFuenteDTO,
     EmbeddingStatsDTO,
     EmbeddingGenerationDTO,
 )
@@ -49,11 +48,7 @@ class ChatController(Controller):
         db_service: DatabaseService,
         llm_service: LLMService,
     ) -> ChatResponseDTO:
-        """
-        Consulta al chat con contexto de toda la base de datos.
-        """
         inicio = datetime.utcnow()
-        
         try:
             pregunta = data.pregunta.strip()
             if not pregunta:
@@ -61,68 +56,37 @@ class ChatController(Controller):
                     status_code=HTTP_400_BAD_REQUEST,
                     detail="La pregunta no puede estar vacía"
                 )
-            
+
             logger.info(f"Procesando pregunta: {pregunta[:100]}...")
-            
+
             # 1. Obtener TODAS las cepas
             todas_cepas = await db_service.get_todas_las_cepas()
             logger.info(f"Obtenidas {len(todas_cepas)} cepas totales")
-            
-            # 2. Buscar cepas relevantes (para modo híbrido)
-            cepas_relevantes = await db_service.buscar_cepas_similares(
-                pregunta,
-                limit=data.max_resultados,
-                threshold=settings.SIMILARITY_THRESHOLD
-            )
-            
-            # 3. Decidir modo según cantidad
-            usar_modo_completo = len(todas_cepas) <= 50
-            
-            # 4. Generar respuesta
+
+            # 2. Generar respuesta siempre en modo completo
             resultado = await llm_service.generar_respuesta(
                 pregunta,
                 todas_cepas=todas_cepas,
-                cepas_relevantes=cepas_relevantes,
-                usar_modo_completo=usar_modo_completo
             )
-            
-            # 5. Preparar fuentes (las relevantes para referencia)
-            fuentes = None
-            if data.incluir_fuentes and cepas_relevantes:
-                fuentes = [
-                    CepaFuenteDTO(
-                        id=str(cepa.id),
-                        cepa=cepa.cepa or "Sin nombre",
-                        genero=None,  # Tu modelo no tiene este campo
-                        especie=None,  # Tu modelo no tiene este campo
-                        codigo_cepa=cepa.codigo_lab,
-                    )
-                    for cepa in cepas_relevantes
-                ]
-            
+
             tiempo_respuesta = int((datetime.utcnow() - inicio).total_seconds() * 1000)
-            
+
             return ChatResponseDTO(
                 respuesta=resultado["respuesta"],
-                fuentes=fuentes,
                 modelo_usado=resultado["modelo"],
                 tokens_usados=resultado.get("tokens_usados"),
                 tiempo_respuesta_ms=tiempo_respuesta,
             )
-        
+
         except ValueError as e:
-            logger.warning(f"Error de validación: {str(e)}")
-            raise HTTPException(
-                status_code=HTTP_400_BAD_REQUEST,
-                detail=str(e)
-            )
-        
+            raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail=str(e))
         except Exception as e:
             logger.error(f"Error en chat_query: {str(e)}", exc_info=True)
             raise HTTPException(
                 status_code=HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Error al procesar la consulta. Por favor intenta de nuevo."
             )
+    
 
     @get("/embeddings/stats")
     async def get_embedding_stats(

@@ -288,48 +288,20 @@ NO DEBES:
         self, 
         pregunta: str, 
         todas_cepas: List[Cepa],
-        cepas_relevantes: List[Cepa] = None,
-        usar_modo_completo: bool = False
     ) -> Dict[str, Any]:
         """Genera respuesta usando Groq API"""
 
         logger.info("🤖 Iniciando generación de respuesta con LLM")
         logger.info(f"   Total de cepas: {len(todas_cepas)}")
-        logger.info(f"   Cepas relevantes: {len(cepas_relevantes) if cepas_relevantes else 0}")
-        logger.info(f"   Modo forzado completo: {usar_modo_completo}")
-
-        # Decidir estrategia según tamaño de DB
-        if usar_modo_completo or len(todas_cepas) <= 50:
-            contexto = self._construir_contexto_completo(todas_cepas)
-            modo = "completo"
-            logger.info(f"📊 Modo COMPLETO seleccionado ({len(todas_cepas)} cepas)")
-        else:
-            if not cepas_relevantes:
-                cepas_relevantes = todas_cepas[:10]
-            contexto = self._construir_contexto_hibrido(todas_cepas, cepas_relevantes)
-            modo = "hibrido"
-            logger.info(f"📊 Modo HÍBRIDO seleccionado")
-            logger.info(f"   Total: {len(todas_cepas)}, Relevantes: {len(cepas_relevantes)}")
-
-        logger.info(f"📄 Contexto construido:")
-        logger.info(f"   Longitud: {len(contexto)} caracteres")
-        logger.info(f"   Tokens estimados: {len(contexto) // 4}")
-
-        logger.debug("📄 Contexto completo (primeros 500 chars):")
-        logger.debug("-" * 80)
-        logger.debug(contexto[:500] + "...")
-        logger.debug("-" * 80)
+        
+        contexto = self._construir_contexto_completo(todas_cepas)
+        system_prompt = self._construir_system_prompt(modo_contexto="completo")
 
         messages = [
-            {
-                "role": "system",
-                "content": self._construir_system_prompt(modo)
-            },
-            {
-                "role": "user",
-                "content": f"{contexto}\n\n{'='*60}\nPREGUNTA: {pregunta}"
-            }
+            {"role": "system", "content": f"{system_prompt}\n\nCONTEXTO:\n{contexto}"},
+            {"role": "user", "content": pregunta}
         ]
+
 
         logger.info("📨 Preparando request a Groq API:")
         logger.info(f"   Endpoint: {self.BASE_URL}")
@@ -374,7 +346,6 @@ NO DEBES:
                     "respuesta": respuesta_texto,
                     "modelo": data["model"],
                     "tokens_usados": tokens,
-                    "modo_contexto": modo
                 }
 
         except httpx.HTTPStatusError as e:
