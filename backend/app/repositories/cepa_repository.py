@@ -10,6 +10,8 @@ from app.schema.dtos import (
     CepaUpdateDTO,
     CepaFilterParams,
 )
+from app.services.embedding_service import get_embedding_service
+from app.services.dbSearch_service import DatabaseService
 
 
 class CepaNotFoundError(Exception):
@@ -32,6 +34,10 @@ class CepaRepository:
 
         cepa = Cepa(**dto.model_dump())
         await cepa.insert()
+
+        cepa.embedding = get_embedding_service().encode(DatabaseService._cepa_a_texto(cepa))
+        await cepa.save()
+
         return cepa
 
     # -----------------------------------------------------------------------
@@ -78,6 +84,10 @@ class CepaRepository:
         update_data["fecha_actualizacion"] = datetime.utcnow()
 
         await cepa.set(update_data)
+
+        cepa.embedding = get_embedding_service().encode(DatabaseService._cepa_a_texto(cepa))
+        await cepa.save()
+
         return cepa
 
     # -----------------------------------------------------------------------
