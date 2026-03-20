@@ -20,6 +20,11 @@ class Settings(BaseSettings):
     # Umbral dinámico: threshold = median + THRESHOLD_STD_FACTOR * MAD
     THRESHOLD_STD_FACTOR: float = 0.5   # ajustar según pruebas
     THRESHOLD_MIN_FLOOR: float = 0.15   # piso absoluto (mitiga riesgo off-domain)
+
+    # Seguridad IA
+    DOMAIN_THRESHOLD: float = 0.20      # similitud mínima con anclas del dominio
+    CHAT_RATE_LIMIT_REQUESTS: int = 10  # máx requests por ventana
+    CHAT_RATE_LIMIT_SECONDS: int = 60   # tamaño de la ventana en segundos
     
     # Configuración LLM
     LLM_TEMPERATURE: float = 0.2

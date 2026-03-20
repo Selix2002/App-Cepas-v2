@@ -13,6 +13,7 @@ from app.api.routes_users import UserController
 from app.api.routes_auth import AuthController
 from app.core.redis_config import redis_client
 from app.middleware.login_rate_limit import LoginRateLimitMiddleware
+from app.middleware.chat_rate_limit import ChatRateLimitMiddleware
 from app.core.logging_config import setup_logging
 from app.api.router_ia import ChatController
 import logging
@@ -54,6 +55,12 @@ middleware = [
         LoginRateLimitMiddleware,
         max_requests=5,
         window_seconds=60,
+        redis_client=redis_client,
+    ),
+    DefineMiddleware(
+        ChatRateLimitMiddleware,
+        max_requests=settings.CHAT_RATE_LIMIT_REQUESTS,
+        window_seconds=settings.CHAT_RATE_LIMIT_SECONDS,
         redis_client=redis_client,
     ),
 ]

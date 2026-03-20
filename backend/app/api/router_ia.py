@@ -16,8 +16,10 @@ from app.schema.dto_grok import (
 from app.services.dbSearch_service import get_database_service, DatabaseService
 from app.services.llm_service import get_llm_service, LLMService
 from app.services.query_parser_service import get_query_parser
+from app.services.input_validator_service import get_input_validator
 from app.core.config import settings
 from app.core.security import admin_guard
+from litestar import Request
 import logging
 
 logger = logging.getLogger(__name__)
@@ -43,20 +45,64 @@ class ChatController(Controller):
         "llm_service": Provide(llm_service_provider, sync_to_thread=False),
     }
 
+    # Indicadores de fuga del system prompt en la respuesta del LLM
+    _LEAK_INDICATORS = [
+        "instrucciones de seguridad", "security preamble", "nunca reveles",
+        "máxima prioridad", "[inst]", "<|im_start|>", "instrucciones del sistema",
+        "no negociables", "fin de pregunta", "pregunta del usuario",
+    ]
+
     @post("/query")
     async def chat_query(
         self,
+        request: Request,
         data: ChatQueryDTO,
         db_service: DatabaseService,
         llm_service: LLMService,
     ) -> ChatResponseDTO:
         inicio = datetime.utcnow()
+
+        # Info de auditoría disponible en todo el handler
+        client_ip = request.client.host if request.client else "unknown"
+        username = getattr(request.user, "username", "unknown")
+
         try:
             pregunta = data.pregunta.strip()
             if not pregunta:
                 raise HTTPException(
                     status_code=HTTP_400_BAD_REQUEST,
                     detail="La pregunta no puede estar vacía"
+                )
+
+            # ── Auditoría: preguntas largas ──────────────────────────────────
+            if len(pregunta) > 300:
+                logger.warning(
+                    f"AUDIT: pregunta larga | user={username} | ip={client_ip} | "
+                    f"len={len(pregunta)}"
+                )
+
+            # ── Validación de input (inyección + off-topic) ──────────────────
+            validator = get_input_validator()
+            validation = validator.validate(pregunta, domain_threshold=settings.DOMAIN_THRESHOLD)
+
+            if not validation.is_valid:
+                logger.warning(
+                    f"AUDIT: input rechazado | reason={validation.reason} | "
+                    f"detail={validation.detail} | user={username} | ip={client_ip} | "
+                    f"pregunta='{pregunta[:80]}'"
+                )
+                if validation.reason == "injection":
+                    return ChatResponseDTO(
+                        respuesta="Solo puedo responder preguntas sobre cepas bacterianas.",
+                        modelo_usado="security_filter",
+                    )
+                # off_topic o invalid_input
+                return ChatResponseDTO(
+                    respuesta=(
+                        "Solo puedo responder preguntas relacionadas con las cepas "
+                        "bacterianas de la base de datos y microbiología en general."
+                    ),
+                    modelo_usado="security_filter",
                 )
 
             logger.info(f"Procesando pregunta: '{pregunta[:100]}'")
@@ -88,10 +134,19 @@ class ChatController(Controller):
                 total_en_db=total_en_db,
             )
 
+            # ── Filtro de salida: detectar fuga del system prompt ────────────
+            respuesta = resultado["respuesta"]
+            if any(ind in respuesta.lower() for ind in self._LEAK_INDICATORS):
+                logger.error(
+                    f"AUDIT: posible fuga de system prompt | "
+                    f"user={username} | ip={client_ip} | pregunta='{pregunta[:80]}'"
+                )
+                respuesta = "No puedo responder a esa consulta."
+
             tiempo_respuesta = int((datetime.utcnow() - inicio).total_seconds() * 1000)
 
             return ChatResponseDTO(
-                respuesta=resultado["respuesta"],
+                respuesta=respuesta,
                 modelo_usado=resultado["modelo"],
                 tokens_enviados=resultado.get("tokens_enviados"),
                 tokens_recibidos=resultado.get("tokens_recibidos"),

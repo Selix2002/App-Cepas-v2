@@ -16,12 +16,12 @@ URL: http://localhost:8000  |  Delay: 7s  |  Prompts: 12
   Filtros       : {'gram': '+'}
   Términos      : ['gram:positiva(+)']
   Cepas ctx/DB  : 19 / 26
-  Tokens env/rec: 2579 / 40  (total: 2619)
-  Tiempo        : 1008 ms
+  Tokens env/rec: 2879 / 38  (total: 2917)
+  Tiempo        : 1726 ms
   Respuesta     :
-    Según el contexto proporcionado, todas las 19 cepas bacterianas listadas tienen una característica Gram positiva. Por lo tanto, el número exacto de cepas Gram positivas es:
+    He consultado la base de datos y encontré que todas las 19 cepas bacterianas registradas son Gram positivas. 
     
-    19.
+    La respuesta es: 19 cepas son Gram positivas.
 
    ⏱  Esperando 7s antes de la siguiente pregunta...
 
@@ -34,30 +34,14 @@ URL: http://localhost:8000  |  Delay: 7s  |  Prompts: 12
   Filtros       : {'lecitinasa': {'$in': ['+', '++', '+++']}}
   Términos      : ['lecitinasa:positivo']
   Cepas ctx/DB  : 16 / 26
-  Tokens env/rec: 2583 / 244  (total: 2827)
-  Tiempo        : 1173 ms
+  Tokens env/rec: 2883 / 72  (total: 2955)
+  Tiempo        : 986 ms
   Respuesta     :
-    Según el contexto proporcionado, las siguientes cepas tienen lecitinasa positiva:
+    He consultado la base de datos y encontrado que todas las 16 cepas bacterianas tienen lecitinasa positiva. 
     
-    1. SBLA 5 | Cód:A12
-    2. SBLB 2 | Cód:A16
-    3. SBLB 4 | Cód:A18
-    4. SBLB 6 | Cód:A20
-    5. SBLB 8 | Cód:A22
-    6. SBLA 2 | Cód:A29
-    7. LA 15 | Cód:A3
-    8. LA 16 | Cód:A4
-    9. PE 10 | Cód:B14
-    10. LG 2 | Cód:B18
-    11. LG 6 | Cód:B21
-    12. SEBAS1 | Cód:B30
-    13. ANUELBRRRR | Cód:C10
-    14. LA 18 | Cód:C2
-    15. SBPE 1 | Cód:C8
+    La lecitinasa es una enzima que se encuentra presente en todas las cepas de la colección, según los registros. 
     
-    La cepa restante, LA 5 | Cód:B5, no se menciona con lecitinasa positiva.
-    
-    Por lo tanto, el número exacto de cepas con lecitinasa positiva es: 15.
+    Por lo tanto, puedo afirmar que 16 cepas tienen lecitinasa positiva.
 
    ⏱  Esperando 7s antes de la siguiente pregunta...
 
@@ -70,14 +54,14 @@ URL: http://localhost:8000  |  Delay: 7s  |  Prompts: 12
   Filtros       : {'amp': 'R'}
   Términos      : ['amp:resistente']
   Cepas ctx/DB  : 10 / 26
-  Tokens env/rec: 2009 / 72  (total: 2081)
-  Tiempo        : 1000 ms
+  Tokens env/rec: 2309 / 84  (total: 2393)
+  Tiempo        : 970 ms
   Respuesta     :
-    Según la información proporcionada en el contexto, todas las 10 cepas bacterianas son resistentes a ampicilina. 
+    He consultado la base de datos y encontrado que todas las 10 cepas bacterianas son resistentes a ampicilina. 
     
-    La resistencia a ampicilina se indica con "R" en la sección 💊 de cada cepa. 
+    En la base de datos, bajo la columna de resistencia antimicrobiana, todas las cepas (100%) muestran 'R' para Ampicilina, lo que indica resistencia. 
     
-    Por lo tanto, el número exacto de cepas resistentes a ampicilina es: 10.
+    Por lo tanto, puedo afirmar que 10 cepas son resistentes a ampicilina.
 
    ⏱  Esperando 7s antes de la siguiente pregunta...
 
@@ -90,17 +74,18 @@ URL: http://localhost:8000  |  Delay: 7s  |  Prompts: 12
   Filtros       : {'temp_37c': {'$in': ['+', '++']}}
   Términos      : ['temp_37c:crece']
   Cepas ctx/DB  : 11 / 26
-  Tokens env/rec: 1636 / 83  (total: 1719)
-  Tiempo        : 1386 ms
+  Tokens env/rec: 1917 / 122  (total: 2039)
+  Tiempo        : 983 ms
   Respuesta     :
-    Según la información proporcionada, las cepas que crecen a 37°C son:
+    He revisado la base de datos y encontrado que las siguientes cepas crecen a 37°C:
     
-    * LA 16 (Cód:A4) 
-    * LA 15 (Cód:A3) 
-    * SBLB 4 (Cód:A18) 
-    * SBLB 2 (Cód:A16) 
+    - LA 16 (Cód:A4) crece a 37°C
+    - LA 15 (Cód:A3) crece a 37°C
+    - ANUELBRRRR (Cód:C10) crece a 37°C
+    - SBLB 4 (Cód:A18) crece a 37°C
+    - LA 5 (Cód:B5) crece a 37°C
     
-    El total de cepas que crecen a 37°C es **4**.
+    El total de cepas que crecen a 37°C es 5.
 
    ⏱  Esperando 7s antes de la siguiente pregunta...
 
@@ -113,42 +98,19 @@ URL: http://localhost:8000  |  Delay: 7s  |  Prompts: 12
   Filtros       : {'gram': '+'}
   Términos      : ['gram:positiva(+)']
   Cepas ctx/DB  : 19 / 26
-  Tokens env/rec: 2573 / 448  (total: 3021)
-  Tiempo        : 1750 ms
+  Tokens env/rec: 2868 / 278  (total: 3146)
+  Tiempo        : 1611 ms
   Respuesta     :
-    Para determinar las cepas Gram positivas con mayor actividad enzimática, debemos analizar las características enzimáticas descritas para cada cepa en el contexto proporcionado.
+    He analizado la base de datos y encontrado las cepas Gram positivas con mayor actividad enzimática. 
     
-    **Cepas con mayor actividad enzimática:**
+    La cepa con mayor actividad enzimática es SBLA 5 (Cód:A12) de origen Laguna Amarga, con actividad positiva para 8 enzimas: Lecitinasa, Ureasa, Lipasa, Amilasa, Proteasa, Catalasa, Fosfatasa y Aia.
     
-    1. **SBLA 5 | Cód:A12**: 
-       - Lecitinasa, Ureasa, Lipasa, Amilasa, Proteasa, Catalasa, Fosfatasa, Aia
+    Otras cepas con alta actividad enzimática son:
+    - SEBAS1 (Cód:B30) de origen Lago Grey, con actividad positiva para 6 enzimas: Lecitinasa, Lipasa, Amilasa, Catalasa, Fosfatasa y Aia.
+    - LG 6 (Cód:B21) de origen Lago grey, con actividad positiva para 6 enzimas: Lecitinasa, Lipasa, Proteasa, Catalasa, Celulasa y Fosfatasa.
+    - SBLA 2 (Cód:A29) de origen Laguna Amarga, con actividad positiva para 3 enzimas: Lecitinasa, Proteasa y Celulasa, aunque es importante destacar que la actividad de Ceftazidima no fue determinada.
     
-    2. **SEBAS1 | Cód:B30**:
-       - Lecitinasa, Lipasa, Amilasa, Catalasa, Fosfatasa, Aia
-    
-    3. **LG 6 | Cód:B21**:
-       - Lecitinasa, Lipasa, Proteasa, Catalasa, Celulasa, Fosfatasa
-    
-    4. **SBLA 2 | Cód:A29**:
-       - Lecitinasa, Proteasa, Celulasa
-    
-    5. **SBPE 1 | Cód:C8**:
-       - Lecitinasa, Lipasa, Amilasa, Celulasa, Fosfatasa
-    
-    **Análisis comparativo:**
-    
-    - **SBLA 5 (A12)** y **SEBAS1 (B30)** destacan por tener un amplio perfil enzimático, incluyendo actividades como la producción de ureasa, lipasa, amilasa, proteasa, catalasa, fosfatasa y, en el caso de SBLA 5, también Aia. 
-    - **LG 6 (B21)** muestra actividad en seis tipos de enzimas, incluyendo una variedad de actividades como celulasa.
-    
-    **Conteo de enzimas por cepa:**
-    
-    1. SBLA 5 (A12) - 8 enzimas
-    2. SEBAS1 (B30) - 6 enzimas
-    3. LG 6 (B21) - 6 enzimas
-    4. SBPE 1 (C8) - 5 enzimas
-    5. SBLA 2 (A29) - 3 enzimas
-    
-    En base a esta información, **SBLA 5 | Cód:A12** presenta la mayor actividad enzimática con 8 enzimas diferentes.
+    Es importante mencionar que la actividad enzimática puede variar dependiendo de las condiciones de crecimiento y otros factores. Estos resultados se basan en la información disponible en la base de datos.
 
    ⏱  Esperando 7s antes de la siguiente pregunta...
 
@@ -161,24 +123,24 @@ URL: http://localhost:8000  |  Delay: 7s  |  Prompts: 12
   Filtros       : {'gram': '-', 'proteasa': {'$in': ['+', '++', '+++']}}
   Términos      : ['gram:negativa(-)', 'proteasa:positivo']
   Cepas ctx/DB  : 3 / 26
-  Tokens env/rec: 793 / 137  (total: 930)
-  Tiempo        : 1034 ms
+  Tokens env/rec: 1087 / 258  (total: 1345)
+  Tiempo        : 1148 ms
   Respuesta     :
-    Según el contexto proporcionado, solo una cepa Gram negativa tiene proteasa positiva:
+    He revisado la base de datos de cepas bacterianas y encontrado que solo una cepa Gram negativa tiene proteasa positiva.
     
-    * SBLB 8 | Cód:A22 | Origen:Lago Maravilloso 
+    La cepa SBLB 8 (Cód:A22) es Gram negativa, tiene morfología de bacilos y presenta actividad positiva para proteasa, además de otras enzimas como lecetinasa, lipasa, amilasa y catalasa.
     
-    Esta cepa presenta las siguientes características relevantes:
+    No he encontrado otras cepas Gram negativas con proteasa positiva en la base de datos. 
+    
+    La información de la cepa es la siguiente:
+    - Código: A22
+    - Origen: Lago Maravilloso
     - Gram: -
     - Morfología: bacilos
-    - Pruebas bioquímicas positivas: 
-      - Lecitinasa
-      - Lipasa
-      - Amilasa
-      - Proteasa
-      - Catalasa
-    
-    Es importante destacar que las otras dos cepas, ANUELBRRRR (C10) y SBLB 4 (A18), no tienen proteasa positiva según la información proporcionada.
+    - Enzimas: Lecitinasa, Lipasa, Amilasa, Proteasa, Catalasa
+    - Temperatura de crecimiento: 5°C:1.0, 25°C:1.0, 37°C:1.0
+    - Resistencia antimicrobiana: Ampicilina:R, Cefotaxima:R, Cefuroxima:R, Ceftazidima:R, Amikacina:P, Cloranfenicol:R, Tetraciclina:R
+    - Otras características: gen 16s: Pseudomonas sp., nicolas: MDR, Prueba form: b
 
    ⏱  Esperando 7s antes de la siguiente pregunta...
 
@@ -191,65 +153,66 @@ URL: http://localhost:8000  |  Delay: 7s  |  Prompts: 12
   Filtros       : {'te': 'R'}
   Términos      : ['te:resistente']
   Cepas ctx/DB  : 6 / 26
-  Tokens env/rec: 1318 / 993  (total: 2311)
-  Tiempo        : 3442 ms
+  Tokens env/rec: 1613 / 934  (total: 2547)
+  Tiempo        : 2979 ms
   Respuesta     :
-    **Cepas Resistentes a Tetraciclina**
+    He encontrado que todas las cepas en la base de datos son resistentes a tetraciclina. A continuación, te proporciono las características de cada una de ellas:
     
-    A continuación, se presentan las cepas bacterianas resistentes a tetraciclina, junto con sus características relevantes:
-    
-    1. **ANUELBRRRR (Cód: C10)**
+    1. **ANUELBRRRR** (Cód: C10)
      * Origen: Lago Pehoe
      * Gram: -
      * Morfología: Bacilos
      * Enzimas: Lecitinasa, Ureasa, Amilasa, Catalasa, Celulasa
-     * Temperatura de crecimiento: 5°C, 25°C, 37°C (todas con crecimiento)
-     * Resistencia antimicrobiana: Ampicilina (R), Cefotaxima (R), Cefuroxima (R), Ceftazidima (R), Amikacina (P), Cloranfenicol (R), **Tetraciclina (R)**
+     * Temperatura de crecimiento: 5°C, 25°C, 37°C (todas con 1.0)
+     * Resistencia antimicrobiana: Ampicilina:R, Cefotaxima:R, Cefuroxima:R, Ceftazidima:R, Amikacina:P, Cloranfenicol:R, **Tetraciclina:R**
      * Gen 16s: Pseudomonas sp.
-    2. **LA 16 (Cód: A4)**
+     * Metabolómica: sí
+    2. **LA 16** (Cód: A4)
      * Origen: Laguna Amarga
      * Gram: +
      * Morfología: Bacilos
      * Enzimas: Lecitinasa, Lipasa, Catalasa
-     * Temperatura de crecimiento: 5°C, 25°C, 37°C (todas con crecimiento)
-     * Resistencia antimicrobiana: Ampicilina (R), Cefotaxima (R), Cefuroxima (R), Ceftazidima (R), Amikacina (P), Cloranfenicol (R), **Tetraciclina (R)**
+     * Temperatura de crecimiento: 5°C, 25°C, 37°C (todas con 1.0)
+     * Resistencia antimicrobiana: Ampicilina:R, Cefotaxima:R, Cefuroxima:R, Ceftazidima:R, Amikacina:P, Cloranfenicol:R, **Tetraciclina:R**
      * Gen 16s: Bacillus sp.
-    3. **SBLB 8 (Cód: A22)**
+     * Metabolómica: sí
+    3. **SBLB 8** (Cód: A22)
      * Origen: Lago Maravilloso
      * Gram: -
-     * Morfología: Bacilos
+     * Morfología: bacilos
      * Enzimas: Lecitinasa, Lipasa, Amilasa, Proteasa, Catalasa
-     * Temperatura de crecimiento: 5°C, 25°C, 37°C (todas con crecimiento)
-     * Resistencia antimicrobiana: Ampicilina (R), Cefotaxima (R), Cefuroxima (R), Ceftazidima (R), Amikacina (P), Cloranfenicol (R), **Tetraciclina (R)**
+     * Temperatura de crecimiento: 5°C, 25°C, 37°C (todas con 1.0)
+     * Resistencia antimicrobiana: Ampicilina:R, Cefotaxima:R, Cefuroxima:R, Ceftazidima:R, Amikacina:P, Cloranfenicol:R, **Tetraciclina:R**
      * Gen 16s: Pseudomonas sp.
-    4. **SBLB 2 (Cód: A16)**
+    4. **SBLB 2** (Cód: A16)
      * Origen: Lago Maravilloso
      * Gram: +
-     * Morfología: Cocos
+     * Morfología: cocos
      * Enzimas: Lecitinasa, Ureasa, Catalasa
-     * Temperatura de crecimiento: 5°C, 25°C, 37°C (todas con crecimiento)
-     * Resistencia antimicrobiana: Ampicilina (R), Cefotaxima (R), Cefuroxima (R), Ceftazidima (R), Amikacina (P), Cloranfenicol (R), **Tetraciclina (R)**
-     * Gen 16s: Kocuria sp.
-    5. **SBLB 6 (Cód: A20)**
+     * Temperatura de crecimiento: 5°C, 25°C, 37°C (todas con 1.0)
+     * Resistencia antimicrobiana: Ampicilina:R, Cefotaxima:R, Cefuroxima:R, Ceftazidima:R, Amikacina:P, Cloranfenicol:R, **Tetraciclina:R**
+     * Gen 16s: Kocuria sp
+     * Metabolómica: sí
+    5. **SBLB 6** (Cód: A20)
      * Origen: Lago Maravilloso
      * Gram: +
      * Morfología: Bacilos
      * Enzimas: Lecitinasa, Lipasa, Catalasa
-     * Temperatura de crecimiento: 5°C, 25°C, 37°C (todas con crecimiento)
-     * Resistencia antimicrobiana: Ampicilina (R), Cefotaxima (R), Cefuroxima (R), Ceftazidima (R), Amikacina (P), Cloranfenicol (I), **Tetraciclina (R)**
+     * Temperatura de crecimiento: 5°C, 25°C, 37°C (todas con 1.0)
+     * Resistencia antimicrobiana: Ampicilina:R, Cefotaxima:R, Cefuroxima:R, Ceftazidima:R, Amikacina:P, Cloranfenicol:I, **Tetraciclina:R**
      * Gen 16s: Pseudomonas sp.
-    6. **SBLA 5 (Cód: A12)**
+     * Metabolómica: sí
+    6. **SBLA 5** (Cód: A12)
      * Origen: Laguna Amarga
      * Gram: +
      * Morfología: Bacilos
      * Enzimas: Lecitinasa, Ureasa, Lipasa, Amilasa, Proteasa, Catalasa, Fosfatasa, Aia
-     * Temperatura de crecimiento: 5°C, 25°C, 37°C (todas con crecimiento)
-     * Resistencia antimicrobiana: Ampicilina (R), Cefotaxima (R), Cefuroxima (R), Ceftazidima (R), Amikacina (R), Cloranfenicol (R), **Tetraciclina (R)**
+     * Temperatura de crecimiento: 5°C, 25°C, 37°C (todas con 1.0)
+     * Resistencia antimicrobiana: Ampicilina:R, Cefotaxima:R, Cefuroxima:R, Ceftazidima:R, Amikacina:R, Cloranfenicol:R, **Tetraciclina:R**
      * Gen 16s: Jeotgalibacillus sp.
+     * Metabolómica: sí
     
-    **Resumen**
-    
-    Se encontraron 6 cepas bacterianas resistentes a tetraciclina, todas ellas con características únicas en cuanto a su origen, morfología, enzimas producidas y resistencia antimicrobiana. Estas cepas pertenecen a diferentes géneros y especies, lo que sugiere una diversidad en la resistencia a tetraciclina en la colección de cepas bacterianas.
+    Todas las cepas presentan resistencia a tetraciclina.
 
    ⏱  Esperando 7s antes de la siguiente pregunta...
 
@@ -262,22 +225,23 @@ URL: http://localhost:8000  |  Delay: 7s  |  Prompts: 12
   Filtros       : {}
   Términos      : []
   Cepas ctx/DB  : 11 / 26
-  Tokens env/rec: 1584 / 463  (total: 2047)
-  Tiempo        : 1800 ms
+  Tokens env/rec: 1884 / 427  (total: 2311)
+  Tiempo        : 1584 ms
   Respuesta     :
-    Para recomendar una cepa para biorremediación de suelos, debemos considerar las características que serían beneficiosas para este propósito. La biorremediación a menudo implica la degradación de contaminantes orgánicos, metales pesados y otros compuestos nocivos. Por lo tanto, cepas con habilidades como la producción de enzimas degradantes (lecitinasa, lipasa, amilasa, celulasa, etc.), resistencia a múltiples antimicrobianos y capacidad para crecer en una variedad de condiciones ambientales serían preferibles.
+    Para biorremediación de suelos, generalmente se buscan cepas bacterianas que tengan una alta capacidad para degradar contaminantes orgánicos y que sean resistentes a condiciones adversas del suelo. 
     
-    Basándome en el contexto proporcionado, varias cepas muestran características prometedoras:
+    En la base de datos, he encontrado varias cepas con características potencialmente útiles para biorremediación. Sin embargo, la cepa SBLB 8 (Cód:A22) parece destacar por varias razones:
     
-    1. **SBPE 1 (Cód:C8)**: Pertenece al género *Pseudomonas*, conocido por su capacidad para degradar una amplia gama de compuestos orgánicos. Presenta actividad positiva para lecetinasa, lipasa, amilasa, celulasa y fosfatasa, lo que sugiere una fuerte capacidad para degradar diferentes tipos de contaminantes.
+    1. **Origen**: Proviene del Lago Maravilloso, lo que podría indicar una adaptación a ambientes con cierta complejidad química.
+    2. **Enzimas producidas**: Produce una variedad de enzimas como lecitinasa, lipasa, amilasa, proteasa y catalasa. La producción de estas enzimas podría ser beneficiosa para la degradación de una amplia gama de contaminantes orgánicos.
+    3. **Tolerancia a temperaturas**: Puede crecer a diferentes temperaturas (5°C, 25°C y 37°C), lo que sugiere una buena adaptabilidad a condiciones variables del suelo.
+    4. **Resistencia antimicrobiana**: Aunque muestra resistencia a varios antibióticos (Ampicilina, Cefotaxima, Cefuroxima, Ceftazidima, Cloranfenicol y Tetraciclina), es sensible a Amikacina, lo que podría ser útil en ciertas estrategias de control.
     
-    2. **SBLB 4 (Cód:A18) y SBLB 8 (Cód:A22)**: También pertenecen al género *Pseudomonas* y muestran actividad para lecetinasa, lipasa, y catalasa. Aunque su perfil de resistencia antimicrobiana es de resistencia múltiple, lo cual podría ser una ventaja en ambientes con altos niveles de antimicrobianos.
+    Otra cepa que podría considerarse es la ANUELBRRRR (Cód:C10), también originaria del Lago Pehoe, que produce una variedad de enzimas (lecitinasa, ureasa, amilasa, catalasa y celulasa) y muestra resistencia a múltiples antibióticos, pero es sensible a Amikacina.
     
-    3. **ANUELBRRRR (Cód:C10)**: Presenta un perfil similar al de *Pseudomonas* sp., con actividades positivas para lecetinasa, ureasa, amilasa, catalasa y celulasa. Su resistencia a múltiples antimicrobianos también es notable.
+    La elección final dependería de los objetivos específicos de la biorremediación (por ejemplo, tipo de contaminante a degradar) y de las condiciones particulares del suelo a tratar. Ambas cepas podrían ser candidatas prometedoras, pero se necesitarían más estudios para determinar su eficacia y seguridad en aplicaciones de biorremediación. 
     
-    Considerando la información disponible, **SBPE 1 (Cód:C8)** parece ser una candidata prometedora para la biorremediación de suelos debido a su amplio rango de actividades enzimáticas y su resistencia a antimicrobianos. Sin embargo, la elección final dependería de los objetivos específicos de la biorremediación (por ejemplo, tipo de contaminante a degradar) y de las condiciones ambientales del sitio a tratar.
-    
-    **Recomendación:** SBPE 1 (Cód:C8) por su perfil enzimático amplio y su resistencia antimicrobiana.
+    He identificado 2 cepas con posibles aplicaciones en biorremediación.
 
    ⏱  Esperando 7s antes de la siguiente pregunta...
 
@@ -290,28 +254,22 @@ URL: http://localhost:8000  |  Delay: 7s  |  Prompts: 12
   Filtros       : {}
   Términos      : []
   Cepas ctx/DB  : 9 / 26
-  Tokens env/rec: 1182 / 590  (total: 1772)
-  Tiempo        : 2010 ms
+  Tokens env/rec: 1482 / 432  (total: 1914)
+  Tiempo        : 1901 ms
   Respuesta     :
-    Para determinar el potencial de una cepa como biofertilizante, debemos considerar sus características y habilidades para promover el crecimiento de las plantas. Entre las cepas listadas, aquellas que pertenecen a géneros conocidos por su capacidad para fijar nitrógeno, producir auxinas, solubilizar fosfatos o producir sideróforos podrían ser consideradas como potenciales biofertilizantes.
+    Para determinar el potencial de una cepa como biofertilizante, generalmente se buscan características como la capacidad de fijar nitrógeno, solubilizar fosfatos, producir auxinas, y tener un efecto positivo en el crecimiento de las plantas. En la base de datos, no tengo información directa sobre la fijación de nitrógeno o la producción de auxinas, pero puedo buscar algunas características que podrían indicar un potencial biofertilizante.
     
-    Analizando las cepas proporcionadas:
+    He encontrado que varias cepas tienen enzimas que podrían ser beneficiosas para el crecimiento de las plantas:
     
-    1. **PE 14 (Staphylococcus sp.)**: No hay información directa que la vincule con características de biofertilización.
-    2. **PE 10 (Janthinobacterium sp.)**: No se mencionan características específicas de biofertilización.
-    3. **SBPE 1 (Pseudomonas sp.)**: Presenta varias enzimas como Lecitinasa, Lipasa, Amilasa, Celulasa y Fosfatasa, lo que podría sugerir un potencial para la degradación de materia orgánica y movilización de nutrientes.
-    4. **PLA 13 (Arthrobacter sp.)**: No hay información directa sobre su potencial como biofertilizante.
-    5. **SBLB 4 (Pseudomonas sp.)**: Muestra resistencia a varios antibióticos y presencia de enzimas como Lecitinasa, Lipasa y Catalasa. Pseudomonas spp. son conocidas por producir sideróforos y solubilizar fosfatos.
-    6. **PLA 12 (Planococcus sp.)**: No hay información que la vincule directamente con el potencial biofertilizante.
-    7. **ANUELBRRRR (Pseudomonas sp.)**: Similar a SBLB 4, presenta un perfil que podría sugerir capacidad para degradar materia orgánica y movilizar nutrientes.
-    8. **LA 18 (Aerococcus sp.)**: No hay información directa sobre su potencial biofertilizante.
-    9. **PL3**: No se proporciona información sobre características o género.
+    - La cepa **SBPE 1** (Cód: C8) muestra actividad de Lecitinasa, Lipasa, Amilasa, Celulasa y Fosfatasa. La fosfatasa, en particular, puede estar relacionada con la solubilización de fosfatos, lo que es beneficioso para las plantas.
+      
+    - La cepa **ANUELBRRRR** (Cód: C10) presenta actividad de Lecitinasa, Ureasa, Amilasa, Catalasa y Celulasa. La ureasa puede contribuir a la disponibilidad de nitrógeno para las plantas al liberar amoníaco a partir de la urea.
     
-    Entre las cepas listadas, **SBPE 1 (Pseudomonas sp.)** y **ANUELBRRRR (Pseudomonas sp.)** parecen tener características que podrían ser beneficiosas para el crecimiento de las plantas, como la producción de diversas enzimas. Pseudomonas spp. son bien conocidas por su capacidad para promover el crecimiento de las plantas a través de diferentes mecanismos, incluyendo la producción de sideróforos, solubilización de fosfatos y producción de compuestos que inhiben el crecimiento de patógenos.
+    - La cepa **SBLB 4** (Cód: A18) muestra actividad de Lecitinasa, Lipasa y Catalasa.
     
-    Sin embargo, sin información específica sobre la fijación de nitrógeno, producción de auxinas u otros factores directamente relacionados con el potencial biofertilizante, es difícil determinar con certeza cuál de estas cepas es la más adecuada. 
+    Aunque no tengo información directa sobre la producción de auxinas o la fijación de nitrógeno, la cepa **SBPE 1** (Cód: C8) parece destacar por su amplio perfil enzimático, que podría ser beneficioso para el crecimiento de las plantas. Además, su identificación genérica como *Pseudomonas sp.*, un género conocido por incluir especies con propiedades biofertilizantes.
     
-    **SBPE 1 (Pseudomonas sp.)** podría considerarse una buena candidata debido a su perfil enzimático y a que pertenece a un género conocido por su potencial en aplicaciones de biofertilización.Traceback (most recent call last):
+    En base a la información disponible, consideraría que la cepa **SBPE 1** (Cód: C8) tiene un buen potencial como biofertilizante debido a su perfil enzimático y su identificación genérica. Sin embargo, es importante mencionar que la evaluación completa del potencial biofertilizante requiere más información y pruebas específicas.Traceback (most recent call last):
   File "<frozen runpy>", line 198, in _run_module_as_main
   File "<frozen runpy>", line 88, in _run_code
   File "/home/sebas/Escritorio/App-Cepas-v2/backend/tests/run_tests.py", line 190, in <module>
@@ -335,7 +293,7 @@ URL: http://localhost:8000  |  Delay: 7s  |  Prompts: 12
   File "/home/sebas/.local/share/uv/python/cpython-3.13.5-linux-x86_64-gnu/lib/python3.13/pathlib/_local.py", line 537, in open
     return io.open(self, mode, buffering, encoding, errors, newline)
            ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-FileNotFoundError: [Errno 2] No such file or directory: 'tests/resultados_20260319_160837.json'
+FileNotFoundError: [Errno 2] No such file or directory: 'tests/resultados_20260320_095959.json'
 
 
    ⏱  Esperando 7s antes de la siguiente pregunta...
@@ -349,41 +307,49 @@ FileNotFoundError: [Errno 2] No such file or directory: 'tests/resultados_202603
   Filtros       : {}
   Términos      : []
   Cepas ctx/DB  : 9 / 26
-  Tokens env/rec: 1354 / 418  (total: 1772)
-  Tiempo        : 2666 ms
+  Tokens env/rec: 1655 / 384  (total: 2039)
+  Tiempo        : 1599 ms
   Respuesta     :
-    Basándome en la información proporcionada, puedo analizar las cepas bacterianas en función de sus características metabólicas.
+    He analizado las 9 cepas bacterianas en la base de datos y he identificado aquellas con mayor versatilidad metabólica según las enzimas y características reportadas.
     
-    La versatilidad metabólica se puede inferir de las pruebas bioquímicas que cada cepa ha presentado resultados positivos. A continuación, se presentan las cepas con mayor número de pruebas bioquímicas positivas:
+    La cepa SBLB 8 (Cód:A22) presenta una amplia gama de actividades enzimáticas, incluyendo:
     
-    1. **SBLB 8 (Cód:A22)**: Esta cepa presenta resultados positivos en 5 pruebas bioquímicas:
-       - Lecitinasa
-       - Lipasa
-       - Amilasa
-       - Proteasa
-       - Catalasa
+    - Lecitinasa
+    - Lipasa
+    - Amilasa
+    - Proteasa
+    - Catalasa
     
-    2. **SBLB 4 (Cód:A18)**: Esta cepa presenta resultados positivos en 3 pruebas bioquímicas:
-       - Lecitinasa
-       - Lipasa
-       - Catalasa
+    Además, esta cepa muestra resistencia a múltiples antibióticos, lo que sugiere una gran capacidad de adaptación.
     
-    3. **LA 15 (Cód:A3)**: Esta cepa presenta resultados positivos en 6 pruebas bioquímicas:
-       - Lecitinasa
-       - Amilasa
-       - Proteasa
-       - Catalasa
-       - Fosfatasa
-       - Aia
+    Otra cepa destacada es LA 15 (Cód:A3), que exhibe actividad para:
     
-    4. **SBLB 2 (Cód:A16)**: Esta cepa presenta resultados positivos en 3 pruebas bioquímicas:
-       - Lecitinasa
-       - Ureasa
-       - Catalasa
+    - Lecitinasa
+    - Amilasa
+    - Proteasa
+    - Catalasa
+    - Fosfatasa
+    - Aia (enzima no especificada)
     
-    Considerando el número de pruebas bioquímicas positivas como indicador de versatilidad metabólica, las cepas **LA 15 (Cód:A3)** y **SBLB 8 (Cód:A22)** destacan por su amplia gama de capacidades metabólicas, con 6 y 5 pruebas positivas, respectivamente. Sin embargo, **LA 15 (Cód:A3)** muestra la mayor versatilidad metabólica al tener 6 pruebas bioquímicas positivas. 
+    Ambas cepas, SBLB 8 y LA 15, parecen tener una alta versatilidad metabólica debido a la variedad de enzimas producidas.
     
-    Por lo tanto, la cepa con mayor versatilidad metabólica es **LA 15 (Cód:A3)**, identificada como *Bacillus sp.*.
+    La cepa SBLB 2 (Cód:A16) también muestra una notable versatilidad con:
+    
+    - Lecitinasa
+    - Ureasa
+    - Catalasa
+    
+    Sin embargo, la combinación y variedad de enzimas reportadas para SBLB 8 y LA 15 las posicionan como las cepas con mayor versatilidad metabólica en la base de datos.
+    
+    Es importante mencionar que la cepa SBLB 4 (Cód:A18) también presenta una variedad de enzimas, incluyendo:
+    
+    - Lecitinasa
+    - Lipasa
+    - Catalasa
+    
+    Pero en comparación con SBLB 8 y LA 15, su perfil enzimático es ligeramente menos diverso.
+    
+    En resumen, las cepas SBLB 8 (Cód:A22) y LA 15 (Cód:A3) destacan por su amplia gama de actividades enzimáticas, sugiriendo una mayor versatilidad metabólica.
 
    ⏱  Esperando 7s antes de la siguiente pregunta...
 
@@ -396,10 +362,10 @@ FileNotFoundError: [Errno 2] No such file or directory: 'tests/resultados_202603
   Filtros       : {}
   Términos      : []
   Cepas ctx/DB  : 26 / 26
-  Tokens env/rec: 3446 / 11  (total: 3457)
-  Tiempo        : 1140 ms
+  Tokens env/rec: 3746 / 20  (total: 3766)
+  Tiempo        : 769 ms
   Respuesta     :
-    Hay 26 cepas bacterianas en total.
+    He consultado la base de datos y encontrado un total de 26 cepas bacterianas.
 
    ⏱  Esperando 7s antes de la siguiente pregunta...
 
@@ -412,31 +378,19 @@ FileNotFoundError: [Errno 2] No such file or directory: 'tests/resultados_202603
   Filtros       : {'gram': '+'}
   Términos      : ['gram:positiva(+)']
   Cepas ctx/DB  : 19 / 26
-  Tokens env/rec: 2566 / 338  (total: 2904)
-  Tiempo        : 1575 ms
+  Tokens env/rec: 2860 / 249  (total: 3109)
+  Tiempo        : 1499 ms
   Respuesta     :
-    **Definición de Gram Positiva**
+    La tinción de Gram es un método utilizado para clasificar bacterias según la composición de su pared celular. Las bacterias Gram positivas tienen una pared celular gruesa compuesta principalmente de peptidoglicano (también conocido como mureína), que retiene el cristal violeta utilizado en el proceso de tinción. Esto les da una apariencia morfológica característica bajo el microscopio.
     
-    La clasificación Gram positiva se refiere a la capacidad de las bacterias para retener el colorante cristal violeta durante el proceso de tinción de Gram. Esto se debe a la composición de la pared celular de estas bacterias, que tiene una capa gruesa de peptidoglicano (también conocido como mureína).
+    En la base de datos, he encontrado que todas las cepas listadas tienen una clasificación Gram positiva, lo que significa que todas ellas tienen una pared celular con una capa de peptidoglicano gruesa. Esto es relevante porque las bacterias Gram positivas suelen tener un comportamiento y unas características bioquímicas diferentes a las de las bacterias Gram negativas.
     
-    **Características de las Bacterias Gram Positivas**
+    Algunos ejemplos de bacterias Gram positivas en la base de datos son:
+    - PE 10 (Cód:B14) con gen 16s de Janthinobacterium sp.
+    - LA 18 (Cód:C2) con gen 16s de Aerococcus sp.
+    - SBLB 2 (Cód:A16) con gen 16s de Kocuria sp.
     
-    Las bacterias Gram positivas tienen una pared celular con una capa de peptidoglicano que es más gruesa que la de las bacterias Gram negativas. Esto les permite retener el colorante cristal violeta y aparecer de color púrpura o violeta bajo el microscopio.
-    
-    **Importancia de la Clasificación Gram**
-    
-    La clasificación Gram es una herramienta importante en la microbiología para identificar y clasificar las bacterias. Las bacterias Gram positivas y Gram negativas tienen diferentes características y comportamientos, lo que puede ser útil para diagnosticar y tratar infecciones bacterianas.
-    
-    **Ejemplos de Bacterias Gram Positivas en el Contexto**
-    
-    En el contexto proporcionado, se pueden encontrar varias cepas bacterianas Gram positivas, como:
-    
-    * PE 10 (Cód:B14) con gen 16s: Janthinobacterium sp.
-    * PE 14 (Cód:C4) con gen 16s: Staphylococcus sp.
-    * SBLB 2 (Cód:A16) con gen 16s: Kocuria sp.
-    * LA 18 (Cód:C2) con gen 16s: Aerococcus sp.
-    
-    Estas cepas bacterianas Gram positivas tienen diferentes características y propiedades, como la producción de enzimas y la resistencia a antibióticos.
+    Espero que esta información te sea útil. ¿Tienes alguna otra pregunta sobre las cepas bacterianas?
 
 ══════════════════════════════════════════════════════════════════════
 RESUMEN FINAL
@@ -444,9 +398,9 @@ RESUMEN FINAL
   Preguntas ejecutadas : 12
   Errores              : 0
   Modos correctos      : 10 / 12
-  Tiempo total         : 97.0 s
+  Tiempo total         : 99.9 s
 
-  Tokens enviados      : 23,623
-  Tokens recibidos     : 3,837
-  Tokens totales       : 27,460
+  Tokens enviados      : 27,183
+  Tokens recibidos     : 3,298
+  Tokens totales       : 30,481
 ══════════════════════════════════════════════════════════════════════
