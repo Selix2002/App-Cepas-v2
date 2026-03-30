@@ -45,18 +45,20 @@ class QueryParserService:
         "tetraciclina": "te",
     }
 
-    _POSITIVO_RE = r"positiv[ao]|\b\+\b|activ[ao]|present[e]"
-    _NEGATIVO_RE = r"negativ[ao]|\b-\b|ausente|inactiv[ao]"
+    _POSITIVO_RE = r"positiv[ao]|postiv[ao]|positi[bv][ao]|\+{1,3}|activ[ao]|present[e]"
+    _NEGATIVO_RE = r"negativ[ao]|negatv[ao]|\bausente\b|inactiv[ao]"
 
     _ESTADISTICO_RE = [
         r"\bcuántas?\b", r"\bcuantas?\b",
         r"\bcuántos?\b", r"\bcuantos?\b",
         r"\bqué\s+porcentaje\b", r"\bque\s+porcentaje\b",
         r"\btodas?\s+las?\b", r"\btodos?\s+los?\b",
-        r"\benumera\b", r"\blista\s+(?:todas?|todos?)\b",
+        r"\benumera\b", r"\blista[r]?\b",
+        r"\bmuéstrame\b", r"\bmuestrame\b",
         r"\bconteo\b", r"\bcuál\s+es\s+el\s+(?:total|número)\b",
         r"\bcual\s+es\s+el\s+(?:total|numero)\b",
-        r"\bel\s+total\s+de\b",
+        r"\bel\s+total\s+de\b", r"\bdame\s+(?:todas?|todos?|las?|los?)\b",
+        r"\bmuestra\s+(?:todas?|todos?)\b",
     ]
 
     # Campos que nunca se consideran "dinámicos" para matching
@@ -68,8 +70,6 @@ class QueryParserService:
         "lecitinasa", "ureasa", "lipasa", "amilasa", "proteasa",
         "catalasa", "celulasa", "fosfatasa", "aia",
         "amp", "ctx", "cxm", "caz", "ak", "c", "te", "am_ecoli", "am_saureus",
-        "envio_punta_arenas", "temperatura_80", "medio",
-        "gen_16s", "metabolomica", "nicolas", "nombre_proyecto",
     }
 
     def __init__(self) -> None:
@@ -223,10 +223,20 @@ class QueryParserService:
         """Busca coincidencias entre la pregunta y los campos dinámicos de la colección."""
         for campo in self._campos_dinamicos:
             campo_legible = campo.replace("_", " ").lower()
-            if campo_legible in texto or campo.lower() in texto:
+            if campo_legible not in texto and campo.lower() not in texto:
+                continue
+            if re.search(self._POSITIVO_RE, texto):
+                filtros[campo] = {"$in": ["+", "++", "+++", "si", "sí", "yes", "positivo"]}
+                terminos.append(f"dinamico:{campo}:positivo")
+                logger.debug(f"   ✓ Campo dinámico detectado: '{campo}' → positivo")
+            elif re.search(self._NEGATIVO_RE, texto):
+                filtros[campo] = {"$in": ["-", "no", "negativo", "ausente"]}
+                terminos.append(f"dinamico:{campo}:negativo")
+                logger.debug(f"   ✓ Campo dinámico detectado: '{campo}' → negativo")
+            else:
                 filtros[campo] = {"$exists": True, "$ne": None}
                 terminos.append(f"dinamico:{campo}")
-                logger.debug(f"   ✓ Campo dinámico detectado: '{campo}'")
+                logger.debug(f"   ✓ Campo dinámico detectado: '{campo}' → existencia")
 
 
 # ---------------------------------------------------------------------------

@@ -31,8 +31,8 @@ def database_service_provider() -> DatabaseService:
 
 def llm_service_provider() -> LLMService:
     return get_llm_service(
-        api_key=settings.GROQ_API_KEY,
-        model=settings.GROQ_MODEL,
+        api_key=settings.OPENROUTER_API_KEY,
+        model=settings.OPENROUTER_MODEL,
         temperature=settings.LLM_TEMPERATURE,
         max_tokens=settings.LLM_MAX_TOKENS,
     )
@@ -127,11 +127,14 @@ class ChatController(Controller):
             )
 
             # 3. Generar respuesta con contexto filtrado
+            historial = [{"role": m.role, "content": m.content} for m in data.historial]
+
             resultado = await llm_service.generar_respuesta(
                 pregunta,
                 cepas=cepas,
                 modo=modo_efectivo,
                 total_en_db=total_en_db,
+                historial=historial,
             )
 
             # ── Filtro de salida: detectar fuga del system prompt ────────────
@@ -148,9 +151,6 @@ class ChatController(Controller):
             return ChatResponseDTO(
                 respuesta=respuesta,
                 modelo_usado=resultado["modelo"],
-                tokens_enviados=resultado.get("tokens_enviados"),
-                tokens_recibidos=resultado.get("tokens_recibidos"),
-                tokens_usados=resultado.get("tokens_usados"),
                 tiempo_respuesta_ms=tiempo_respuesta,
                 debug=SearchDebugInfo(
                     modo_busqueda=modo_efectivo,

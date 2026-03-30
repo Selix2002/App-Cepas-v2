@@ -15,6 +15,7 @@ import { useAuth } from "../../auth/store/AuthContext"
 import { useCepasTableCore } from "../hooks/table/useCepasTableCore"
 import { useCepasCharts }    from "../hooks/charts/useCepasCharts"
 import { useCepasMap }       from "../hooks/map/useCepasMap"
+import { useChatIA }         from "../hooks/chat/useChatIA"
 
 import HomeHeader            from "../components/home/components/header/HomeHeader"
 import ImportCepasModal      from "../components/home/components/header/ImportCepasModal"
@@ -24,6 +25,7 @@ import CoordFilterChips      from "../components/home/components/map/CoordFilter
 import MapBottomSheetSection from "../components/home/components/map/MapBottomSheetSection"
 import CepasSidebar          from "../components/CepasTable/CepasSideBar"
 import CepasTable            from "../components/CepasTable/CepasTable"
+import ChatPanel             from "../components/home/components/chat/ChatPanel"
 import "./home-page.css"
 
 export function HomePage() {
@@ -33,6 +35,9 @@ export function HomePage() {
 
   const [showImport,   setShowImport]   = useState(false)
   const [showDownload, setShowDownload] = useState(false)
+  const [chatOpen,     setChatOpen]     = useState(false)
+
+  const chat = useChatIA()
 
   const table  = useCepasTableCore({ user: user ?? null })
   const charts = useCepasCharts({ filteredData: table.filteredData })
@@ -57,8 +62,8 @@ export function HomePage() {
           columns={table.columnDefs}
           hiddenFields={table.hiddenFields}
           selectedColumnName={charts.selectedColumn?.name}
-          mapOpen={map.mapOpen}
-          onToggleMap={() => map.setMapOpen(!map.mapOpen)}
+          chatOpen={chatOpen}
+          onToggleChat={() => setChatOpen((v) => !v)}
           onLogout={handleLogout}
           onOpenImport={() => setShowImport(true)}
           onExport={table.handleExport}
@@ -157,6 +162,15 @@ export function HomePage() {
         markersCount={map.markersCount}
         data={map.validRowsForMap}
         onPointDblClick={map.handleMapPointDblClick}
+      />
+
+      <ChatPanel
+        open={chatOpen}
+        onClose={() => setChatOpen(false)}
+        messages={chat.messages}
+        isLoading={chat.isLoading}
+        onSend={chat.sendMessage}
+        onClear={chat.clearMessages}
       />
     </>
   )

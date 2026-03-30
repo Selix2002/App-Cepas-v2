@@ -9,8 +9,8 @@ class Settings(BaseSettings):
     secret_key: SecretStr = SecretStr("secret123")
     
     # Groq API
-    GROQ_API_KEY: str
-    GROQ_MODEL: str = "meta-llama/llama-4-scout-17b-16e-instruct"
+    OPENROUTER_API_KEY: str
+    OPENROUTER_MODEL: str = "deepseek/deepseek-r1"
     
     # Configuración de embeddings
     EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
@@ -27,11 +27,11 @@ class Settings(BaseSettings):
     CHAT_RATE_LIMIT_SECONDS: int = 60   # tamaño de la ventana en segundos
     
     # Configuración LLM
-    LLM_TEMPERATURE: float = 0.2
-    LLM_MAX_TOKENS: int = 2000
+    LLM_TEMPERATURE: float = 0.1
+    LLM_MAX_TOKENS: int = 2000 
     
     # Configuración de logging (DEBUG/INFO/ERROR)
-    LOG_LEVEL: str = "INFO"
+    LOG_LEVEL: str = "DEBUG"
     
     class Config:
         env_file = ".env",

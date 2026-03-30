@@ -73,18 +73,14 @@ function assignToPayload(
 export function buildCepaPayloadFromFieldMap(
     flatByField: Record<string, string>
 ): CepaPayload {
-    const payload = createBaseCepaPayload();
+    const payload: CepaPayload = {}
 
     for (const [fieldPath, rawValue] of Object.entries(flatByField)) {
-        const value =
-            rawValue.trim() === "" // igual que tu lógica original
-                ? "N/I"
-                : rawValue;
-
+        const value = rawValue.trim() === "" ? "N/I" : rawValue;
         assignToPayload(payload, fieldPath, value);
     }
 
-    if (!Object.keys(payload.datos_extra).length) {
+    if (payload.datos_extra && !Object.keys(payload.datos_extra).length) {
         delete payload.datos_extra;
     }
 

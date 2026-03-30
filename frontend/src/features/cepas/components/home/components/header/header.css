@@ -185,29 +185,29 @@
   transform: translateY(-1px);
 }
 
-/* ── mapa button (toggle) ────────────────────────────────────────────────── */
+/* ── chat IA button (toggle) ─────────────────────────────────────────────── */
 
-.hdr-btn-map {
+.hdr-btn-chat {
   background: transparent;
   border: 1px solid var(--border);
   color: var(--text-1);
 }
 
-.hdr-btn-map:hover {
+.hdr-btn-chat:hover {
   border-color: var(--accent-dim);
   color: var(--accent);
   box-shadow: 0 0 8px #00e5b422;
   transform: translateY(-1px);
 }
 
-.hdr-btn-map.active {
+.hdr-btn-chat.active {
   border-color: var(--accent-dim);
   color: var(--accent);
   background: #00e5b411;
   box-shadow: 0 0 12px #00e5b433;
 }
 
-.hdr-btn-map.active:hover {
+.hdr-btn-chat.active:hover {
   box-shadow: 0 0 18px #00e5b455;
 }
 

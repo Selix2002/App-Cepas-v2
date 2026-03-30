@@ -11,8 +11,8 @@ type HomeHeaderProps = {
     columns: CepaColumnDef[]
     hiddenFields: Set<string>
     selectedColumnName?: string
-    mapOpen: boolean
-    onToggleMap: () => void
+    chatOpen: boolean
+    onToggleChat: () => void
     onLogout: () => void
     onOpenImport: () => void
     onExport: () => void
@@ -34,8 +34,8 @@ function addRipple(e: React.MouseEvent<HTMLButtonElement>) {
 export default function HomeHeader({
     isAdmin,
     selectedColumnName,
-    mapOpen,
-    onToggleMap,
+    chatOpen,
+    onToggleChat,
     onLogout,
     onOpenImport,
     onExport,
@@ -127,13 +127,13 @@ export default function HomeHeader({
                 )}
 
 
-                {/* mapa */}
+                {/* chat IA */}
                 <button
-                    className={`hdr-btn hdr-btn-map${mapOpen ? " active" : ""}`}
-                    onClick={(e) => { addRipple(e); onToggleMap() }}
-                    title={mapOpen ? "Cerrar mapa" : "Abrir mapa"}
+                    className={`hdr-btn hdr-btn-chat${chatOpen ? " active" : ""}`}
+                    onClick={(e) => { addRipple(e); onToggleChat() }}
+                    title={chatOpen ? "Cerrar chat IA" : "Abrir chat IA"}
                 >
-                    🗺 Mapa
+                    IA Chat
                 </button>
 
                 {/* crear nuevo — solo admin */}
