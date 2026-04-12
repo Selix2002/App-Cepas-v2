@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     
     # Groq API
     OPENROUTER_API_KEY: str
-    OPENROUTER_MODEL: str = "deepseek/deepseek-r1"
+    OPENROUTER_MODEL: str = "openrouter/auto"
     
     # Configuración de embeddings
     EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"

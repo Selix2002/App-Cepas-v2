@@ -1,4 +1,4 @@
-from beanie import Document, Indexed
+from beanie import Document, Indexed, PydanticObjectId
 from pydantic import Field,ConfigDict,BaseModel
 from typing import Optional,List
 from datetime import datetime
@@ -70,6 +70,20 @@ class Cepa(Document):
     class Settings:
         name = "cepas"
         
+
+class ChatFeedback(Document):
+    usuario_id: PydanticObjectId
+    pregunta: str
+    respuesta: str
+    calificacion: int                        # 1–5
+    comentario: Optional[str] = None
+    fecha: datetime = Field(default_factory=datetime.utcnow)
+    modelo_usado: str
+    modo_busqueda: Optional[str] = None
+
+    class Settings:
+        name = "chat_feedback"
+
 
 class ChatMessage(BaseModel):
     pregunta: str = Field(..., min_length=3, max_length=500)

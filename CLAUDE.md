@@ -48,26 +48,47 @@ npm run lint      # ESLint
 - `app/core/security.py` — JWT creation/validation, `admin_guard`
 
 ### AI/Chat subsystem (`app/services/`)
-- `llm_service.py` — Groq API integration; two modes:
+- `llm_service.py` — OpenRouter API integration; two modes:
   - **Complete mode** (≤50 strains): sends full strain data as context
   - **Hybrid mode** (>50 strains): sends summary + semantically relevant strains
-- `embedding_service.py` — singleton wrapping `sentence-transformers` (`all-MiniLM-L6-v2`); cosine similarity search
+- `embedding_service.py` — singleton wrapping `sentence-transformers` (`all-MiniLM-L6-v2`); cosine similarity search with dynamic threshold (median + MAD factor)
 - `dbSearch_service.py` — fetches strains from MongoDB, runs semantic search with threshold filtering
+- `input_validator_service.py` — blocks prompt injection and off-topic queries before reaching the LLM
+- `query_parser_service.py` — parses natural language queries into structured filters
+- `feedback_service.py` — stores thumbs up/down feedback per chat response
 
-**Config knobs** (in `.env` / `config.py`): `GROQ_MODEL`, `MAX_CONTEXT_CEPAS` (30), `SIMILARITY_THRESHOLD` (0.3), `LLM_TEMPERATURE` (0.2), `LLM_MAX_TOKENS` (500)
+**Config knobs** (in `.env` / `config.py`): `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, `MAX_CONTEXT_CEPAS` (30), `SIMILARITY_THRESHOLD` (0.3), `LLM_TEMPERATURE` (0.1), `LLM_MAX_TOKENS` (2000), `DOMAIN_THRESHOLD` (0.20)
 
 ### Frontend (React 19 + TypeScript + Vite)
 - **Routing**: React Router v7, lazy-loaded pages, `PrivateRoute` wrapper
 - **Server state**: TanStack React Query
-- **Tables**: ag-grid-react (main data grid with inline cell editing)
+- **Tables**: custom React table (`CepasTable.tsx`) — no external grid library; fully controlled state
+- **Charts**: Nivo (bar + pie), rendered inside `ChartSection`
+- **Map**: Leaflet via `MapBottomSheetSection` (bottom sheet overlay)
 - **Forms**: React Hook Form
 - **Auth**: `AuthContext` (context + `useAuth` hook) stored in `features/auth/store/`
 
 **Feature-based structure** under `src/features/`:
 - `auth/` — login page, JWT session management, auth context
-- `cepas/` — main CRUD UI: `HomePage` (ag-grid table), `NewCepaPage`, `NewAtributePage`; business logic lives in `hooks/`
+- `cepas/` — main CRUD UI: `HomePage`, `NewCepaPage`, `NewAtributePage`; business logic lives in `hooks/`
+  - `hooks/table/useCepasTableCore` — all table state: `globalSearch`, `setGlobalSearch`, `columnFilters`, `setColumnFilter`, `clearColumnFilter`, `clearAllFilters`, `sortConfig`, `handleSort`, pagination
+  - `hooks/charts/useCepasCharts` — chart type (`pie`/`bar`), selected columns, chart data
+  - `hooks/map/useCepasMap` — map open state, coordinate filter, valid rows
+  - `hooks/chat/useChatIA` — chat messages, `sendMessage`, `clearMessages`
 - `users/` — admin user management page
-- `dashboard/` — map (Leaflet), bar chart, pie chart (Nivo)
+- `dashboard/` — standalone map, bar chart, pie chart pages
+
+**HomePage layout** (`cepas/pages/HomePage.tsx`):
+```
+HomeHeader
+├── CepasSidebar   (column visibility + chart column selector)
+└── home-main
+    ├── ChartSection   (pie / bar toggle, Nivo charts)
+    ├── CoordFilterChips
+    └── CepasTable     (custom table with per-column filter inputs + global search)
+MapBottomSheetSection  (Leaflet, bottom sheet overlay)
+ChatPanel              (AI chat drawer)
+```
 
 **API proxy**: Vite proxies `/api` → `http://127.0.0.1:8000` in dev
 
@@ -75,8 +96,8 @@ npm run lint      # ESLint
 
 Backend requires a `.env` file in `backend/`:
 ```
-GROQ_API_KEY=...
-GROQ_MODEL=llama-3.1-8b-instant
+OPENROUTER_API_KEY=...
+OPENROUTER_MODEL=openrouter/auto
 LOG_LEVEL=DEBUG
 ```
 

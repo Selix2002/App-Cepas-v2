@@ -45,6 +45,29 @@ class ChatResponseDTO(BaseModel):
     tiempo_respuesta_ms: Optional[int] = Field(default=None, description="Tiempo de respuesta en ms")
     debug: Optional[SearchDebugInfo] = Field(default=None, description="Info del proceso de búsqueda")
 
+class ChatFeedbackCreateDTO(BaseModel):
+    """DTO para recibir feedback del usuario sobre una respuesta del chat"""
+    pregunta: str = Field(..., min_length=1, max_length=500)
+    respuesta: str = Field(..., min_length=1)
+    calificacion: int = Field(..., ge=1, le=5, description="Calificación del 1 al 5")
+    comentario: Optional[str] = Field(default=None, max_length=1000)
+    modo_busqueda: Optional[str] = None
+
+
+class ChatFeedbackResponseDTO(BaseModel):
+    """DTO de confirmación tras guardar el feedback"""
+    mensaje: str
+    id: str
+
+
+class FeedbackStatsDTO(BaseModel):
+    """DTO para estadísticas de feedback"""
+    total: int
+    promedio_calificacion: float
+    distribucion: dict[str, int]          # {"1": n, "2": n, ...}
+    total_con_comentario: int
+
+
 class EmbeddingStatsDTO(BaseModel):
     """DTO para estadísticas de embeddings"""
     total_cepas: int

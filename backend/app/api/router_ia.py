@@ -12,9 +12,13 @@ from app.schema.dto_grok import (
     EmbeddingStatsDTO,
     EmbeddingGenerationDTO,
     SearchDebugInfo,
+    ChatFeedbackCreateDTO,
+    ChatFeedbackResponseDTO,
+    FeedbackStatsDTO,
 )
 from app.services.dbSearch_service import get_database_service, DatabaseService
 from app.services.llm_service import get_llm_service, LLMService
+from app.services.feedback_service import get_feedback_service, FeedbackService
 from app.services.query_parser_service import get_query_parser
 from app.services.input_validator_service import get_input_validator
 from app.core.config import settings
@@ -38,11 +42,16 @@ def llm_service_provider() -> LLMService:
     )
 
 
+def feedback_service_provider() -> FeedbackService:
+    return get_feedback_service()
+
+
 class ChatController(Controller):
     path = "/chat"
     dependencies = {
         "db_service": Provide(database_service_provider, sync_to_thread=False),
         "llm_service": Provide(llm_service_provider, sync_to_thread=False),
+        "feedback_service": Provide(feedback_service_provider, sync_to_thread=False),
     }
 
     # Indicadores de fuga del system prompt en la respuesta del LLM
@@ -184,6 +193,46 @@ class ChatController(Controller):
             raise HTTPException(
                 status_code=HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Error al obtener estadísticas"
+            )
+
+    @post("/feedback")
+    async def crear_feedback(
+        self,
+        request: Request,
+        data: ChatFeedbackCreateDTO,
+        feedback_service: FeedbackService,
+    ) -> ChatFeedbackResponseDTO:
+        usuario = request.user
+        try:
+            feedback = await feedback_service.guardar_feedback(
+                dto=data,
+                usuario_id=usuario.id,
+                modelo_usado=settings.OPENROUTER_MODEL,
+            )
+            return ChatFeedbackResponseDTO(
+                mensaje="Feedback guardado correctamente",
+                id=str(feedback.id),
+            )
+        except Exception as e:
+            logger.error(f"Error guardando feedback: {str(e)}", exc_info=True)
+            raise HTTPException(
+                status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error al guardar el feedback",
+            )
+
+    @get("/feedback/stats", guards=[admin_guard])
+    async def get_feedback_stats(
+        self,
+        feedback_service: FeedbackService,
+    ) -> FeedbackStatsDTO:
+        try:
+            stats = await feedback_service.get_stats()
+            return FeedbackStatsDTO(**stats)
+        except Exception as e:
+            logger.error(f"Error obteniendo stats de feedback: {str(e)}", exc_info=True)
+            raise HTTPException(
+                status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error al obtener estadísticas de feedback",
             )
 
     @post("/embeddings/generate", guards=[admin_guard])

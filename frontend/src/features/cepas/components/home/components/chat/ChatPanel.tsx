@@ -2,6 +2,7 @@
 import { useEffect, useRef, useCallback, useState } from "react"
 import { Send, X, Trash2 } from "lucide-react"
 import type { ChatMessage } from "../../../../hooks/chat/useChatIA"
+import FeedbackWidget from "./FeedbackWidget"
 import "./chat-panel.css"
 
 type ChatPanelProps = {
@@ -14,13 +15,14 @@ type ChatPanelProps = {
 }
 
 function formatTime(date: Date) {
-    return date.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })
+    return date.toLocaleTimeString("es-CH", { hour: "2-digit", minute: "2-digit" })
 }
 
 const TYPEWRITER_SPEED_MS = 18
 
-function BubbleMessage({ msg }: { msg: ChatMessage }) {
+function BubbleMessage({ msg, preguntaAnterior }: { msg: ChatMessage; preguntaAnterior: string }) {
     const [displayed, setDisplayed] = useState(msg.isAnimating ? "" : msg.content)
+    const [animDone, setAnimDone]   = useState(!msg.isAnimating)
     const isError = msg.role === "ia" && msg.content.startsWith("⚠")
 
     useEffect(() => {
@@ -29,10 +31,15 @@ function BubbleMessage({ msg }: { msg: ChatMessage }) {
         const interval = setInterval(() => {
             i++
             setDisplayed(msg.content.slice(0, i))
-            if (i >= msg.content.length) clearInterval(interval)
+            if (i >= msg.content.length) {
+                clearInterval(interval)
+                setAnimDone(true)
+            }
         }, TYPEWRITER_SPEED_MS)
         return () => clearInterval(interval)
     }, [msg.isAnimating, msg.content])
+
+    const showFeedback = msg.role === "ia" && !isError && animDone
 
     return (
         <div className={`cp-bubble-wrap cp-${msg.role}`}>
@@ -45,6 +52,12 @@ function BubbleMessage({ msg }: { msg: ChatMessage }) {
                     <span className="cp-bubble-meta-pill">{msg.tiempoMs} ms</span>
                 )}
             </div>
+            {showFeedback && (
+                <FeedbackWidget
+                    pregunta={preguntaAnterior}
+                    respuesta={msg.content}
+                />
+            )}
         </div>
     )
 }
@@ -144,7 +157,17 @@ export default function ChatPanel({
                         <span>Hazme una pregunta</span>
                     </div>
                 ) : (
-                    messages.map((msg) => <BubbleMessage key={msg.id} msg={msg} />)
+                    messages.map((msg, idx) => (
+                        <BubbleMessage
+                            key={msg.id}
+                            msg={msg}
+                            preguntaAnterior={
+                                msg.role === "ia"
+                                    ? (messages[idx - 1]?.content ?? "")
+                                    : ""
+                            }
+                        />
+                    ))
                 )}
 
                 {isLoading && (
