@@ -1,15 +1,45 @@
 # Proyecto DB Cepas
 
-Este repositorio alberga una aplicación para la gestión de cepas microbiológicas, compuesta por un **backend** en Python (Litestar, SQLAlchemy, Alembic) y un **frontend** en React con TypeScript y TailwindCSS.
+Aplicación web para la gestión e investigación de cepas microbiológicas aisladas de cuerpos de agua de la Patagonia. Compuesta por un **backend** en Python (Litestar, Beanie, MongoDB) y un **frontend** en React con TypeScript y TailwindCSS. Incluye un módulo de consulta inteligente mediante lenguaje natural con búsqueda semántica híbrida.
 
 ---
 
 ## 📋 Requisitos Previos
 
-- **Git**  
-- **Python 3.13**  
-- **Node.js 18+** y **npm**  
-- **PostgreSQL 14+**  
+- **Git**
+- **Python 3.13**
+- **Node.js 18+** y **npm**
+- **MongoDB 6+**
+- **Redis 7+**
+- **uv** (gestor de paquetes Python): `pip install uv`
+
+---
+
+## 🗂️ Estructura del Proyecto
+
+```
+ProyectoDB_CEPAS/
+├── backend/
+│   ├── app/
+│   │   ├── api/            # Controladores y rutas (Litestar)
+│   │   ├── core/           # Configuración, seguridad, DB, Redis
+│   │   ├── models/         # Modelos Beanie (MongoDB)
+│   │   ├── repositories/   # Capa de acceso a datos
+│   │   ├── schema/         # DTOs (Pydantic)
+│   │   └── services/       # Lógica de negocio e IA
+│   ├── scripts/            # Utilidades (seed_admin, debug)
+│   ├── temp/               # Scripts de carga de datos
+│   ├── data/               # Archivos CSV de cepas
+│   ├── tests/              # Suite de pruebas del chat IA
+│   └── pyproject.toml
+├── frontend/
+│   ├── src/
+│   │   ├── features/       # Módulos por funcionalidad (auth, cepas, dashboard, chat)
+│   │   ├── shared/         # Interfaces, componentes y assets reutilizables
+│   │   └── app/            # Router, estilos globales, tokens de diseño
+│   └── package.json
+└── README.md
+```
 
 ---
 
@@ -27,88 +57,121 @@ cd ProyectoDB_CEPAS
 Crea un archivo `.env` en la carpeta `backend/` con las siguientes variables:
 
 ```dotenv
-# Datos de conexión a PostgreSQL
-DATABASE_URL=postgresql+psycopg2://<usuario>:<contraseña>@localhost/db_cepas
-```
+# MongoDB
+MONGODB_URI=mongodb://localhost:27017
+DB_NAME=db_cepas
 
-> **Tip**: Sustituye `<usuario>` y `<contraseña>` por tus credenciales de PostgreSQL. Se sugiere, crear un user `postgres` con contraseña `sebas` para evitar realizar cambios en el codigo del proyecto.
+# Redis
+REDIS_URL=redis://localhost:6379/0
 
-
-### 3. Configurar la base de datos
-
-Abre una consola de PostgreSQL y ejecuta:
-
-```sql
-CREATE DATABASE db_cepas;
+# JWT
+SECRET_KEY=tu_clave_secreta_aqui
 ```
 
 ---
 
 ## 🚀 Backend
 
-1. **Crear y activar entorno virtual**
+### 1. Crear y activar entorno virtual
 
-   ```bash
-   cd backend
-   python -m venv .venv
-   # Linux/macOS\   
-   source .venv/bin/activate
-   ```
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate        # Linux/macOS
+# .venv\Scripts\activate         # Windows
+```
 
-2. **Instalar dependencias**
-    Debe tener instalado uv (pip install uv)
+### 2. Instalar dependencias
 
-   ```bash
-   uv sync 
-   ```
+```bash
+uv sync
+```
 
-3. **Ejecutar migraciones**
+### 3. Crear el usuario administrador inicial
 
-   ```bash
-   alembic upgrade head
-   ```
-4. **Cargar datos**
-   Para cargar los datos desde un archivo, ejecutar:
+```bash
+uv run python -m scripts.seed_admin --username admin --password tu_contraseña
+```
 
-   ```bash
-   cd temp
-   python load_data.py   
-   ```
+### 4. Cargar datos desde CSV
 
-5. **Iniciar servidor**
+```bash
+cd temp
+python load_data.py
+```
 
-   ```bash
-   cd ..
-   uvicorn app.main:app --reload
-   ```
+> El script hace `POST /cepas` por cada fila del CSV. Requiere que el servidor esté corriendo y que uses las credenciales del admin creado en el paso anterior.
 
-   El API REST estará disponible en `http://localhost:8000`.
+### 5. Iniciar servidor
+
+```bash
+cd ..
+uvicorn app.main:app --reload
+```
+
+La API REST estará disponible en `http://localhost:8000`.  
+La documentación interactiva (OpenAPI) en `http://localhost:8000/schema`.
 
 ---
 
 ## 🌐 Frontend
 
-1. **Instalar dependencias**
+### 1. Instalar dependencias
 
-   ```bash
-   cd ../frontend
-   npm install
-   ```
+```bash
+cd frontend
+npm install
+```
 
-2. **Ejecutar en modo desarrollo**
+### 2. Ejecutar en modo desarrollo
 
-   ```bash
-   npm run dev
-   ```
+```bash
+npm run dev
+```
 
-   La aplicación se abrirá en `http://localhost:5173`.
+La aplicación se abrirá en `http://localhost:5173`.
 
 ---
 
 ## 🔐 Autenticación y Roles
 
-- El sistema distingue **usuarios** y **administradores** (`is_admin`).
-- Solo los administradores pueden añadir nuevas cepas y atributos.
-- Utiliza el endpoint `/auth/login` para obtener el token JWT.
-- Para esta version del proyecto, se encuentra habilitada la creacion de usuarios atraves de la url `http://localhost:8000/schema#tag/user/post/users/create` sin necesidad de autenticación.
+- El sistema distingue **usuarios** (`is_admin: false`) y **administradores** (`is_admin: true`).
+- Solo los administradores pueden crear, editar o eliminar cepas y gestionar usuarios.
+- La autenticación usa **JWT** vía OAuth2 Password Bearer (endpoint `POST /auth/login`).
+- El login tiene **rate limiting** protegido con Redis: máximo 5 intentos por minuto por IP.
+- Para crear el primer administrador usa el script `scripts/seed_admin.py` (ver sección Backend).
 
+---
+
+## 🤖 Módulo de Consulta Inteligente (Chat IA)
+
+El sistema incluye un asistente conversacional que permite consultar la colección de cepas en **lenguaje natural**. Las consultas se clasifican automáticamente en tres modos:
+
+| Modo | Descripción | Ejemplo |
+|------|-------------|---------|
+| **Estadístico** | Conteos exactos con filtros MongoDB | *"¿Cuántas cepas son Gram negativas?"* |
+| **Híbrido** | Filtros estructurados + similitud vectorial | *"Cepas resistentes a tetraciclina con sus características"* |
+| **Semántico** | Búsqueda vectorial pura sobre toda la colección | *"¿Qué cepa recomendarías para biorremediación?"* |
+
+### Pruebas del módulo IA
+
+```bash
+cd backend
+uv run python -m tests.run_tests
+```
+
+---
+
+## 🧰 Stack Tecnológico
+
+| Capa | Tecnología |
+|------|-----------|
+| Backend framework | Litestar |
+| Base de datos | MongoDB 6+ |
+| ODM | Beanie + Motor (async) |
+| Caché / Rate limit | Redis 7+ |
+| Embeddings | sentence-transformers |
+| Auth | JWT (OAuth2 Password Bearer) |
+| Frontend | React + TypeScript + Vite |
+| Estilos | TailwindCSS |
+| Package manager | uv (Python) / npm (Node) |
