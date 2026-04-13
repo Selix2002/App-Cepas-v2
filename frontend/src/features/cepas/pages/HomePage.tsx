@@ -36,6 +36,7 @@ export function HomePage() {
   const [showImport,   setShowImport]   = useState(false)
   const [showDownload, setShowDownload] = useState(false)
   const [chatOpen,     setChatOpen]     = useState(false)
+  const [sidebarOpen,  setSidebarOpen]  = useState(true)
 
   const chat = useChatIA()
 
@@ -85,6 +86,8 @@ export function HomePage() {
             toggleColumnVisibility={table.toggleColumnVisibility}
             selectedColumns={charts.selectedColumns}
             onColumnToggle={charts.handleColumnToggle}
+            collapsed={!sidebarOpen}
+            onToggle={() => setSidebarOpen((v) => !v)}
           />
 
           <div className="home-main">

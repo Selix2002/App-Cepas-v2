@@ -20,6 +20,31 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  transition: width 0.2s ease, background-color 0.9s ease, border-color 0.9s ease;
+  align-self: flex-start;
+  position: sticky;
+  top: 56px;
+  max-height: calc(100vh - 56px);
+}
+.bio-sidebar--collapsed {
+  width: 28px;
+}
+.bio-sidebar-toggle {
+  width: 100%;
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  color: var(--accent-mid);
+  font-size: 9px;
+  padding: 8px 0;
+  cursor: pointer;
+  font-family: inherit;
+  transition: color 0.15s, background 0.15s;
+}
+.bio-sidebar-toggle:hover {
+  color: var(--accent);
+  background: var(--bg-hover);
 }
 .bio-sidebar-section {
   padding: 10px 14px 4px;
@@ -71,7 +96,6 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
 
 /* ── stats row ───────────────────────────────────────────── */
@@ -160,8 +184,7 @@
 
 /* ── table wrap ──────────────────────────────────────────── */
 .bio-table-wrap {
-  flex: 1;
-  overflow: auto;
+  overflow-x: auto;
   position: relative;
 }
 .bio-table-wrap::-webkit-scrollbar { width: 6px; height: 6px; }

@@ -129,7 +129,7 @@ export default function CepasTable({
   const colColorIndex = (field: string) => columnDefs.findIndex((c) => c.field === field)
 
   return (
-    <div className="bio-main" style={{ height: "100%" }}>
+    <div className="bio-main">
 
       {/* stats */}
       <div className="bio-stats-row">

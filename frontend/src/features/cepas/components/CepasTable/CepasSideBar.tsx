@@ -21,6 +21,8 @@ interface Props {
     toggleColumnVisibility: (field: string, visible: boolean) => void
     selectedColumns: ColumnSelection[]
     onColumnToggle: (col: ColumnSelection, checked: boolean) => void
+    collapsed?: boolean
+    onToggle?: () => void
 }
 
 export default function CepasSidebar({
@@ -29,17 +31,28 @@ export default function CepasSidebar({
     toggleColumnVisibility,
     selectedColumns,
     onColumnToggle,
+    collapsed = false,
+    onToggle,
 }: Props) {
     const isSelected = (field: string) => selectedColumns.some((c) => c.field === field)
 
     return (
-        <div className="bio-sidebar" style={{ height: "100%" }}>
+        <div className={`bio-sidebar${collapsed ? " bio-sidebar--collapsed" : ""}`}>
+
+            {/* ── toggle button ──────────────────────────────────────────────── */}
+            <button
+                className="bio-sidebar-toggle"
+                onClick={onToggle}
+                title={collapsed ? "Expandir panel" : "Ocultar panel"}
+            >
+                {collapsed ? "▶" : "◀"}
+            </button>
 
             {/* ── header ─────────────────────────────────────────────────────── */}
-            <div className="bio-sidebar-section">Columnas</div>
+            {!collapsed && <div className="bio-sidebar-section">Columnas</div>}
 
             {/* ── select / deselect all ────────────────────────────────────────── */}
-            <div
+            {!collapsed && <div
                 style={{
                     display: "flex",
                     gap: 6,
@@ -113,10 +126,10 @@ export default function CepasSidebar({
                 >
                     NINGUNA
                 </button>
-            </div>
+            </div>}
 
             {/* ── column list ──────────────────────────────────────────────────── */}
-            <div className="bio-sidebar-scroll">
+            {!collapsed && <div className="bio-sidebar-scroll">
                 {columnDefs.map((col, i) => {
                     const sel = isSelected(col.field)
                     const hidden = hiddenFields.has(col.field)
@@ -205,7 +218,7 @@ export default function CepasSidebar({
                         </div>
                     )
                 })}
-            </div>
+            </div>}
         </div>
     )
 }

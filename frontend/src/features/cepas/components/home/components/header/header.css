@@ -10,7 +10,8 @@
   background: var(--bg-0);
   border-bottom: 2px solid #00e5b422;
   flex-shrink: 0;
-  position: relative;
+  position: sticky;
+  top: 0;
   z-index: 200;
   gap: 16px;
   font-family: 'Courier New', monospace;

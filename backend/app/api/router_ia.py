@@ -178,7 +178,7 @@ class ChatController(Controller):
                 status_code=HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Error al procesar la consulta. Por favor intenta de nuevo."
             )
-    
+
 
     @get("/embeddings/stats")
     async def get_embedding_stats(
@@ -245,7 +245,7 @@ class ChatController(Controller):
             stats_antes = await db_service.get_embedding_stats()
             cepas_procesadas, tiempo_total = await db_service.generar_embeddings_batch()
             stats_despues = await db_service.get_embedding_stats()
-            
+
             return EmbeddingGenerationDTO(
                 mensaje=f"Embeddings generados exitosamente para {cepas_procesadas} cepas\n stats antes: {stats_antes}\n stats después: {stats_despues}",
                 cepas_procesadas=cepas_procesadas,
