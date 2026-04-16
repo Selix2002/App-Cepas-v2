@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 
 from beanie import PydanticObjectId
 from beanie.operators import RegEx
@@ -10,8 +9,8 @@ from app.schema.dtos import (
     CepaUpdateDTO,
     CepaFilterParams,
 )
-from app.services.embedding_service import get_embedding_service
-from app.services.dbSearch_service import DatabaseService
+from app.ia.services.chat.embedding_service import get_embedding_service
+from app.ia.services.chat.dbSearch_service import DatabaseService
 
 
 class CepaNotFoundError(Exception):

@@ -1,4 +1,4 @@
-# app/controllers/chat_controller.py o app/api/router_ia.py
+# app/ia/router.py
 
 from datetime import datetime
 from litestar import Controller, post, get
@@ -6,7 +6,7 @@ from litestar.di import Provide
 from litestar.exceptions import HTTPException
 from litestar.status_codes import HTTP_500_INTERNAL_SERVER_ERROR, HTTP_400_BAD_REQUEST
 
-from app.schema.dto_grok import (
+from app.ia.schema import (
     ChatQueryDTO,
     ChatResponseDTO,
     EmbeddingStatsDTO,
@@ -16,12 +16,15 @@ from app.schema.dto_grok import (
     ChatFeedbackResponseDTO,
     FeedbackStatsDTO,
 )
-from app.services.dbSearch_service import get_database_service, DatabaseService
-from app.services.llm_service import get_llm_service, LLMService
-from app.services.feedback_service import get_feedback_service, FeedbackService
-from app.services.query_parser_service import get_query_parser
-from app.services.input_validator_service import get_input_validator
-from app.core.config import settings
+from app.ia.services.chat.dbSearch_service import get_database_service, DatabaseService
+from app.ia.services.chat.llm_service import get_llm_service, LLMService
+from app.ia.services.feedback.feedback_service import get_feedback_service, FeedbackService
+from app.ia.services.chat.query_parser_service import get_query_parser
+from app.ia.services.chat.input_validator_service import get_input_validator
+from app.ia.services.chat.schema_service import get_schema_description
+from app.ia.services.chat.mql_validator_service import get_mql_validator, MQLValidationError
+from app.ia.services.chat.mql_executor_service import get_mql_executor, MQLExecutionError
+from app.ia.config import ia_settings
 from app.core.security import admin_guard
 from litestar import Request
 import logging
@@ -35,10 +38,10 @@ def database_service_provider() -> DatabaseService:
 
 def llm_service_provider() -> LLMService:
     return get_llm_service(
-        api_key=settings.OPENROUTER_API_KEY,
-        model=settings.OPENROUTER_MODEL,
-        temperature=settings.LLM_TEMPERATURE,
-        max_tokens=settings.LLM_MAX_TOKENS,
+        api_key=ia_settings.OPENROUTER_API_KEY,
+        model=ia_settings.OPENROUTER_MODEL,
+        temperature=ia_settings.LLM_TEMPERATURE,
+        max_tokens=ia_settings.LLM_MAX_TOKENS,
     )
 
 
@@ -91,8 +94,8 @@ class ChatController(Controller):
                 )
 
             # ── Validación de input (inyección + off-topic) ──────────────────
-            validator = get_input_validator()
-            validation = validator.validate(pregunta, domain_threshold=settings.DOMAIN_THRESHOLD)
+            input_validator = get_input_validator()
+            validation = input_validator.validate(pregunta, domain_threshold=ia_settings.DOMAIN_THRESHOLD)
 
             if not validation.is_valid:
                 logger.warning(
@@ -116,9 +119,68 @@ class ChatController(Controller):
 
             logger.info(f"Procesando pregunta: '{pregunta[:100]}'")
 
+            # Datos compartidos por ambos paths
+            campos = await db_service.descubrir_campos_coleccion()
+            total_en_db = await db_service.get_total_cepas()
+            historial = [{"role": m.role, "content": m.content} for m in data.historial]
+
+            # ── MQL PATH ─────────────────────────────────────────────────────
+            if ia_settings.MQL_ENABLED:
+                schema_desc = get_schema_description(campos)
+                mql_raw = await llm_service.generar_mql_query(pregunta, schema_desc)
+
+                if mql_raw is not None:
+                    try:
+                        mql_validator = get_mql_validator()
+                        validated = mql_validator.validate(mql_raw)
+
+                        executor = get_mql_executor()
+                        query_results = await executor.execute(validated)
+
+                        resultado = await llm_service.formatear_resultados_mql(
+                            pregunta, query_results, historial
+                        )
+
+                        respuesta = resultado["respuesta"]
+                        if any(ind in respuesta.lower() for ind in self._LEAK_INDICATORS):
+                            logger.error(
+                                f"AUDIT: posible fuga de system prompt (MQL) | "
+                                f"user={username} | ip={client_ip}"
+                            )
+                            respuesta = "No puedo responder a esa consulta."
+
+                        tiempo_respuesta = int(
+                            (datetime.utcnow() - inicio).total_seconds() * 1000
+                        )
+                        mql_filter = validated.get("filter", {})
+
+                        return ChatResponseDTO(
+                            respuesta=respuesta,
+                            modelo_usado=resultado["modelo"],
+                            tiempo_respuesta_ms=tiempo_respuesta,
+                            debug=SearchDebugInfo(
+                                modo_busqueda="mql",
+                                filtros_aplicados=mql_filter if isinstance(mql_filter, dict) else {},
+                                terminos_detectados=[],
+                                cepas_en_contexto=query_results["count"],
+                                total_en_db=total_en_db,
+                                mql_query=validated,
+                            ),
+                        )
+
+                    except MQLValidationError as exc:
+                        logger.warning(f"⚠️  MQL inválido: {exc} — fallback a semántico")
+                    except MQLExecutionError as exc:
+                        logger.warning(f"⚠️  MQL falló en ejecución: {exc} — fallback a semántico")
+                    except Exception as exc:
+                        logger.error(
+                            f"❌ Error inesperado en MQL path: {exc} — fallback a semántico",
+                            exc_info=True,
+                        )
+
+            # ── FALLBACK: búsqueda semántica / híbrida ────────────────────────
             # 1. Parsear la pregunta
             parser = get_query_parser()
-            campos = await db_service.descubrir_campos_coleccion()
             parser.set_campos_dinamicos(campos)
             parsed = parser.parse(pregunta)
 
@@ -128,7 +190,6 @@ class ChatController(Controller):
             )
 
             # 2. Búsqueda híbrida
-            total_en_db = await db_service.get_total_cepas()
             cepas, modo_efectivo = await db_service.busqueda_hibrida(pregunta, parsed)
 
             logger.info(
@@ -136,8 +197,6 @@ class ChatController(Controller):
             )
 
             # 3. Generar respuesta con contexto filtrado
-            historial = [{"role": m.role, "content": m.content} for m in data.historial]
-
             resultado = await llm_service.generar_respuesta(
                 pregunta,
                 cepas=cepas,
@@ -207,7 +266,7 @@ class ChatController(Controller):
             feedback = await feedback_service.guardar_feedback(
                 dto=data,
                 usuario_id=usuario.id,
-                modelo_usado=settings.OPENROUTER_MODEL,
+                modelo_usado=ia_settings.OPENROUTER_MODEL,
             )
             return ChatFeedbackResponseDTO(
                 mensaje="Feedback guardado correctamente",

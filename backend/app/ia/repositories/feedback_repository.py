@@ -1,9 +1,9 @@
-# app/repositories/feedback_repository.py
+# app/ia/repositories/feedback_repository.py
 
 from datetime import datetime, timedelta
 from beanie import PydanticObjectId
 
-from app.models.models import ChatFeedback
+from app.ia.models import ChatFeedback
 import logging
 
 logger = logging.getLogger(__name__)

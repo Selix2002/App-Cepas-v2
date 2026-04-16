@@ -1,8 +1,10 @@
+# app/ia/services/chat/input_validator_service.py
+
 import re
 import logging
 from dataclasses import dataclass
 
-from app.services.embedding_service import get_embedding_service
+from app.ia.services.chat.embedding_service import get_embedding_service
 
 logger = logging.getLogger(__name__)
 

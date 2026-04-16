@@ -1,10 +1,10 @@
-# app/services/feedback_service.py
+# app/ia/services/feedback/feedback_service.py
 
 from beanie import PydanticObjectId
 
-from app.models.models import ChatFeedback
-from app.repositories.feedback_repository import FeedbackRepository
-from app.schema.dto_grok import ChatFeedbackCreateDTO
+from app.ia.models import ChatFeedback
+from app.ia.repositories.feedback_repository import FeedbackRepository
+from app.ia.schema import ChatFeedbackCreateDTO
 import logging
 
 logger = logging.getLogger(__name__)

@@ -1,7 +1,8 @@
-# app/schema/chat_dtos.py
+# app/ia/schema.py
 
 from pydantic import BaseModel, Field
 from typing import Optional, List
+
 
 class HistorialMensaje(BaseModel):
     """Un turno del historial de conversación"""
@@ -27,8 +28,6 @@ class ChatQueryDTO(BaseModel):
     )
 
 
-
-
 class SearchDebugInfo(BaseModel):
     """Metadatos del proceso de búsqueda, útiles para debugging y testing"""
     modo_busqueda: str
@@ -36,6 +35,7 @@ class SearchDebugInfo(BaseModel):
     terminos_detectados: List[str]
     cepas_en_contexto: int
     total_en_db: int
+    mql_query: Optional[dict] = None
 
 
 class ChatResponseDTO(BaseModel):
@@ -44,6 +44,7 @@ class ChatResponseDTO(BaseModel):
     modelo_usado: str = Field(..., description="Modelo LLM utilizado")
     tiempo_respuesta_ms: Optional[int] = Field(default=None, description="Tiempo de respuesta en ms")
     debug: Optional[SearchDebugInfo] = Field(default=None, description="Info del proceso de búsqueda")
+
 
 class ChatFeedbackCreateDTO(BaseModel):
     """DTO para recibir feedback del usuario sobre una respuesta del chat"""
@@ -74,6 +75,7 @@ class EmbeddingStatsDTO(BaseModel):
     cepas_con_embedding: int
     cepas_sin_embedding: int
     porcentaje_completado: float
+
 
 class EmbeddingGenerationDTO(BaseModel):
     """DTO para resultado de generación de embeddings"""

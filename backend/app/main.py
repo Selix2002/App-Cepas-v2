@@ -1,4 +1,5 @@
 # backend/app/main.py
+
 from litestar import Litestar
 from litestar.config.cors import CORSConfig
 from litestar.openapi.config import OpenAPIConfig
@@ -6,20 +7,17 @@ from litestar.openapi.plugins import ScalarRenderPlugin
 from litestar.openapi.spec import Server
 from litestar.middleware import DefineMiddleware
 from app.core.security import oauth2_auth
-from app.core.db import init_db         
+from app.core.db import init_db
 from app.core.config import settings
 from app.api.routes_cepas import CepaController
 from app.api.routes_users import UserController
 from app.api.routes_auth import AuthController
 from app.core.redis_config import redis_client
 from app.middleware.login_rate_limit import LoginRateLimitMiddleware
-from app.middleware.chat_rate_limit import ChatRateLimitMiddleware
 from app.core.logging_config import setup_logging
-from app.api.router_ia import ChatController
 import logging
 
 rate_limit_logger = setup_logging()
-
 
 # Configurar logging
 logging.basicConfig(
@@ -50,6 +48,9 @@ openapi_config = OpenAPIConfig(
     path="/schema",
 )
 
+# ── Route handlers y middleware base ────────────────────────────────────────
+route_handlers = [CepaController, UserController, AuthController]
+
 middleware = [
     DefineMiddleware(
         LoginRateLimitMiddleware,
@@ -57,19 +58,20 @@ middleware = [
         window_seconds=60,
         redis_client=redis_client,
     ),
-    DefineMiddleware(
-        ChatRateLimitMiddleware,
-        max_requests=settings.CHAT_RATE_LIMIT_REQUESTS,
-        window_seconds=settings.CHAT_RATE_LIMIT_SECONDS,
-        redis_client=redis_client,
-    ),
 ]
 
+# ── Módulo IA (desactivar con IA_ENABLED=false en .env) ─────────────────────
+if settings.IA_ENABLED:
+    from app.ia import get_ia_route_handlers, get_ia_middleware
+    route_handlers += get_ia_route_handlers()
+    middleware += get_ia_middleware(redis_client)
+
+# ── App ──────────────────────────────────────────────────────────────────────
 app = Litestar(
-    route_handlers=[CepaController, UserController, AuthController, ChatController],
+    route_handlers=route_handlers,
     openapi_config=openapi_config,
     on_app_init=[oauth2_auth.on_app_init],
-    on_startup=[init_db],              
+    on_startup=[init_db],
     cors_config=cors,
     middleware=middleware,
     debug=settings.debug,
