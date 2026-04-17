@@ -125,13 +125,63 @@ _FORMATTER_SYSTEM_PROMPT = (
 
 class LLMService:
 
-    BASE_URL = "https://openrouter.ai/api/v1/chat/completions"
+    BASE_URL = "https://api.groq.com/openai/v1/chat/completions"
 
-    def __init__(self, api_key: str, model: str, temperature: float = 0.2, max_tokens: int = 1000):
+    # Códigos HTTP que justifican intentar el siguiente modelo
+    _FALLBACK_CODES: frozenset[int] = frozenset({404, 429, 500, 502, 503, 504})
+
+    def __init__(self, api_key: str, models: list[str], temperature: float = 0.2, max_tokens: int = 1000):
         self.api_key = api_key
-        self.model = model
+        self.models = models
         self.temperature = temperature
         self.max_tokens = max_tokens
+
+    async def _post_with_fallback(self, payload_base: dict) -> tuple[dict, str]:
+        """
+        Intenta la llamada a la API con cada modelo en orden.
+        Retorna (response_data, modelo_usado).
+        Hace fallback en: timeout, 429, 404, 5xx.
+        Falla inmediatamente en 401 (clave inválida).
+        """
+        last_exc: Exception = Exception("Sin modelos configurados")
+        for model in self.models:
+            try:
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    response = await client.post(
+                        self.BASE_URL,
+                        headers={
+                            "Authorization": f"Bearer {self.api_key}",
+                            "Content-Type": "application/json",
+                        },
+                        json={**payload_base, "model": model},
+                    )
+                if response.status_code == 401:
+                    response.raise_for_status()  # error de clave, no tiene sentido reintentar
+                if response.status_code in self._FALLBACK_CODES:
+                    logger.warning(
+                        f"⚠️  Modelo '{model}' rechazado ({response.status_code}) → fallback"
+                    )
+                    last_exc = httpx.HTTPStatusError(
+                        f"HTTP {response.status_code}", request=response.request, response=response
+                    )
+                    continue
+                response.raise_for_status()
+                logger.info(f"✅ Modelo usado: {model}")
+                return response.json(), model
+
+            except httpx.TimeoutException as e:
+                logger.warning(f"⚠️  Timeout con '{model}' → fallback")
+                last_exc = e
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 401:
+                    raise
+                logger.warning(
+                    f"⚠️  Modelo '{model}' falló ({e.response.status_code}) → fallback"
+                )
+                last_exc = e
+
+        logger.error(f"❌ Todos los modelos fallaron: {self.models}")
+        raise last_exc
 
     def _construir_contexto_estadistico(self, cepas: List[Cepa], total_en_db: int) -> str:
         """
@@ -239,7 +289,7 @@ class LLMService:
         filename = os.path.join(temp_dir, f"groq_request_{timestamp}.txt")
 
         payload = {
-            "model": self.model,
+            "models": self.models,
             "temperature": self.temperature,
             "max_tokens": self.max_tokens,
             "top_p": 1,
@@ -248,7 +298,7 @@ class LLMService:
         }
 
         with open(filename, "w", encoding="utf-8") as f:
-            f.write(f"=== GROQ REQUEST DUMP — {datetime.now().isoformat()} ===\n")
+            f.write(f"=== LLM REQUEST DUMP — {datetime.now().isoformat()} ===\n")
             f.write(f"Pregunta: {pregunta}\n")
             f.write(f"Endpoint: {self.BASE_URL}\n")
             f.write("=" * 60 + "\n\n")
@@ -296,74 +346,36 @@ class LLMService:
             "content": f"[PREGUNTA DEL USUARIO]\n{pregunta}\n[FIN DE PREGUNTA]",
         })
 
-        logger.info("📨 Preparando request a Groq API:")
-        logger.info(f"   Endpoint: {self.BASE_URL}")
-        logger.info(f"   Modelo: {self.model}")
-        logger.info(f"   Temperature: {self.temperature}")
-        logger.info(f"   Max tokens: {self.max_tokens}")
-
+        logger.info(f"📨 Enviando a LLM | modelos={self.models} | temp={self.temperature}")
         self._dump_request(pregunta, messages)
 
         try:
-            logger.info("⏳ Enviando request a Groq...")
+            data, modelo_usado = await self._post_with_fallback({
+                "messages": messages,
+                "temperature": self.temperature,
+                "max_tokens": self.max_tokens,
+                "top_p": 1,
+                "stream": False,
+            })
 
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.post(
-                    self.BASE_URL,
-                    headers={
-                        "Authorization": f"Bearer {self.api_key}",
-                        "Content-Type": "application/json",
-                        "HTTP-Referer": "http://localhost:8000",
-                        "X-Title": "CEPADB",
-                    },
-                    json={
-                        "model": self.model,
-                        "messages": messages,
-                        "temperature": self.temperature,
-                        "max_tokens": self.max_tokens,
-                        "top_p": 1,
-                        "stream": False
-                    }
-                )
+            respuesta_texto = data["choices"][0]["message"]["content"]
+            usage = data.get("usage", {})
 
-                logger.info(f"📥 Respuesta recibida: HTTP {response.status_code}")
+            logger.info(f"   Longitud respuesta: {len(respuesta_texto)} caracteres")
+            logger.info(f"   Tokens prompt/completion/total: "
+                        f"{usage.get('prompt_tokens')} / {usage.get('completion_tokens')} / {usage.get('total_tokens')}")
 
-                response.raise_for_status()
-                data = response.json()
-
-                respuesta_texto = data["choices"][0]["message"]["content"]
-                usage = data.get("usage", {})
-                tokens_enviados   = usage.get("prompt_tokens")
-                tokens_recibidos  = usage.get("completion_tokens")
-                tokens_total      = usage.get("total_tokens")
-
-                logger.info("✅ Respuesta generada exitosamente")
-                logger.info(f"   Longitud respuesta: {len(respuesta_texto)} caracteres")
-                logger.info(f"   Tokens enviados (prompt):    {tokens_enviados}")
-                logger.info(f"   Tokens recibidos (completion): {tokens_recibidos}")
-                logger.info(f"   Tokens totales:              {tokens_total}")
-                logger.debug(f"   Respuesta (primeros 200 chars): {respuesta_texto[:200]}...")
-
-                return {
-                    "respuesta": respuesta_texto,
-                    "modelo": data["model"],
-                    "tokens_enviados": tokens_enviados,
-                    "tokens_recibidos": tokens_recibidos,
-                    "tokens_usados": tokens_total,
-                }
-
-        except httpx.HTTPStatusError as e:
-            logger.error(f"❌ Error HTTP de Groq: {e.response.status_code}")
-            logger.error(f"   Response: {e.response.text}")
-            raise Exception(f"Error al consultar Groq API: {e.response.status_code}")
-
-        except httpx.TimeoutException:
-            logger.error("❌ Timeout al consultar Groq API")
-            raise Exception("Timeout al generar respuesta. Intenta de nuevo.")
+            return {
+                "respuesta": respuesta_texto,
+                "modelo": modelo_usado,
+                "tokens_enviados": usage.get("prompt_tokens"),
+                "tokens_recibidos": usage.get("completion_tokens"),
+                "tokens_usados": usage.get("total_tokens"),
+            }
 
         except Exception as e:
-            logger.error(f"❌ Error inesperado: {type(e).__name__}: {str(e)}", exc_info=True)
-            raise Exception(f"Error al generar respuesta: {str(e)}")
+            logger.error(f"❌ Error en generar_respuesta: {type(e).__name__}: {e}", exc_info=True)
+            raise Exception(f"Error al generar respuesta: {e}")
 
     # -----------------------------------------------------------------------
     # MQL helpers
@@ -400,8 +412,7 @@ class LLMService:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": pregunta},
         ]
-        payload = {
-            "model": self.model,
+        payload_base = {
             "temperature": 0,
             "max_tokens": 600,
             "messages": messages,
@@ -411,30 +422,18 @@ class LLMService:
         logger.info("🔍 [MQL] GENERACIÓN DE QUERY")
         logger.info(f"   Pregunta del usuario : {pregunta}")
         logger.info(f"   Schema enviado       : {schema_description}")
-        logger.info(f"   Modelo               : {self.model}")
+        logger.info(f"   Modelos (prioridad)  : {self.models}")
         logger.info(f"   Temperature          : 0 (determinístico)")
         logger.debug("[MQL] System prompt completo:\n" + system_prompt)
-        self._dump_mql("1_query_request", payload)
+        self._dump_mql("1_query_request", payload_base)
 
         raw_text = ""
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.post(
-                    self.BASE_URL,
-                    headers={
-                        "Authorization": f"Bearer {self.api_key}",
-                        "Content-Type": "application/json",
-                        "HTTP-Referer": "http://localhost:8000",
-                        "X-Title": "CEPADB",
-                    },
-                    json=payload,
-                )
-                response.raise_for_status()
-                data = response.json()
-                raw_text = data["choices"][0]["message"]["content"].strip()
-                usage = data.get("usage", {})
+            data, modelo_usado = await self._post_with_fallback(payload_base)
+            raw_text = data["choices"][0]["message"]["content"].strip()
+            usage = data.get("usage", {})
 
-            logger.info(f"   HTTP status          : {response.status_code}")
+            logger.info(f"   Modelo usado         : {modelo_usado}")
             logger.info(f"   Tokens prompt        : {usage.get('prompt_tokens')}")
             logger.info(f"   Tokens completion    : {usage.get('completion_tokens')}")
             logger.info(f"📤 [MQL] Respuesta RAW del LLM:\n{raw_text}")
@@ -514,8 +513,7 @@ class LLMService:
         )
         messages.append({"role": "user", "content": user_content})
 
-        payload = {
-            "model": self.model,
+        payload_base = {
             "temperature": self.temperature,
             "max_tokens": self.max_tokens,
             "messages": messages,
@@ -526,42 +524,24 @@ class LLMService:
         logger.info(f"   Pregunta             : {pregunta}")
         logger.info(f"   Documentos de MongoDB: {query_results['count']}")
         logger.info(f"   Tipo de query        : {query_results['query_type']}")
-        logger.info(
-            f"📦 [MQL] Resultados de MongoDB enviados al LLM:\n"
-            f"{results_str}"
-        )
-        self._dump_mql("3_formatter_request", payload)
+        logger.info(f"📦 [MQL] Resultados de MongoDB enviados al LLM:\n{results_str}")
+        self._dump_mql("3_formatter_request", payload_base)
 
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.post(
-                    self.BASE_URL,
-                    headers={
-                        "Authorization": f"Bearer {self.api_key}",
-                        "Content-Type": "application/json",
-                        "HTTP-Referer": "http://localhost:8000",
-                        "X-Title": "CEPADB",
-                    },
-                    json=payload,
-                )
-                response.raise_for_status()
-                data = response.json()
-                respuesta_texto = data["choices"][0]["message"]["content"]
-                usage = data.get("usage", {})
+            data, modelo_usado = await self._post_with_fallback(payload_base)
+            respuesta_texto = data["choices"][0]["message"]["content"]
+            usage = data.get("usage", {})
 
-            logger.info(f"   HTTP status          : {response.status_code}")
+            logger.info(f"   Modelo usado         : {modelo_usado}")
             logger.info(f"   Tokens prompt        : {usage.get('prompt_tokens')}")
             logger.info(f"   Tokens completion    : {usage.get('completion_tokens')}")
             logger.info(f"💬 [MQL] Respuesta final del LLM:\n{respuesta_texto}")
-            self._dump_mql("4_formatter_response", {
-                "respuesta": respuesta_texto,
-                "usage": usage,
-            })
+            self._dump_mql("4_formatter_response", {"respuesta": respuesta_texto, "usage": usage})
             logger.info("━" * 60)
 
             return {
                 "respuesta": respuesta_texto,
-                "modelo": data["model"],
+                "modelo": modelo_usado,
                 "tokens_enviados": usage.get("prompt_tokens"),
                 "tokens_recibidos": usage.get("completion_tokens"),
                 "tokens_usados": usage.get("total_tokens"),
@@ -573,6 +553,5 @@ class LLMService:
             raise Exception(f"Error al formatear resultados: {exc}") from exc
 
 
-def get_llm_service(api_key: str, model: str, temperature: float = 0.2, max_tokens: int = 1000) -> LLMService:
-    """Factory function para crear instancia del servicio LLM"""
-    return LLMService(api_key, model, temperature, max_tokens)
+def get_llm_service(api_key: str, models: list[str], temperature: float = 0.2, max_tokens: int = 1000) -> LLMService:
+    return LLMService(api_key, models, temperature, max_tokens)

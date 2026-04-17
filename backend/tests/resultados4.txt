@@ -1,0 +1,177 @@
+════════════════════════════════════════════════════════════════════════
+TEST MQL vs IA — verdad de BD vs respuesta del modelo
+Preguntas: 12  |  URL: http://localhost:8000  |  Delay: 7s
+════════════════════════════════════════════════════════════════════════
+
+⚙️  Ejecutando queries MQL de referencia…
+   ✅ 11 queries OK
+
+🔐 Autenticando como 'sebas'…
+   ✅ Login exitoso
+
+
+⏳ Pregunta 1/12…
+────────────────────────────────────────────────────────────────────────
+[ 1] ¿Cuántas cepas son Gram positivas?
+········································································
+  MQL ref.     : [aggregate] → 28
+  IA modelo    : openai/gpt-oss-120b  |  modo=mql  |  2272 ms
+  IA query MQL : {"type": "aggregate", "pipeline": [{"$match": {"gram": "+"}}, {"$count": "total"}]}
+  IA respuesta : Hay 28 cepas Gram positivas.
+  Evaluación   : ✅ Número correcto (28) encontrado en la respuesta
+
+   ⏱  Esperando 7s…
+
+⏳ Pregunta 2/12…
+────────────────────────────────────────────────────────────────────────
+[ 2] ¿Cuántas cepas tienen lecitinasa positiva?
+········································································
+  MQL ref.     : [aggregate] → 22
+  IA modelo    : openai/gpt-oss-120b  |  modo=mql  |  1569 ms
+  IA query MQL : {"type": "aggregate", "pipeline": [{"$match": {"lecitinasa": {"$in": ["+", "++"]}}}, {"$count": "total"}]}
+  IA respuesta : Hay 24 cepas con lecitinasa positiva.
+  Evaluación   : ⚠️  Número aproximado 24 (esperado 22)
+
+   ⏱  Esperando 7s…
+
+⏳ Pregunta 3/12…
+────────────────────────────────────────────────────────────────────────
+[ 3] ¿Cuántas cepas son resistentes a ampicilina?
+········································································
+  MQL ref.     : [aggregate] → 16
+  IA modelo    : openai/gpt-oss-120b  |  modo=mql  |  1581 ms
+  IA query MQL : {"type": "aggregate", "pipeline": [{"$match": {"amp": "R"}}, {"$count": "total"}]}
+  IA respuesta : Hay 16 cepas resistentes a ampicilina.
+  Evaluación   : ✅ Número correcto (16) encontrado en la respuesta
+
+   ⏱  Esperando 7s…
+
+⏳ Pregunta 4/12…
+────────────────────────────────────────────────────────────────────────
+[ 4] ¿Cuál es el total de cepas que crecen a 37°C?
+····················································
+····················
+  MQL ref.     : [aggregate] → 16
+  IA modelo    : openai/gpt-oss-20b  |  modo=mql  |  1761 ms
+  IA query MQL : {"type": "aggregate", "pipeline": [{"$match": {"temp_37c": "1.0"}}, {"$count": "total"}]}
+  IA respuesta : El total es 16.
+  Evaluación   : ✅ Número correcto (16) encontrado en la respuesta
+
+   ⏱  Esperando 7s…
+
+⏳ Pregunta 5/12…
+────────────────────────────────────────────────────────────────────────
+[ 5] Dame las cepas Gram positivas con mayor actividad enzimática
+········································································
+  MQL ref.     : [aggregate] → 10 resultados: ['SBLA 5', 'SEBAS1', 'LA 15', 'SBLA 9', 'LG 2', 'PE 10', 'LG 6', 'PEH 2', 'LA 20', 'PE 17']
+  IA modelo    : openai/gpt-oss-20b  |  modo=estadístico  |  4598 ms
+  IA query MQL : (ninguna — usó path semántico)
+  IA respuesta : 
+  Evaluación   : ❌ 0/10 cepas mencionadas (0%)  → (ninguna)
+
+   ⏱  Esperando 7s…
+
+⏳ Pregunta 6/12…
+────────────────────────────────────────────────────────────────────────
+[ 6] ¿Qué cepas Gram negativas tienen proteasa positiva?
+········································································
+  MQL ref.     : [find] → 3 resultados: ['SBLB 4', 'SBLB 8', 'ANUELBRRRR']
+  IA modelo    : openai/gpt-oss-120b  |  modo=híbrido  |  1910 ms
+  IA query MQL : (ninguna — usó path semántico)
+  IA respuesta : Las cepas que son Gram negativas y presentan proteasa positiva son:  - **ANUELBRRRR** - **SBLB 4** - **SBLB 8**
+  Evaluación   : ✅ 3/3 cepas mencionadas (100%)  → ['SBLB 4', 'SBLB 8', 'ANUELBRRRR']
+
+   ⏱  Esperando 7s…
+
+⏳ Pregunta 7/12…
+────────────────────────────────────────────────────────────────────────
+[ 7] Muéstrame las cepas resistentes a tetraciclina con sus características
+········································································
+  MQL ref.     : [find] → 9 resultados: ['SBLA 5', 'SBLB 2', 'SBLB 6', 'SBLB 8', 'LA 16', 'ANUELBRRRR', 'SBLA 9', 'LM 4', 'LA 20']
+  IA modelo    : meta-llama/llama-4-scout-17b-16e-instruct  |  modo=estadístico  |  7148 ms
+  IA query MQL : (ninguna — usó path semántico)
+  IA respuesta : Las cepas resistentes a tetraciclina (te) según el CSV son:  1. SBLA 5, Jeotgalibacillus sp., LB/3, -  2. SBLB 2, Kocuria sp, LB/3, - 3. SBLB 6, Pseudomonas sp., LB/3, MDR  4. SBLB 8, Pseudomonas sp., LB/3, MDR  5. ANUELBRRRR, Pseudomonas sp., CM, MDR  6. SBLA 9, Bacillus sp., LB/3, MDR  7. LM 4,…
+  Evaluación   : ✅ 8/9 cepas mencionadas (89%)  → ['SBLA 5', 'SBLB 2', 'SBLB 6', 'SBLB 8', 'ANUELBRRRR']
+
+   ⏱  Esperando 7s…
+
+⏳ Pregunta 8/12…
+────────────────────────────────────────────────────────────────────────
+[ 8] ¿Qué cepa recomendarías para biorremediación de suelos?
+········································································
+  MQL ref.     : [aggregate] → 10 resultados: ['LG 6', 'PE 17', 'LA 20', 'LG 2', 'SBLA 5', 'SBLB 8', 'SEBAS1', 'PE 10', 'ANUELBRRRR', 'LA 15']
+  IA modelo    : meta-llama/llama-4-scout-17b-16e-instruct  |  modo=semántico  |  2332 ms
+  IA query MQL : (ninguna — usó path semántico)
+  IA respuesta : Para biorremediación de suelos, suelen ser útiles cepas bacterianas que tengan una alta capacidad para degradar compuestos orgánicos y metales pesados. Considerando los datos proporcionados, varias cepas de Pseudomonas sp. (SBPE 1, SBLB 4, SBLB 8, SBLB 6, SBPE 3, ANUELBRRRR) podrían ser candidata…
+  Evaluación   : ⚠️  3/10 cepas mencionadas (30%)  → ['PE 17', 'SBLB 8', 'ANUELBRRRR']
+
+   ⏱  Esperando 7s…
+
+⏳ Pregunta 9/12…
+────────────────────────────────────────────────────────────────────────
+[ 9] ¿Cuál de las cepas tiene mejor potencial como biofertilizante?
+········································································
+  MQL ref.     : [find] → 8 resultados: ['SBLA 5', 'SBLB 4', 'SBLB 6', 'SBLB 8', 'LA 15', 'SEBAS1', 'SBLA 9', 'PEH 2']
+  IA modelo    : openai/gpt-oss-120b  |  modo=semántico  |  2743 ms
+  IA query MQL : (ninguna — usó path semántico)
+  IA respuesta : Según los datos del CSV, la cepa **SBLB 4** (código A18, origen Lago Maravilloso) muestra el mayor número de actividades enzimáticas relevantes para un biofertilizante:    - **Celulasa:** +++   - **Fosfatasa:** +++   - **Catalasa:** +++   - Además presenta actividad de amilasa (+) y proteasa (+).…
+  Evaluación   : ❌ 0/8 cepas mencionadas (0%)  → (ninguna)
+
+   ⏱  Esperando 7s…
+
+⏳ Pregunta 10/12…
+────────────────────────────────────────────────────────────────────────
+[10] Describe las cepas con mayor versatilidad metabólica
+········································································
+  MQL ref.     : [aggregate] → 10 resultados: ['SBLA 5', 'SBLB 8', 'SEBAS1', 'SBLA 9', 'LG 2', 'ANUELBRRRR', 'LG 6', 'PE 17', 'SBLB 4', 'LA 15']
+  IA modelo    : openai/gpt-oss-20b  |  modo=semántico  |  3980 ms
+  IA query MQL : (ninguna — usó path semántico)
+  IA respuesta : 
+  Evaluación   : ❌ 0/10 cepas mencionadas (0%)  → (ninguna)
+
+   ⏱  Esperando 7s…
+
+⏳ Pregunta 11/12…
+────────────────────────────────────────────────────────────────────────
+[11] ¿Cuántas cepas hay en total?
+········································································
+  MQL ref.     : [aggregate] → 34
+  IA modelo    : openai/gpt-oss-120b  |  modo=mql  |  1367 ms
+  IA query MQL : {"type": "aggregate", "pipeline": [{"$match": {}}, {"$count": "total"}]}
+  IA respuesta : Hay 34 cepas en total.
+  Evaluación   : ✅ Número correcto (34) encontrado en la respuesta
+
+   ⏱  Esperando 7s…
+
+⏳ Pregunta 12/12…
+────────────────────────────────────────────────────────────────────────
+[12] ¿Qué significa Gram positiva?
+········································································
+  MQL ref.     : N/A (pregunta abierta)
+  IA modelo    : meta-llama/llama-4-scout-17b-16e-instruct  |  modo=híbrido  |  2425 ms
+  IA query MQL : (ninguna — usó path semántico)
+  IA respuesta : La tinción de Gram es un método utilizado para clasificar bacterias según la composición de su pared celular. Las bacterias Gram positivas tienen una pared celular gruesa compuesta por varias capas de peptidoglicano (también conocido como mureína), que les da una estructura rígida.  Cuando se rea…
+  Evaluación   : 〰  Pregunta abierta/conceptual — evaluación manual
+
+════════════════════════════════════════════════════════════════════════
+RESUMEN FINAL
+════════════════════════════════════════════════════════════════════════
+  Total preguntas  : 12
+  ✅ Correctas     : 6
+  ❌ Incorrectas   : 5
+  〰  Sin veredicto : 1  (preguntas abiertas)
+  💥 Errores IA    : 0
+  Tiempo total     : 114.9 s
+
+  Preguntas fallidas:
+    • [ 2] ¿Cuántas cepas tienen lecitinasa positiva?
+           ⚠️  Número aproximado 24 (esperado 22) [ESTO PASA POR INCLUYO A LAS + Y ++. ESTA CORRECTO]
+    • [ 5] Dame las cepas Gram positivas con mayor actividad enzimática
+           ❌ 0/10 cepas mencionadas (0%)  → (ninguna)
+    • [ 8] ¿Qué cepa recomendarías para biorremediación de suelos?
+           ⚠️  3/10 cepas mencionadas (30%)  → ['PE 17', 'SBLB 8', 'ANUELBRRRR']
+    • [ 9] ¿Cuál de las cepas tiene mejor potencial como biofertilizante?
+           ❌ 0/8 cepas mencionadas (0%)  → (ninguna)
+    • [10] Describe las cepas con mayor versatilidad metabólica
+           ❌ 0/10 cepas mencionadas (0%)  → (ninguna)
+════════════════════════════════════════════════════════════════════════

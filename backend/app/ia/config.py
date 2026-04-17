@@ -1,12 +1,32 @@
 # app/ia/config.py
 
-from pydantic_settings import BaseSettings
+from pathlib import Path
+from pydantic import model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Resuelve backend/.env sin importar desde dónde se ejecute el proceso
+_ENV_FILE = Path(__file__).parent.parent.parent / ".env"
 
 
 class IaSettings(BaseSettings):
-    # LLM / OpenRouter
-    OPENROUTER_API_KEY: str
-    OPENROUTER_MODEL: str = "openrouter/auto"
+    model_config = SettingsConfigDict(
+        env_file=str(_ENV_FILE),
+        extra="ignore",
+    )
+
+    # LLM
+    GROQ_API_KEY: str
+    GROQ_MODELS: str  # comma-separated in .env; parsed to list below
+    _groq_models_list: list[str] = []
+
+    @model_validator(mode="after")
+    def _parse_models(self) -> "IaSettings":
+        self._groq_models_list = [m.strip() for m in self.GROQ_MODELS.split(",") if m.strip()]
+        return self
+
+    @property
+    def groq_models(self) -> list[str]:
+        return self._groq_models_list
 
     # Embeddings
     EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
@@ -30,9 +50,6 @@ class IaSettings(BaseSettings):
     MQL_ENABLED: bool = True
     MQL_MAX_RESULTS: int = 100
 
-    class Config:
-        env_file = ".env"
-        extra = "ignore"
 
 
 ia_settings = IaSettings()

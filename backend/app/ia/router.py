@@ -38,8 +38,8 @@ def database_service_provider() -> DatabaseService:
 
 def llm_service_provider() -> LLMService:
     return get_llm_service(
-        api_key=ia_settings.OPENROUTER_API_KEY,
-        model=ia_settings.OPENROUTER_MODEL,
+        api_key=ia_settings.GROQ_API_KEY,
+        models=ia_settings.groq_models,
         temperature=ia_settings.LLM_TEMPERATURE,
         max_tokens=ia_settings.LLM_MAX_TOKENS,
     )
@@ -121,12 +121,13 @@ class ChatController(Controller):
 
             # Datos compartidos por ambos paths
             campos = await db_service.descubrir_campos_coleccion()
+            valores = await db_service.descubrir_valores_campos(campos)
             total_en_db = await db_service.get_total_cepas()
             historial = [{"role": m.role, "content": m.content} for m in data.historial]
 
             # ── MQL PATH ─────────────────────────────────────────────────────
             if ia_settings.MQL_ENABLED:
-                schema_desc = get_schema_description(campos)
+                schema_desc = get_schema_description(campos, valores)
                 mql_raw = await llm_service.generar_mql_query(pregunta, schema_desc)
 
                 if mql_raw is not None:
@@ -266,7 +267,7 @@ class ChatController(Controller):
             feedback = await feedback_service.guardar_feedback(
                 dto=data,
                 usuario_id=usuario.id,
-                modelo_usado=ia_settings.OPENROUTER_MODEL,
+                modelo_usado=ia_settings.groq_models[0],
             )
             return ChatFeedbackResponseDTO(
                 mensaje="Feedback guardado correctamente",

@@ -21,6 +21,22 @@ class DatabaseService:
     _campos_cache_time: float = 0.0
     _CAMPOS_CACHE_TTL: float = 300.0
 
+    # Caché de valores distintos por campo (TTL: 10 min)
+    _valores_cache: dict[str, list] = {}
+    _valores_cache_time: float = 0.0
+    _VALORES_CACHE_TTL: float = 600.0
+
+    # Campos cuyo vocabulario no aporta información útil al LLM
+    _CAMPOS_SIN_VALORES: frozenset[str] = frozenset({
+        "_id", "id", "embedding",
+        "fecha_creacion", "fecha_actualizacion",
+        "cepa", "codigo_lab",           # identificadores únicos por documento
+        "latitud", "longitud",          # coordenadas numéricas continuas
+        "gen_16s", "metabolomica",      # texto libre largo
+        "nicolas", "nombre_proyecto",   # texto libre
+    })
+    _MAX_VALORES_POR_CAMPO: int = 20    # si hay más, se omiten (campo de alta cardinalidad)
+
     def __init__(self):
         self.embedding_service = get_embedding_service()
 
@@ -174,6 +190,42 @@ class DatabaseService:
 
         logger.debug(f"   Campos descubiertos: {campos}")
         return campos
+
+    async def descubrir_valores_campos(self, campos: list[str]) -> dict[str, list]:
+        """
+        Para cada campo relevante devuelve sus valores distintos observados en la BD.
+        Resultado cacheado 10 min. Útil para que el LLM genere MQL con valores exactos.
+        """
+        ahora = time.time()
+        if ahora - DatabaseService._valores_cache_time < DatabaseService._VALORES_CACHE_TTL:
+            logger.debug("📋 Usando caché de valores de campos")
+            return DatabaseService._valores_cache
+
+        logger.debug("📋 Descubriendo valores distintos por campo...")
+        col = Cepa.get_pymongo_collection()
+
+        campos_a_consultar = [
+            c for c in campos
+            if c not in self._CAMPOS_SIN_VALORES
+        ]
+
+        valores: dict[str, list] = {}
+        for campo in campos_a_consultar:
+            try:
+                distintos = await col.distinct(campo)
+                # Filtrar None y normalizar a string para comparación uniforme
+                distintos = [v for v in distintos if v is not None]
+                if 0 < len(distintos) <= self._MAX_VALORES_POR_CAMPO:
+                    valores[campo] = sorted(distintos, key=str)
+                # Si supera el máximo, el campo se omite del diccionario
+            except Exception as exc:
+                logger.warning(f"⚠️  No se pudieron obtener valores de '{campo}': {exc}")
+
+        DatabaseService._valores_cache = valores
+        DatabaseService._valores_cache_time = ahora
+
+        logger.debug(f"   Valores descubiertos para {len(valores)} campos")
+        return valores
 
     async def busqueda_hibrida(
         self,

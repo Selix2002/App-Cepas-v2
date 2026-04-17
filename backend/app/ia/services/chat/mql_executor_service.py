@@ -63,7 +63,7 @@ class MQLExecutor:
         logger.info(f"   Documentos retornados: {len(results)}")
         logger.info(
             f"📊 [MQL] Resultados de MongoDB:\n"
-            + json.dumps(results, ensure_ascii=False, indent=2)
+            + json.dumps(results, ensure_ascii=False, indent=2, default=str)
         )
         logger.info("━" * 60)
 
