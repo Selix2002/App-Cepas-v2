@@ -8,7 +8,7 @@
 //   │        │  CepasTable            │
 //   └────────┴────────────────────────┘
 
-import { useRef, useState } from "react"
+import { useRef, useState, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
 
 import { useAuth } from "../../auth/store/AuthContext"
@@ -49,6 +49,11 @@ export function HomePage() {
   })
 
   const handleLogout = () => { logout(); navigate("/login") }
+
+  const handleApplyFilters = useCallback((filtros: Record<string, string>) => {
+    table.clearAllFilters()
+    Object.entries(filtros).forEach(([field, val]) => table.setColumnFilter(field, val))
+  }, [table.clearAllFilters, table.setColumnFilter])
 
   // ── loading / error ───────────────────────────────────────────────────────
   if (table.loading) return <div className="home-loading">Cargando cepas…</div>
@@ -174,6 +179,7 @@ export function HomePage() {
         isLoading={chat.isLoading}
         onSend={chat.sendMessage}
         onClear={chat.clearMessages}
+        onApplyFilters={handleApplyFilters}
       />
     </>
   )

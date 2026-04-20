@@ -5,7 +5,7 @@ export type CepaColumnDef = {
     headerName: string
     width?: number
     pinned?: boolean          // true → primera columna frozen
-    type?: "text" | "number"
+    type?: "text" | "number" | "date"
 }
 
 export type SortConfig = {

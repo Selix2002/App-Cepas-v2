@@ -154,6 +154,12 @@ class ChatController(Controller):
                             (datetime.utcnow() - inicio).total_seconds() * 1000
                         )
                         mql_filter = validated.get("filter", {})
+                        # Para queries aggregate, extraer $match del pipeline
+                        if not mql_filter and validated.get("type") == "aggregate":
+                            for stage in validated.get("pipeline", []):
+                                if "$match" in stage:
+                                    mql_filter = stage["$match"]
+                                    break
 
                         return ChatResponseDTO(
                             respuesta=respuesta,

@@ -40,6 +40,66 @@ type Params = {
     onDataLoaded?: (data: Cepa[]) => void
 }
 
+// ─── date filter helper ───────────────────────────────────────────────────────
+// Formatos aceptados: dd-mm-aa  o  dd-mm-aaaa
+// Expresiones: ">fecha"  "<fecha"  "fecha..fecha"
+function parseDateInput(s: string): Date | null {
+    const m = s.trim().match(/^(\d{1,2})-(\d{1,2})-(\d{2}|\d{4})$/)
+    if (!m) return null
+    const [, d, mo, y] = m
+    const year = y.length === 2 ? 2000 + parseInt(y) : parseInt(y)
+    return new Date(year, parseInt(mo) - 1, parseInt(d))
+}
+
+function applyDateFilter(rawIso: string | null, expr: string): boolean {
+    if (!rawIso) return false
+    const cellDate = new Date(rawIso)
+    cellDate.setHours(0, 0, 0, 0)
+
+    const trimmed = expr.trim()
+
+    // Rango: "01-05-24..30-07-24"
+    if (trimmed.includes("..")) {
+        const [fromStr, toStr] = trimmed.split("..")
+        const from = parseDateInput(fromStr)
+        const to   = parseDateInput(toStr)
+        if (from) from.setHours(0, 0, 0, 0)
+        if (to)   to.setHours(23, 59, 59, 999)
+        if (from && to) return cellDate >= from && cellDate <= to
+        if (from)       return cellDate >= from
+        if (to)         return cellDate <= to
+        return false
+    }
+
+    // Mayor que: ">15-05-24"
+    if (trimmed.startsWith(">")) {
+        const d = parseDateInput(trimmed.slice(1))
+        if (!d) return false
+        d.setHours(0, 0, 0, 0)
+        return cellDate > d
+    }
+
+    // Menor que: "<15-05-24"
+    if (trimmed.startsWith("<")) {
+        const d = parseDateInput(trimmed.slice(1))
+        if (!d) return false
+        d.setHours(23, 59, 59, 999)
+        return cellDate < d
+    }
+
+    // Coincidencia exacta de día: "15-05-24"
+    const d = parseDateInput(trimmed)
+    if (d) {
+        return (
+            cellDate.getDate()     === d.getDate() &&
+            cellDate.getMonth()    === d.getMonth() &&
+            cellDate.getFullYear() === d.getFullYear()
+        )
+    }
+
+    return false
+}
+
 // ─── hook ────────────────────────────────────────────────────────────────────
 export function useCepasTableCore({ user, onDataLoaded }: Params) {
     // raw data
@@ -113,10 +173,18 @@ export function useCepasTableCore({ user, onDataLoaded }: Params) {
         // per-column filters
         for (const [field, val] of Object.entries(columnFilters)) {
             if (!val) continue
-            const q = val.toLowerCase()
-            rows = rows.filter((row) =>
-                String((row as unknown as Record<string, unknown>)[field] ?? "").toLowerCase().includes(q)
-            )
+            const colDef = columnDefs.find((c) => c.field === field)
+            if (colDef?.type === "date") {
+                rows = rows.filter((row) => {
+                    const raw = (row as unknown as Record<string, unknown>)[field]
+                    return applyDateFilter(raw as string | null, val)
+                })
+            } else {
+                const q = val.toLowerCase()
+                rows = rows.filter((row) =>
+                    String((row as unknown as Record<string, unknown>)[field] ?? "").toLowerCase().includes(q)
+                )
+            }
         }
 
         // coordinate filter (from map)
@@ -141,7 +209,7 @@ export function useCepasTableCore({ user, onDataLoaded }: Params) {
         })
 
         return rows
-    }, [rawData, globalSearch, columnFilters, coordFilter, sortConfig])
+    }, [rawData, globalSearch, columnFilters, coordFilter, sortConfig, columnDefs])
 
     // ── derived: paginated ─────────────────────────────────────────────────────
     const totalPages = Math.max(1, Math.ceil(filteredData.length / pageSize))

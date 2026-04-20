@@ -23,6 +23,7 @@ class FeedbackRepository:
         modelo_usado: str,
         comentario: str | None = None,
         modo_busqueda: str | None = None,
+        mql_query: dict | None = None,
     ) -> ChatFeedback:
         feedback = ChatFeedback(
             usuario_id=usuario_id,
@@ -32,6 +33,7 @@ class FeedbackRepository:
             comentario=comentario,
             modelo_usado=modelo_usado,
             modo_busqueda=modo_busqueda,
+            mql_query=mql_query,
         )
         await feedback.insert()
         logger.info(f"✅ Feedback guardado | id={feedback.id} | calificacion={calificacion}")

@@ -34,6 +34,7 @@ class DatabaseService:
         "latitud", "longitud",          # coordenadas numéricas continuas
         "gen_16s", "metabolomica",      # texto libre largo
         "nicolas", "nombre_proyecto",   # texto libre
+        "envio_punta_arenas",           # fecha ISODate — alta cardinalidad, sin valores útiles
     })
     _MAX_VALORES_POR_CAMPO: int = 20    # si hay más, se omiten (campo de alta cardinalidad)
 

@@ -38,7 +38,7 @@ class CepaCreateDTO(BaseModel):
     morfologia_1: Optional[str] = None
     morfologia_2: Optional[str] = None
     pigmentacion: Optional[str] = None
-    envio_punta_arenas: Optional[str] = None
+    envio_punta_arenas: Optional[datetime] = None
     temperatura_80: Optional[str] = None
     medio: Optional[str] = None
 
@@ -94,7 +94,7 @@ class CepaCreateDTO(BaseModel):
 # Campos str del modelo (para normalizar vacíos a None en el update)
 _STR_FIELDS = {
     "cepa", "codigo_lab", "origen", "gram", "morfologia_1", "morfologia_2",
-    "pigmentacion", "envio_punta_arenas", "temperatura_80", "medio",
+    "pigmentacion", "temperatura_80", "medio",
     "lecitinasa", "ureasa", "lipasa", "amilasa", "proteasa", "catalasa",
     "celulasa", "fosfatasa", "aia", "temp_5c", "temp_25c", "temp_37c",
     "amp", "ctx", "cxm", "caz", "ak", "c", "te", "am_ecoli", "am_saureus",
@@ -112,7 +112,7 @@ class CepaUpdateDTO(BaseModel):
     morfologia_1: Optional[str] = None
     morfologia_2: Optional[str] = None
     pigmentacion: Optional[str] = None
-    envio_punta_arenas: Optional[str] = None
+    envio_punta_arenas: Optional[datetime] = None
     temperatura_80: Optional[str] = None
     medio: Optional[str] = None
 
@@ -202,7 +202,7 @@ class CepaResponseDTO(BaseModel):
     morfologia_1: Optional[str] = None
     morfologia_2: Optional[str] = None
     pigmentacion: Optional[str] = None
-    envio_punta_arenas: Optional[str] = None
+    envio_punta_arenas: Optional[datetime] = None
     temperatura_80: Optional[str] = None
     medio: Optional[str] = None
 

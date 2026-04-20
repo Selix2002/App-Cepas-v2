@@ -29,6 +29,7 @@ class FeedbackService:
             comentario=dto.comentario,
             modelo_usado=modelo_usado,
             modo_busqueda=dto.modo_busqueda,
+            mql_query=dto.mql_query,
         )
 
         eliminados = await self.repo.limpiar_antiguos()

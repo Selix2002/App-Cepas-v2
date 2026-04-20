@@ -2,113 +2,121 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project Overview
+## Overview
 
-Full-stack microbiological strain (cepa) management system with AI-powered semantic search. Users can manage bacterial strain data, visualize it via charts/maps, and query it via a natural language chat interface backed by Groq LLM + sentence-transformers embeddings.
+App-Cepas-v2 is a web application for managing and exploring microbiological strains collected from water bodies in Patagonia. It features a data table, maps, charts, and an optional AI chat module for natural-language queries over the strain database.
 
-## Commands
+## Development Commands
 
-### Development (recommended)
+### Quick Start (requires `just`)
 ```bash
-just dev        # Launches both frontend and backend in separate terminal windows
-just backend    # Backend only (activates venv, runs uvicorn)
-just frontend   # Frontend only (npm run dev)
+just dev       # Launch both backend and frontend in separate terminals
+just backend   # Backend only
+just frontend  # Frontend only
 ```
 
-### Backend (from `backend/`)
+### Backend (`/backend`)
 ```bash
-uv sync                                  # Install Python dependencies
-uvicorn app.main:app --reload            # Start dev server (port 8000)
+uv sync                          # Install dependencies
+uvicorn app.main:app --reload    # Run dev server (http://localhost:8000)
+uv run python -m tests.run_tests # Run tests
+uv run python -m scripts.seed_admin --username admin --password <pw>  # Create admin user
+```
+Requires Python 3.13 (see `.python-version`), MongoDB 6+, and Redis 7+ running locally.
+
+### Frontend (`/frontend`)
+```bash
+npm install    # Install dependencies
+npm run dev    # Dev server (http://localhost:5173)
+npm run build  # Production build (TypeScript + Vite)
+npm run lint   # ESLint
 ```
 
-### Frontend (from `frontend/`)
-```bash
-npm install       # Install dependencies
-npm run dev       # Start Vite dev server (port 5173)
-npm run build     # TypeScript check + production build
-npm run lint      # ESLint
-```
+### API Documentation
+OpenAPI/Scalar UI is served at `http://localhost:8000/schema` when the backend is running.
 
 ## Architecture
 
-### Backend (Python, Litestar framework)
-- **Framework**: Litestar (not FastAPI) — uses `@get`, `@post`, etc. decorators on controller classes
-- **Database**: MongoDB via Beanie ODM + Motor async driver (`cepas_db`)
-- **Auth**: JWT (PyJWT) + OAuth2 with `admin_guard` for protected endpoints
-- **Rate limiting**: Redis-backed middleware on `/auth/login` (5 req/60s)
-- **API docs**: `/schema` (Scalar UI)
-
-**Layer structure**: `routes_*.py` controllers → `*_service.py` services → `repositories/` → Beanie models
-
-**Key files**:
-- `app/main.py` — app factory, CORS, middleware, route registration
-- `app/models/models.py` — `Cepa` and `User` Beanie documents
-- `app/dtos/dtos.py` — all Pydantic DTOs for cepas API
-- `app/core/config.py` — settings (loaded from `.env`)
-- `app/core/security.py` — JWT creation/validation, `admin_guard`
-
-### AI/Chat subsystem (`app/services/`)
-- `llm_service.py` — OpenRouter API integration; two modes:
-  - **Complete mode** (≤50 strains): sends full strain data as context
-  - **Hybrid mode** (>50 strains): sends summary + semantically relevant strains
-- `embedding_service.py` — singleton wrapping `sentence-transformers` (`all-MiniLM-L6-v2`); cosine similarity search with dynamic threshold (median + MAD factor)
-- `dbSearch_service.py` — fetches strains from MongoDB, runs semantic search with threshold filtering
-- `input_validator_service.py` — blocks prompt injection and off-topic queries before reaching the LLM
-- `query_parser_service.py` — parses natural language queries into structured filters
-- `feedback_service.py` — stores thumbs up/down feedback per chat response
-
-**Config knobs** (in `.env` / `config.py`): `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, `MAX_CONTEXT_CEPAS` (30), `SIMILARITY_THRESHOLD` (0.3), `LLM_TEMPERATURE` (0.1), `LLM_MAX_TOKENS` (2000), `DOMAIN_THRESHOLD` (0.20)
-
-### Frontend (React 19 + TypeScript + Vite)
-- **Routing**: React Router v7, lazy-loaded pages, `PrivateRoute` wrapper
-- **Server state**: TanStack React Query
-- **Tables**: custom React table (`CepasTable.tsx`) — no external grid library; fully controlled state
-- **Charts**: Nivo (bar + pie), rendered inside `ChartSection`
-- **Map**: Leaflet via `MapBottomSheetSection` (bottom sheet overlay)
-- **Forms**: React Hook Form
-- **Auth**: `AuthContext` (context + `useAuth` hook) stored in `features/auth/store/`
-
-**Feature-based structure** under `src/features/`:
-- `auth/` — login page, JWT session management, auth context
-- `cepas/` — main CRUD UI: `HomePage`, `NewCepaPage`, `NewAtributePage`; business logic lives in `hooks/`
-  - `hooks/table/useCepasTableCore` — all table state: `globalSearch`, `setGlobalSearch`, `columnFilters`, `setColumnFilter`, `clearColumnFilter`, `clearAllFilters`, `sortConfig`, `handleSort`, pagination
-  - `hooks/charts/useCepasCharts` — chart type (`pie`/`bar`), selected columns, chart data
-  - `hooks/map/useCepasMap` — map open state, coordinate filter, valid rows
-  - `hooks/chat/useChatIA` — chat messages, `sendMessage`, `clearMessages`
-- `users/` — admin user management page
-- `dashboard/` — standalone map, bar chart, pie chart pages
-
-**HomePage layout** (`cepas/pages/HomePage.tsx`):
+### Monorepo Structure
 ```
-HomeHeader
-├── CepasSidebar   (column visibility + chart column selector)
-└── home-main
-    ├── ChartSection   (pie / bar toggle, Nivo charts)
-    ├── CoordFilterChips
-    └── CepasTable     (custom table with per-column filter inputs + global search)
-MapBottomSheetSection  (Leaflet, bottom sheet overlay)
-ChatPanel              (AI chat drawer)
+App-Cepas-v2/
+├── backend/    # Python Litestar API
+└── frontend/   # React + TypeScript SPA
 ```
 
-**API proxy**: Vite proxies `/api` → `http://127.0.0.1:8000` in dev
+### Backend Stack
+- **Framework:** Litestar (async Python)
+- **Database:** MongoDB 6+ via Beanie ODM (Motor async driver)
+- **Auth:** JWT Bearer tokens, `admin_guard` decorator for admin-only routes
+- **Cache / Rate Limiting:** Redis — login: 5 req/min per IP, chat: 10 req/min per user
+- **AI Module:** Optional (`IA_ENABLED=true` in `.env`), uses Groq API + sentence-transformers embeddings
 
-## Environment Setup
+Backend layers: `api/` (controllers) → `services/` (business logic) → `repositories/` (data access) → `models/` (Beanie documents).
 
-Backend requires a `.env` file in `backend/`:
+Key directories:
 ```
-OPENROUTER_API_KEY=...
-OPENROUTER_MODEL=openrouter/auto
-LOG_LEVEL=DEBUG
+backend/app/
+├── api/           # Litestar controllers
+├── core/          # Config, DB init, security, Redis, logging
+├── models/        # Beanie models (User, Cepa, ChatFeedback)
+├── repositories/  # MongoDB query layer
+├── schema/        # Pydantic DTOs
+├── services/      # Business logic
+└── ia/            # AI chat module
+    ├── router.py
+    └── services/chat/   # query_parser, llm, mql_executor, schema, dbSearch
 ```
 
-MongoDB must be running locally on `mongodb://localhost:27017`. Redis must be running for login rate limiting.
+### Frontend Stack
+- **React 19** + **TypeScript 5.8**, built with **Vite 6**
+- **Routing:** React Router v7
+- **Data fetching:** Axios + TanStack React Query
+- **Tables:** ag-Grid (community) + React Table
+- **Charts:** Nivo | **Maps:** Leaflet | **Export:** ExcelJS + html2canvas-pro
+- **Styling:** TailwindCSS
 
-## Data Model
+State management:
+- `AuthContext` (React Context + localStorage) for auth/JWT
+- `ThemeContext` for dark/light mode
+- TanStack Query for all API calls (server state)
 
-The `Cepa` document has a fixed schema plus `extra="allow"` (dynamic fields). Key field groups:
-- Identification: `cepa` (unique), `codigo_lab`, `origen`, `latitud`, `longitud`
-- Morphology: `gram`, `morfologia_1`, `morfologia_2`, `pigmentacion`
-- Enzymatic tests (9): `lecitinasa`, `ureasa`, `lipasa`, `amilasa`, `proteasa`, `catalasa`, `celulasa`, `fosfatasa`, `aia`
-- Temperature tests: `temp_5c`, `temp_25c`, `temp_37c`
-- Antibiotic resistance (9): `amp`, `ctx`, `cxm`, `caz`, `ak`, `c`, `te`, `am_ecoli`, `am_saureus`
-- AI field: `embedding` (float array, generated via `/chat/embeddings/generate`)
+Frontend feature layout:
+```
+frontend/src/
+├── app/           # Entry point, router, ThemeContext, QueryClient setup
+├── features/
+│   ├── auth/      # Login page, AuthContext, auth hooks
+│   ├── cepas/     # Main feature: table, map, charts, chat, home, new strain
+│   ├── users/     # Admin user management
+│   └── dashboard/ # Dashboard views
+└── shared/        # api.ts (axios instance), reusable components, utils, interfaces
+```
+
+### Frontend–Backend Connection
+Vite proxies `/api` to `http://127.0.0.1:8000` in development. The base URL can be overridden with `VITE_API_URL` in `.env.production`.
+
+### AI Chat Module
+The `/chat/query` endpoint orchestrates a multi-step pipeline:
+1. **QueryParserService** — classifies the query as statistical, hybrid, or semantic
+2. **MQLExecutorService** — generates MongoDB filter queries from natural language
+3. **DatabaseService** — hybrid search (MQL filters + vector similarity on embeddings)
+4. **LLMService** — formats and returns a natural-language response via Groq API
+
+Embeddings use `sentence-transformers/all-MiniLM-L6-v2`. Disable the whole AI module by setting `IA_ENABLED=false`.
+
+## Environment Variables
+
+Backend (`backend/.env`):
+- `GROQ_API_KEY` — required for AI chat
+- `GROQ_MODELS` — comma-separated list of Groq models to use
+- MongoDB and Redis use `localhost` defaults if not set
+
+Frontend:
+- `frontend/.env.development` — sets `VITE_API_URL=http://127.0.0.1:8000`
+- `frontend/.env.production` — override for production backend URL
+
+## Commit Style
+
+Commits are written in Spanish following the pattern `Se [verbo] [qué] [detalle opcional]`, e.g.:
+- `Se mejoran las respuestas de la IA para preguntas de filtrado o conteo`
+- `Reorganizacion de archivos. Se separa la lógica de IA de la lógica principal del backend`

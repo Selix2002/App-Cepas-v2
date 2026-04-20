@@ -51,15 +51,13 @@ def _build_mql_system_prompt(schema_description: str) -> str:
         "- ORDEN DEL PIPELINE: $match SIEMPRE antes de $count o $group. Nunca al revés.\n"
         "  Correcto:   [{\"$match\":{...}}, {\"$count\":\"total\"}]\n"
         "  Incorrecto: [{\"$count\":\"total\"}, {\"$match\":{...}}]\n"
-        "- Para valores de texto o fechas: usa $or con múltiples variantes $regex "
-        "que cubran los distintos formatos posibles del valor buscado.\n"
-        "  Ejemplo para \"23 de mayo\":\n"
-        "  {\"$or\":[\n"
-        "    {\"campo\":{\"$regex\":\"23.*mayo\",\"$options\":\"i\"}},\n"
-        "    {\"campo\":{\"$regex\":\"23-may\",\"$options\":\"i\"}},\n"
-        "    {\"campo\":{\"$regex\":\"23[/\\\\-]05\",\"$options\":\"i\"}}\n"
-        "  ]}\n"
-        "- Usa \"$options\":\"i\" en todos los $regex para ignorar mayúsculas.\n"
+        "- Para valores de TEXTO: usa $regex con \"$options\":\"i\" para ignorar mayúsculas.\n"
+        "- Para campos de tipo FECHA (indicados con [tipo: fecha ISODate] en el esquema):\n"
+        "  USA operadores de comparación ($gt, $lt, $gte, $lte) con el formato extendido:\n"
+        "  {\"campo\": {\"$gt\": {\"$date\": \"YYYY-MM-DDTHH:MM:SSZ\"}}}\n"
+        "  Ejemplo — cepas enviadas después del 1 de mayo de 2024:\n"
+        "  {\"envio_punta_arenas\": {\"$gt\": {\"$date\": \"2024-05-01T00:00:00Z\"}}}\n"
+        "  NUNCA uses $regex en campos de tipo fecha.\n"
         "- No filtres ni proyectes el campo \"embedding\".\n"
     )
 
@@ -497,7 +495,12 @@ class LLMService:
         Sends the MongoDB query results to the LLM and returns a
         natural-language answer in Spanish.
         """
-        results_str = json.dumps(query_results["results"], ensure_ascii=False, indent=2)
+        results_str = json.dumps(
+            query_results["results"],
+            ensure_ascii=False,
+            indent=2,
+            default=lambda o: o.isoformat() if hasattr(o, "isoformat") else str(o),
+        )
 
         messages: list[dict] = [
             {"role": "system", "content": _FORMATTER_SYSTEM_PROMPT},

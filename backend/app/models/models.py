@@ -30,7 +30,7 @@ class Cepa(Document):
     morfologia_2: Optional[str] = None
     pigmentacion: Optional[str] = None
 
-    envio_punta_arenas: Optional[str] = None
+    envio_punta_arenas: Optional[datetime] = None
     temperatura_80: Optional[str] = None
     medio: Optional[str] = None
 

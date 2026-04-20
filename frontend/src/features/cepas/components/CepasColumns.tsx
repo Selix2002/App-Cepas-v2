@@ -9,7 +9,7 @@ export const getCepasColumnDefs = (): CepaColumnDef[] => [
   { field: "latitud",            headerName: "Latitud",               width: 100,  type: "number" },
   { field: "longitud",           headerName: "Longitud",              width: 100,  type: "number" },
   { field: "pigmentacion",       headerName: "Pigmentación",          width: 130,  type: "text" },
-  { field: "envio_punta_arenas", headerName: "Envío Pta. Arenas",     width: 140,  type: "text" },
+  { field: "envio_punta_arenas", headerName: "Envío Pta. Arenas",     width: 120,  type: "date" },
   { field: "temperatura_80",     headerName: "Temp -80°",             width: 100,  type: "text" },
   { field: "medio",              headerName: "Medio",                 width: 90,   type: "text" },
   { field: "gram",               headerName: "Gram",                  width: 70,   type: "text" },

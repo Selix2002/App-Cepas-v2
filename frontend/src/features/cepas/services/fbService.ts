@@ -11,6 +11,7 @@ export interface FeedbackPayload {
     calificacion:  number          // 1–5
     comentario?:   string | null
     modo_busqueda?: string | null
+    mql_query?:    Record<string, unknown> | null
 }
 
 export interface FeedbackResponse {

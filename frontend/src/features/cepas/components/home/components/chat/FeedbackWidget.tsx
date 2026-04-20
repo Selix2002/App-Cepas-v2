@@ -8,6 +8,7 @@ type FeedbackWidgetProps = {
     pregunta:      string
     respuesta:     string
     modoBusqueda?: string | null
+    mqlQuery?:     Record<string, unknown> | null
 }
 
 const LABELS: Record<number, string> = {
@@ -20,7 +21,7 @@ const LABELS: Record<number, string> = {
 
 type Status = "idle" | "sending" | "sent" | "error"
 
-export default function FeedbackWidget({ pregunta, respuesta, modoBusqueda }: FeedbackWidgetProps) {
+export default function FeedbackWidget({ pregunta, respuesta, modoBusqueda, mqlQuery }: FeedbackWidgetProps) {
     const [open, setOpen]               = useState(false)
     const [rating, setRating]           = useState<number | null>(null)
     const [hoverRating, setHoverRating] = useState<number | null>(null)
@@ -59,6 +60,7 @@ export default function FeedbackWidget({ pregunta, respuesta, modoBusqueda }: Fe
                 calificacion:  rating,
                 comentario:    comment.trim() || null,
                 modo_busqueda: modoBusqueda ?? null,
+                mql_query:     mqlQuery ?? null,
             })
             setStatus("sent")
             setTimeout(() => setOpen(false), 900)

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import logging
+from datetime import datetime, timezone
 from typing import Any
 
 from app.models.models import Cepa
@@ -74,7 +75,7 @@ class MQLExecutor:
     # ------------------------------------------------------------------
 
     async def _execute_find(self, collection, query: dict) -> list[dict]:
-        filter_ = query.get("filter", {})
+        filter_ = self._resolve_dates(query.get("filter", {}))
         limit = min(
             int(query.get("limit", settings.MQL_MAX_RESULTS)),
             settings.MQL_MAX_RESULTS,
@@ -85,7 +86,7 @@ class MQLExecutor:
 
     async def _execute_aggregate(self, collection, query: dict) -> list[dict]:
         # Shallow-copy the list so we don't mutate the validated query
-        pipeline: list[dict] = list(query["pipeline"])
+        pipeline: list[dict] = self._resolve_dates(list(query["pipeline"]))
 
         # Strip embedding early to avoid sending large vectors to the LLM
         pipeline.insert(0, {"$project": {"embedding": 0}})
@@ -103,6 +104,26 @@ class MQLExecutor:
 
         cursor = collection.aggregate(pipeline)
         return await cursor.to_list(length=settings.MQL_MAX_RESULTS)
+
+    @staticmethod
+    def _resolve_dates(obj: Any) -> Any:
+        """
+        Recursively converts MongoDB Extended JSON date literals
+        {"$date": "ISO_STRING"} to Python datetime objects so pymongo
+        can compare them against stored ISODate values.
+        """
+        if isinstance(obj, dict):
+            if list(obj.keys()) == ["$date"] and isinstance(obj["$date"], str):
+                try:
+                    return datetime.fromisoformat(obj["$date"].replace("Z", "+00:00")).replace(
+                        tzinfo=None
+                    )
+                except ValueError:
+                    return obj
+            return {k: MQLExecutor._resolve_dates(v) for k, v in obj.items()}
+        if isinstance(obj, list):
+            return [MQLExecutor._resolve_dates(item) for item in obj]
+        return obj
 
     @staticmethod
     def _clean(raw: list[dict]) -> list[dict]:

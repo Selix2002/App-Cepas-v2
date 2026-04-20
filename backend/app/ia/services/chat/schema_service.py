@@ -10,6 +10,14 @@ _CAMPOS_EXCLUIR: frozenset[str] = frozenset({
     "fecha_creacion", "fecha_actualizacion",
 })
 
+# Campos almacenados como ISODate en MongoDB
+_CAMPOS_FECHA: frozenset[str] = frozenset({"envio_punta_arenas"})
+
+_FECHA_HINT = (
+    '[tipo: fecha ISODate — comparar con {"$date":"YYYY-MM-DDTHH:MM:SSZ"}. '
+    'Ej: {"envio_punta_arenas":{"$gt":{"$date":"2024-05-01T00:00:00Z"}}}]'
+)
+
 
 def get_schema_description(campos: list[str], valores: dict[str, list] | None = None) -> str:
     """
@@ -32,6 +40,9 @@ def get_schema_description(campos: list[str], valores: dict[str, list] | None = 
 
     lineas: list[str] = []
     for campo in utiles:
+        if campo in _CAMPOS_FECHA:
+            lineas.append(f"  {campo} {_FECHA_HINT}")
+            continue
         vals = valores.get(campo)
         if vals:
             vals_str = ", ".join(f'"{v}"' for v in vals)

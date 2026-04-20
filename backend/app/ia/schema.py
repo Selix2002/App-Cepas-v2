@@ -53,6 +53,7 @@ class ChatFeedbackCreateDTO(BaseModel):
     calificacion: int = Field(..., ge=1, le=5, description="Calificación del 1 al 5")
     comentario: Optional[str] = Field(default=None, max_length=1000)
     modo_busqueda: Optional[str] = None
+    mql_query: Optional[dict] = None
 
 
 class ChatFeedbackResponseDTO(BaseModel):

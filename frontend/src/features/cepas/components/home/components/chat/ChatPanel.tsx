@@ -3,7 +3,60 @@ import { useEffect, useRef, useCallback, useState } from "react"
 import { Send, X, Trash2 } from "lucide-react"
 import type { ChatMessage } from "../../../../hooks/chat/useChatIA"
 import FeedbackWidget from "./FeedbackWidget"
+import ChatFilterSuggestion from "./ChatFilterSuggestion"
 import "./chat-panel.css"
+
+// ── Renderer de markdown mínimo ──────────────────────────────────────────────
+
+function parseInline(str: string, keyPrefix: string): React.ReactNode[] {
+    const nodes: React.ReactNode[] = []
+    const re = /\*\*(.+?)\*\*|\*([^*\n]+?)\*|`(.+?)`/g
+    let last = 0, idx = 0, m: RegExpExecArray | null
+    while ((m = re.exec(str)) !== null) {
+        if (m.index > last) nodes.push(str.slice(last, m.index))
+        const k = `${keyPrefix}-${idx++}`
+        if (m[1] !== undefined) nodes.push(<strong key={k}>{m[1]}</strong>)
+        else if (m[2] !== undefined) nodes.push(<em key={k}>{m[2]}</em>)
+        else if (m[3] !== undefined) nodes.push(<code key={k} className="cp-md-code">{m[3]}</code>)
+        last = m.index + m[0].length
+    }
+    if (last < str.length) nodes.push(str.slice(last))
+    return nodes
+}
+
+function MdText({ text }: { text: string }) {
+    const blocks = text.split(/\n{2,}/)
+    return (
+        <>
+            {blocks.map((block, bi) => {
+                const lines = block.split("\n")
+                const listLines = lines.filter(l => /^[-*]\s/.test(l))
+
+                if (listLines.length > 0 && listLines.length === lines.length) {
+                    return (
+                        <ul key={bi} className="cp-md-list">
+                            {lines.map((l, li) => {
+                                const content = l.replace(/^[-*]\s+/, "")
+                                return <li key={li}>{parseInline(content, `${bi}-${li}`)}</li>
+                            })}
+                        </ul>
+                    )
+                }
+
+                return (
+                    <p key={bi} className="cp-md-p">
+                        {lines.map((line, li) => (
+                            <span key={li}>
+                                {parseInline(line, `${bi}-${li}`)}
+                                {li < lines.length - 1 && <br />}
+                            </span>
+                        ))}
+                    </p>
+                )
+            })}
+        </>
+    )
+}
 
 type ChatPanelProps = {
     open: boolean
@@ -12,6 +65,7 @@ type ChatPanelProps = {
     isLoading: boolean
     onSend: (text: string) => void
     onClear: () => void
+    onApplyFilters?: (filtros: Record<string, string>) => void
 }
 
 function formatTime(date: Date) {
@@ -20,7 +74,15 @@ function formatTime(date: Date) {
 
 const TYPEWRITER_SPEED_MS = 18
 
-function BubbleMessage({ msg, preguntaAnterior }: { msg: ChatMessage; preguntaAnterior: string }) {
+function BubbleMessage({
+    msg,
+    preguntaAnterior,
+    onApplyFilters,
+}: {
+    msg: ChatMessage
+    preguntaAnterior: string
+    onApplyFilters?: (filtros: Record<string, string>) => void
+}) {
     const [displayed, setDisplayed] = useState(msg.isAnimating ? "" : msg.content)
     const [animDone, setAnimDone]   = useState(!msg.isAnimating)
     const isError = msg.role === "ia" && msg.content.startsWith("⚠")
@@ -40,11 +102,17 @@ function BubbleMessage({ msg, preguntaAnterior }: { msg: ChatMessage; preguntaAn
     }, [msg.isAnimating, msg.content])
 
     const showFeedback = msg.role === "ia" && !isError && animDone
+    const showFilters  = msg.role === "ia" && !isError && animDone && !!msg.filtrosAplicados
+
+    const renderContent = () => {
+        if (msg.role !== "ia" || isError || !animDone) return displayed
+        return <MdText text={displayed} />
+    }
 
     return (
         <div className={`cp-bubble-wrap cp-${msg.role}`}>
-            <div className={`cp-bubble${isError ? " cp-error" : ""}`}>
-                {displayed}
+            <div className={`cp-bubble${isError ? " cp-error" : ""}${msg.role === "ia" && animDone && !isError ? " cp-bubble-md" : ""}`}>
+                {renderContent()}
             </div>
             <div className="cp-bubble-meta">
                 <span>{formatTime(msg.timestamp)}</span>
@@ -52,10 +120,17 @@ function BubbleMessage({ msg, preguntaAnterior }: { msg: ChatMessage; preguntaAn
                     <span className="cp-bubble-meta-pill">{msg.tiempoMs} ms</span>
                 )}
             </div>
+            {showFilters && onApplyFilters && (
+                <ChatFilterSuggestion
+                    filtros={msg.filtrosAplicados!}
+                    onApply={onApplyFilters}
+                />
+            )}
             {showFeedback && (
                 <FeedbackWidget
                     pregunta={preguntaAnterior}
                     respuesta={msg.content}
+                    mqlQuery={msg.mqlQuery}
                 />
             )}
         </div>
@@ -69,6 +144,7 @@ export default function ChatPanel({
     isLoading,
     onSend,
     onClear,
+    onApplyFilters,
 }: ChatPanelProps) {
     const [input, setInput] = useState("")
     const anchorRef = useRef<HTMLDivElement>(null)
@@ -166,6 +242,7 @@ export default function ChatPanel({
                                     ? (messages[idx - 1]?.content ?? "")
                                     : ""
                             }
+                            onApplyFilters={onApplyFilters}
                         />
                     ))
                 )}

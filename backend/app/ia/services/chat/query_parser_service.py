@@ -4,6 +4,7 @@ import re
 import time
 import logging
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -72,7 +73,30 @@ class QueryParserService:
         "lecitinasa", "ureasa", "lipasa", "amilasa", "proteasa",
         "catalasa", "celulasa", "fosfatasa", "aia",
         "amp", "ctx", "cxm", "caz", "ak", "c", "te", "am_ecoli", "am_saureus",
+        "envio_punta_arenas",  # campo de fecha — manejado por _parse_envio_punta_arenas
     }
+
+    # Meses en español → número
+    _MESES_ES: dict[str, int] = {
+        "enero": 1, "ene": 1,
+        "febrero": 2, "feb": 2,
+        "marzo": 3, "mar": 3,
+        "abril": 4, "abr": 4,
+        "mayo": 5, "may": 5,
+        "junio": 6, "jun": 6,
+        "julio": 7, "jul": 7,
+        "agosto": 8, "ago": 8,
+        "septiembre": 9, "sep": 9,
+        "octubre": 10, "oct": 10,
+        "noviembre": 11, "nov": 11,
+        "diciembre": 12, "dic": 12,
+    }
+
+    # Palabras clave que activan el parser de envio_punta_arenas
+    _ENVIO_KEYWORDS = [
+        "punta arenas", "puntarenas", "envio", "envío", "enviada", "enviadas",
+        "enviaron", "enviar",
+    ]
 
     def __init__(self) -> None:
         self._campos_dinamicos: list[str] = []
@@ -103,6 +127,7 @@ class QueryParserService:
         self._parse_antibioticos(texto, filtros, terminos)
         self._parse_temperaturas(texto, filtros, terminos)
         self._parse_origen(pregunta, filtros, terminos)
+        self._parse_envio_punta_arenas(texto, filtros, terminos)
         self._parse_campos_dinamicos(texto, filtros, terminos)
 
         es_estadistico = any(re.search(p, texto) for p in self._ESTADISTICO_RE)
@@ -218,6 +243,77 @@ class QueryParserService:
             filtros["origen"] = {"$regex": lugar, "$options": "i"}
             terminos.append(f"origen:{lugar}")
             logger.debug(f"   ✓ Origen detectado: '{lugar}'")
+
+    def _parse_envio_punta_arenas(
+        self, texto: str, filtros: dict, terminos: list
+    ) -> None:
+        """Detecta filtros de fecha sobre envio_punta_arenas."""
+        if not any(kw in texto for kw in self._ENVIO_KEYWORDS):
+            return
+
+        # Construir patrón de meses
+        meses_patron = "|".join(self._MESES_ES.keys())
+
+        # Detectar año explícito (ej: "2024")
+        year_match = re.search(r"\b(20\d{2})\b", texto)
+        year = int(year_match.group(1)) if year_match else 2024
+
+        # Rangos: "entre X y Y"
+        rango_re = (
+            rf"entre\s+(?:el\s+)?(\d{{1,2}})\s+de\s+({meses_patron})"
+            rf"\s+y\s+(?:el\s+)?(\d{{1,2}})\s+de\s+({meses_patron})"
+        )
+        m = re.search(rango_re, texto)
+        if m:
+            d1, mes1, d2, mes2 = int(m.group(1)), m.group(2), int(m.group(3)), m.group(4)
+            try:
+                desde = datetime(year, self._MESES_ES[mes1], d1)
+                hasta = datetime(year, self._MESES_ES[mes2], d2, 23, 59, 59)
+                filtros["envio_punta_arenas"] = {"$gte": desde, "$lte": hasta}
+                terminos.append(f"envio_punta_arenas:rango:{desde.date()}/{hasta.date()}")
+                logger.debug(f"   ✓ Envío Punta Arenas entre {desde.date()} y {hasta.date()}")
+                return
+            except (ValueError, KeyError):
+                pass
+
+        # "después de" / "a partir de"
+        despues_re = (
+            rf"(?:despu[eé]s\s+de|a\s+partir\s+de)\s+(?:el\s+)?(\d{{1,2}})?\s*(?:de\s+)?({meses_patron})"
+        )
+        m = re.search(despues_re, texto)
+        if m:
+            dia = int(m.group(1)) if m.group(1) else 1
+            mes = m.group(2)
+            try:
+                desde = datetime(year, self._MESES_ES[mes], dia)
+                filtros["envio_punta_arenas"] = {"$gte": desde}
+                terminos.append(f"envio_punta_arenas:desde:{desde.date()}")
+                logger.debug(f"   ✓ Envío Punta Arenas desde {desde.date()}")
+                return
+            except (ValueError, KeyError):
+                pass
+
+        # "antes de"
+        antes_re = (
+            rf"antes\s+de\s+(?:el\s+)?(\d{{1,2}})?\s*(?:de\s+)?({meses_patron})"
+        )
+        m = re.search(antes_re, texto)
+        if m:
+            dia = int(m.group(1)) if m.group(1) else 28
+            mes = m.group(2)
+            try:
+                hasta = datetime(year, self._MESES_ES[mes], dia, 23, 59, 59)
+                filtros["envio_punta_arenas"] = {"$lte": hasta}
+                terminos.append(f"envio_punta_arenas:hasta:{hasta.date()}")
+                logger.debug(f"   ✓ Envío Punta Arenas hasta {hasta.date()}")
+                return
+            except (ValueError, KeyError):
+                pass
+
+        # Solo menciona envío sin rango → filtrar por existencia
+        filtros["envio_punta_arenas"] = {"$exists": True, "$ne": None}
+        terminos.append("envio_punta_arenas:existe")
+        logger.debug("   ✓ Envío Punta Arenas mencionado (sin rango de fecha)")
 
     def _parse_campos_dinamicos(
         self, texto: str, filtros: dict, terminos: list

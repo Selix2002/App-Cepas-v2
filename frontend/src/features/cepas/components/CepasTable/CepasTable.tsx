@@ -182,10 +182,7 @@ export default function CepasTable({
 
       {/* table */}
       <div className="bio-table-wrap">
-        {filteredData.length === 0 ? (
-          <div className="bio-no-results">Sin resultados para los filtros aplicados</div>
-        ) : (
-          <table className={`bio-table${isAdmin ? " bio-table--admin" : ""}`}>
+        <table className={`bio-table${isAdmin ? " bio-table--admin" : ""}`}>
             <thead>
               {/* header row */}
               <tr>
@@ -261,8 +258,12 @@ export default function CepasTable({
                       <div style={{ display: "flex", alignItems: "center" }}>
                         <input
                           className={`bio-col-filter-input${hasFilter ? " active" : ""}`}
-                          placeholder="…"
-                          title={`Filtrar: ${col.headerName}`}
+                          placeholder={col.type === "date" ? "dd-mm-aa" : "…"}
+                          title={
+                            col.type === "date"
+                              ? "Filtrar fecha: dd-mm-aa  |  >dd-mm-aa  |  <dd-mm-aa  |  desde..hasta"
+                              : `Filtrar: ${col.headerName}`
+                          }
                           value={columnFilters[col.field] ?? ""}
                           onChange={(e) => setColumnFilter(col.field, e.target.value)}
                         />
@@ -281,11 +282,26 @@ export default function CepasTable({
             </thead>
 
             <tbody>
+              {filteredData.length === 0 && (
+                <tr>
+                  <td colSpan={orderedCols.length} className="bio-no-results-cell">
+                    Sin resultados para los filtros aplicados
+                  </td>
+                </tr>
+              )}
               {displayData.map((row) => (
                 <tr key={row.id}>
                   {orderedCols.map((col) => {
                     const isSelected = isColSelectedForChart(col.field)
-                    const rawValue   = row[col.field as keyof Cepa]
+                    const rawValue   = col.type === "date" && row[col.field as keyof Cepa]
+                      ? (() => {
+                          const d = new Date(row[col.field as keyof Cepa] as string)
+                          const dd = String(d.getDate()).padStart(2, "0")
+                          const mm = String(d.getMonth() + 1).padStart(2, "0")
+                          const aa = String(d.getFullYear()).slice(-2)
+                          return `${dd}-${mm}-${aa}`
+                        })()
+                      : row[col.field as keyof Cepa]
                     const strValue   = String(rawValue ?? "")
                     const isEditing  =
                       editingCell?.id === String(row.id) &&
@@ -325,7 +341,6 @@ export default function CepasTable({
               ))}
             </tbody>
           </table>
-        )}
       </div>
 
       {/* pagination */}

@@ -15,6 +15,7 @@ class ChatFeedback(Document):
     fecha: datetime = Field(default_factory=datetime.utcnow)
     modelo_usado: str
     modo_busqueda: Optional[str] = None
+    mql_query: Optional[dict] = None
 
     class Settings:
         name = "chat_feedback"

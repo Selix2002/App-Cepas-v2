@@ -306,6 +306,14 @@
   letter-spacing: 1px;
 }
 
+.bio-no-results-cell {
+  padding: 28px;
+  text-align: center;
+  font-size: 11px;
+  color: #1e3a30;
+  letter-spacing: 1px;
+}
+
 /* inline edit input */
 .bio-cell-edit-input {
   width: 100%;
