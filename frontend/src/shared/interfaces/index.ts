@@ -44,61 +44,32 @@ export interface UserUpdate {
 // ---------------------------------------------------------------------------
 
 export interface Cepa {
-  id: string                    // MongoDB ObjectId → string, no number
+  id: string
   cepa: string
-  codigo_lab: string | null
-  origen: string | null
   latitud: number | null
   longitud: number | null
-  gram: string | null
-  morfologia_1: string | null
-  morfologia_2: string | null
-  pigmentacion: string | null
   envio_punta_arenas: string | null
-  temperatura_80: string | null  // es string en el backend, no number
-  medio: string | null
-
-  // Actividades enzimáticas
-  lecitinasa: string | null
-  ureasa: string | null          // ojo: "ureasa" no "ureasea"
-  lipasa: string | null
-  amilasa: string | null
-  proteasa: string | null
-  catalasa: string | null
-  celulasa: string | null
-  fosfatasa: string | null
-  aia: string | null
-
-  // Temperatura de crecimiento
-  temp_5c: string | null         // "temp_5c" no "temperatura_5c"
-  temp_25c: string | null
-  temp_37c: string | null
-
-  // Antibióticos
-  amp: string | null
-  ctx: string | null
-  cxm: string | null
-  caz: string | null
-  ak: string | null
-  c: string | null
-  te: string | null
-  am_ecoli: string | null
-  am_saureus: string | null
-
-  // Identificación molecular
-  gen_16s: string | null
-  metabolomica: string | null
-
-  // Metadata
-  nicolas: string | null
-  nombre_proyecto: string | null
   fecha_creacion: string
   fecha_actualizacion: string | null
+  // Atributos dinámicos — cualquier columna adicional del CSV/Excel
+  [key: string]: unknown
 }
 
-export interface CepaCreate extends Omit<Cepa, "id" | "fecha_creacion" | "fecha_actualizacion"> {}
+export interface CepaCreate {
+  cepa: string
+  latitud?: number | null
+  longitud?: number | null
+  envio_punta_arenas?: string | null
+  [key: string]: unknown
+}
 
-export interface CepaUpdate extends Partial<Omit<Cepa, "id" | "fecha_creacion" | "fecha_actualizacion">> {}
+export interface CepaUpdate {
+  cepa?: string
+  latitud?: number | null
+  longitud?: number | null
+  envio_punta_arenas?: string | null
+  [key: string]: unknown
+}
 
 // ---------------------------------------------------------------------------
 // RESPONSES PAGINADOS

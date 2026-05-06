@@ -9,4 +9,5 @@ export interface PieDataItem {
 // 2. Define el tipo para las props que recibe el componente.
 export interface MyPieProps {
   data: PieDataItem[];
+  maxLegendItems?: number;
 }

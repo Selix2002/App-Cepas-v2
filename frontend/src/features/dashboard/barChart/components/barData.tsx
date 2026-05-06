@@ -1,6 +1,7 @@
 // src/components/barChart/barData.tsx
 
 import type { Cepa } from "../../../../shared/interfaces"
+import { toDisplayLabel } from "../../../../shared/utils/labelNormalize"
 
 export type ColSel = { field: string; name: string }
 
@@ -8,12 +9,6 @@ export type BarChartResult = {
   data: Array<Record<string, number | string>>
   keys: string[]
   indexBy: string
-}
-
-function toLabel(v: unknown): string {
-  if (v === null || v === undefined) return "N/I"
-  const s = String(v).trim()
-  return s.length ? s : "N/I"
 }
 
 export function processDataForBarChart(
@@ -28,8 +23,8 @@ export function processDataForBarChart(
     // Acceso directo al campo plano — no más notación de puntos
     const rawX = row[firstCol.field as keyof Cepa]
     const rawS = row[secondCol.field as keyof Cepa]
-    const x = toLabel(rawX)
-    const s = toLabel(rawS)
+    const x = toDisplayLabel(rawX)
+    const s = toDisplayLabel(rawS)
 
     allSeries.add(s)
     if (!matrix.has(x)) matrix.set(x, new Map())

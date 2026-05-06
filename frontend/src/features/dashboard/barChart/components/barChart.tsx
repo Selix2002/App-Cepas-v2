@@ -1,6 +1,7 @@
 // src/features/dashboard/barChart/components/barChart.tsx
 import React from "react"
 import { ResponsiveBar } from "@nivo/bar"
+import { useTheme } from "../../../../app/ThemeContext"
 import "./bar-chart.css"
 
 // ── tipos ──────────────────────────────────────────────────────────────────
@@ -15,6 +16,7 @@ export interface BarChartProps {
   groupMode?: "grouped" | "stacked"
   margin?: { top?: number; right?: number; bottom?: number; left?: number }
   enableLabels?: boolean
+  maxLegendItems?: number
 }
 
 // ── paleta bioluminiscente — misma que PieChart y sidebar dots ─────────────
@@ -37,34 +39,6 @@ const generateBioColor = (str: string): string => {
   return `hsl(${h}, ${s}%, ${l}%)`
 }
 
-// ── NIVO theme bioluminiscente ─────────────────────────────────────────────
-const BIO_THEME = {
-  background: "transparent",
-  text: { fontFamily: "'Courier New', monospace", fontSize: 11, fill: "#8ab0a0" },
-  labels: { text: { fontFamily: "'Courier New', monospace", fontSize: 10, fontWeight: 700, fill: "#e8f4f0" } },
-  axis: {
-    domain: { line: { stroke: "#1a2f28", strokeWidth: 1 } },
-    ticks: {
-      line: { stroke: "#1a2f28", strokeWidth: 1 },
-      text: { fontFamily: "'Courier New', monospace", fontSize: 10, fill: "#8ab0a0" },
-    },
-    legend: { text: { fontFamily: "'Courier New', monospace", fontSize: 11, fill: "#3a6a5a", letterSpacing: 1 } },
-  },
-  grid: { line: { stroke: "#1a2f2855", strokeWidth: 1, strokeDasharray: "3 3" } },
-  legends: {
-    text: { fontFamily: "'Courier New', monospace", fontSize: 11, fill: "#8ab0a0" },
-    title: { text: { fontFamily: "'Courier New', monospace", fill: "#3a6a5a" } },
-  },
-  tooltip: {
-    container: {
-      background: "#0b1220",
-      border: "1px solid #1a2f28",
-      borderRadius: 4,
-      padding: "8px 12px",
-      boxShadow: "0 8px 24px #00000088",
-    },
-  },
-}
 
 // ── componente ─────────────────────────────────────────────────────────────
 const BarChart: React.FC<BarChartProps> = ({
@@ -76,7 +50,39 @@ const BarChart: React.FC<BarChartProps> = ({
   groupMode = "stacked",
   enableLabels = true,
   margin,
+  maxLegendItems = 15,
 }) => {
+  const { theme } = useTheme()
+  const textColor = theme === "dark" ? "#ffffff" : "#000000"
+
+  const BIO_THEME = {
+    background: "transparent",
+    text: { fontFamily: "'Courier New', monospace", fontSize: 11, fill: textColor },
+    labels: { text: { fontFamily: "'Courier New', monospace", fontSize: 10, fontWeight: 700, fill: textColor } },
+    axis: {
+      domain: { line: { stroke: "#1a2f28", strokeWidth: 1 } },
+      ticks: {
+        line: { stroke: "#1a2f28", strokeWidth: 1 },
+        text: { fontFamily: "'Courier New', monospace", fontSize: 10, fill: textColor },
+      },
+      legend: { text: { fontFamily: "'Courier New', monospace", fontSize: 11, fill: textColor, letterSpacing: 1 } },
+    },
+    grid: { line: { stroke: "#1a2f2855", strokeWidth: 1, strokeDasharray: "3 3" } },
+    legends: {
+      text: { fontFamily: "'Courier New', monospace", fontSize: 11, fill: textColor },
+      title: { text: { fontFamily: "'Courier New', monospace", fill: textColor } },
+    },
+    tooltip: {
+      container: {
+        background: "#0b1220",
+        border: "1px solid #1a2f28",
+        borderRadius: 4,
+        padding: "8px 12px",
+        boxShadow: "0 8px 24px #00000088",
+      },
+    },
+  }
+
   const m = {
     top:    24,
     right:  140,
@@ -89,6 +95,13 @@ const BarChart: React.FC<BarChartProps> = ({
   keys.forEach((label, i) => {
     colorMap[label] = i < BIO_COLORS.length ? BIO_COLORS[i] : generateBioColor(label)
   })
+
+  const visibleLegendKeys = keys.length > maxLegendItems ? keys.slice(0, maxLegendItems) : keys
+  const legendData = visibleLegendKeys.map((k) => ({
+    id: k,
+    label: k,
+    color: colorMap[k] ?? "#3a6a5a",
+  }))
 
   return (
     <div className="bar-chart-wrap">
@@ -107,7 +120,7 @@ const BarChart: React.FC<BarChartProps> = ({
         enableGridY
         enableGridX={false}
         enableLabel={enableLabels}
-        labelTextColor={{ from: "color", modifiers: [["brighter", 2]] }}
+        labelTextColor={textColor}
         labelSkipWidth={14}
         labelSkipHeight={14}
         axisBottom={{
@@ -141,18 +154,19 @@ const BarChart: React.FC<BarChartProps> = ({
         legends={[
           {
             dataFrom: "keys",
+            data: legendData,
             anchor: "right",
             direction: "column",
             justify: false,
             translateX: 120,
             translateY: xLabel ? 16 : 0,
-            itemsSpacing: keys.length > 10 ? 4 : 10,
+            itemsSpacing: visibleLegendKeys.length > 10 ? 4 : 10,
             itemWidth: 108,
-            itemHeight: keys.length > 10 ? 10 : 16,
+            itemHeight: visibleLegendKeys.length > 10 ? 10 : 16,
             itemDirection: "left-to-right",
-            symbolSize: keys.length > 10 ? 8 : 12,
+            symbolSize: visibleLegendKeys.length > 10 ? 8 : 12,
             symbolShape: "square",
-            effects: [{ on: "hover", style: { itemTextColor: "#00e5b4", symbolSize: keys.length > 10 ? 10 : 14 } }],
+            effects: [{ on: "hover", style: { itemTextColor: "#00e5b4", symbolSize: visibleLegendKeys.length > 10 ? 10 : 14 } }],
           },
         ]}
         theme={BIO_THEME}

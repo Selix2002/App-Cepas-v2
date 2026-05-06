@@ -2,37 +2,9 @@
 import { useState } from "react"
 import { Filter, Check } from "lucide-react"
 
-const FIELD_LABELS: Record<string, string> = {
-    gram: "Gram",
-    lecitinasa: "Lecitinasa",
-    ureasa: "Ureasa",
-    lipasa: "Lipasa",
-    amilasa: "Amilasa",
-    proteasa: "Proteasa",
-    catalasa: "Catalasa",
-    celulasa: "Celulasa",
-    fosfatasa: "Fosfatasa",
-    aia: "AIA",
-    temp_5c: "Temp 5°C",
-    temp_25c: "Temp 25°C",
-    temp_37c: "Temp 37°C",
-    amp: "Ampicilina",
-    ctx: "Cefotaxima",
-    cxm: "Cefuroxima",
-    caz: "Ceftazidima",
-    ak: "Amikacina",
-    c: "Cloranfenicol",
-    te: "Tetraciclina",
-    am_ecoli: "AM E.coli",
-    am_saureus: "AM S.aureus",
-    origen: "Origen",
-    morfologia_1: "Morfología 1",
-    morfologia_2: "Morfología 2",
-    pigmentacion: "Pigmentación",
-}
-
+// Convierte cualquier campo dinámico a un label legible
 function fieldLabel(key: string): string {
-    return FIELD_LABELS[key] ?? key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+    return key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
 type Props = {

@@ -6,7 +6,7 @@
 import React, { useEffect, useState } from "react"
 import "./download-modal.css"
 
-type ImgFormat = "png" | "jpeg" | "webp"
+type ImgFormat = "png" | "jpeg" | "tiff"
 
 export interface DownloadOptions {
   width: number
@@ -28,7 +28,7 @@ const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min)
 const FORMAT_OPTIONS: { value: ImgFormat; label: string; hint: string }[] = [
   { value: "jpeg", label: "JPEG", hint: "comprimido" },
   { value: "png",  label: "PNG",  hint: "sin pérdida" },
-  { value: "webp", label: "WEBP", hint: "moderno" },
+  { value: "tiff", label: "TIFF", hint: "impresión" },
 ]
 
 const DownloadModal: React.FC<Props> = ({ isOpen, onClose, onConfirm, defaults }) => {
@@ -98,7 +98,7 @@ const DownloadModal: React.FC<Props> = ({ isOpen, onClose, onConfirm, defaults }
     }
   }
 
-  const isLossless = format === "png"
+  const isLossless = format === "png" || format === "tiff"
   const widthNum   = Number(widthInput)
   const heightNum  = Number(heightInput)
   const widthValid  = widthInput  !== "" && Number.isFinite(widthNum)  && widthNum  > 0
@@ -225,7 +225,7 @@ const DownloadModal: React.FC<Props> = ({ isOpen, onClose, onConfirm, defaults }
             <div className="dm-quality-header">
               <span className="dm-quality-title">Calidad</span>
               <span className={`dm-quality-val${isLossless ? " disabled" : ""}`}>
-                {isLossless ? "no aplica a PNG" : `${Math.round(quality * 100)}%`}
+                {isLossless ? "no aplica a PNG / TIFF" : `${Math.round(quality * 100)}%`}
               </span>
             </div>
             <input

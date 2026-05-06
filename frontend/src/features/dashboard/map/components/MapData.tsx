@@ -20,7 +20,7 @@ export default function MapData({
       return [{
         id: r.id,
         nombre: r.cepa,
-        cod_lab: r.codigo_lab,
+        origen: r["origen"] as string | null,
         pos: [lat, lng] as [number, number],
       }]
     })
@@ -58,8 +58,8 @@ export default function MapData({
                 {g.items.slice(0, 10).map((c) => (
                   <li key={c.id}>
                     {c.nombre}
-                    {c.cod_lab && (
-                      <span className="mpopup-cod"> ({c.cod_lab})</span>
+                    {c.origen && (
+                      <span className="mpopup-cod"> ({c.origen})</span>
                     )}
                   </li>
                 ))}

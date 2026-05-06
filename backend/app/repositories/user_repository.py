@@ -1,4 +1,5 @@
-from datetime import datetime
+import asyncio
+from datetime import datetime, timezone
 
 from beanie import PydanticObjectId
 import bcrypt
@@ -21,12 +22,18 @@ class UserRepository:
     # Helpers
     # -----------------------------------------------------------------------
     @staticmethod
-    def _hash_password(plain: str) -> str:
-        return bcrypt.hashpw(plain.encode(), bcrypt.gensalt()).decode()
+    async def _hash_password(plain: str) -> str:
+        # S8: bcrypt is CPU-bound; run in thread pool to avoid blocking the event loop
+        return await asyncio.to_thread(
+            lambda: bcrypt.hashpw(plain.encode(), bcrypt.gensalt()).decode()
+        )
 
     @staticmethod
-    def verify_password(plain: str, hashed: str) -> bool:
-        return bcrypt.checkpw(plain.encode(), hashed.encode())
+    async def verify_password(plain: str, hashed: str) -> bool:
+        # S8: same reason — bcrypt.checkpw is blocking
+        return await asyncio.to_thread(
+            lambda: bcrypt.checkpw(plain.encode(), hashed.encode())
+        )
 
     # -----------------------------------------------------------------------
     # CREATE
@@ -40,7 +47,7 @@ class UserRepository:
 
         user = User(
             username=dto.username,
-            password=self._hash_password(dto.password),
+            password=await self._hash_password(dto.password),
             is_admin=dto.is_admin,
             hidden_columns=dto.hidden_columns,
         )
@@ -92,7 +99,7 @@ class UserRepository:
                     f"Ya existe un usuario con username '{update_data['username']}'"
                 )
 
-        update_data["fecha_actualizacion"] = datetime.utcnow()
+        update_data["fecha_actualizacion"] = datetime.now(timezone.utc)
         await user.set(update_data)
         return user
 

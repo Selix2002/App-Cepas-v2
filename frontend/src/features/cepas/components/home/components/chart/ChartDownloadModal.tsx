@@ -61,18 +61,34 @@ export default function ChartDownloadModal({
                     outCanvas = c;
                 }
 
-                const mime = `image/${opts.format}`;
-                const dataURL =
-                    opts.format === "png"
-                        ? outCanvas.toDataURL(mime)
-                        : outCanvas.toDataURL(mime, opts.quality);
+                if (opts.format === "tiff") {
+                    const ctx = outCanvas.getContext("2d")!;
+                    const { data, width, height } = ctx.getImageData(0, 0, outCanvas.width, outCanvas.height);
+                    const UTIF = await import("utif");
+                    const tiffBuf = UTIF.encodeImage(new Uint8Array(data.buffer), width, height);
+                    const blob = new Blob([tiffBuf], { type: "image/tiff" });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement("a");
+                    link.href = url;
+                    link.download = `${opts.fileName || "grafico"}.tiff`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                } else {
+                    const mime = `image/${opts.format}`;
+                    const dataURL =
+                        opts.format === "png"
+                            ? outCanvas.toDataURL(mime)
+                            : outCanvas.toDataURL(mime, opts.quality);
 
-                const link = document.createElement("a");
-                link.href = dataURL;
-                link.download = `${opts.fileName || "grafico"}.${opts.format}`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+                    const link = document.createElement("a");
+                    link.href = dataURL;
+                    link.download = `${opts.fileName || "grafico"}.${opts.format}`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
             }}
         />
     );

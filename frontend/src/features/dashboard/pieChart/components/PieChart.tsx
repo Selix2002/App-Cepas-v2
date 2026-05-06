@@ -2,6 +2,7 @@
 import React from "react"
 import { ResponsivePie, type PieTooltipProps } from "@nivo/pie"
 import type { PieDataItem, MyPieProps } from "../../../../shared/interfaces/index_charts"
+import { useTheme } from "../../../../app/ThemeContext"
 import "./pie-chart.css"
 
 // ── paleta bioluminiscente ─────────────────────────────────────────────────
@@ -13,26 +14,6 @@ const BIO_COLORS = [
   "#26c6da", "#66bb6a", "#ffca28", "#8d6e63", "#78909c",
 ]
 
-// ── NIVO theme ─────────────────────────────────────────────────────────────
-const BIO_THEME = {
-  background: "transparent",
-  text: { fontFamily: "'Courier New', monospace", fontSize: 11, fill: "#8ab0a0" },
-  labels: { text: { fontFamily: "'Courier New', monospace", fontSize: 11, fontWeight: 700, fill: "#e8f4f0" } },
-  legends: {
-    text: { fontFamily: "'Courier New', monospace", fontSize: 11, fill: "#8ab0a0" },
-    title: { text: { fontFamily: "'Courier New', monospace", fill: "#3a6a5a" } },
-  },
-  tooltip: {
-    container: {
-      background: "#0b1220",
-      border: "1px solid #1a2f28",
-      borderRadius: 4,
-      padding: "8px 12px",
-      boxShadow: "0 8px 24px #00000088",
-    },
-  },
-  grid: { line: { stroke: "#1a2f28" } },
-}
 
 // ── custom tooltip ─────────────────────────────────────────────────────────
 const CustomTooltip = ({ datum }: PieTooltipProps<PieDataItem>) => (
@@ -43,13 +24,35 @@ const CustomTooltip = ({ datum }: PieTooltipProps<PieDataItem>) => (
     <div className="pie-chart-tooltip-label">{datum.id}</div>
     <div className="pie-chart-tooltip-value-row">
       <span className="pie-chart-tooltip-value">{datum.value}</span>
-      <span className="pie-chart-tooltip-formatted">{datum.formattedValue}</span>
     </div>
   </div>
 )
 
 // ── component ──────────────────────────────────────────────────────────────
-const MyPieChart = ({ data }: MyPieProps) => {
+const MyPieChart = ({ data, maxLegendItems = 15 }: MyPieProps) => {
+  const { theme } = useTheme()
+  const textColor = theme === "dark" ? "#ffffff" : "#000000"
+
+  const BIO_THEME = {
+    background: "transparent",
+    text: { fontFamily: "'Courier New', monospace", fontSize: 11, fill: textColor },
+    labels: { text: { fontFamily: "'Courier New', monospace", fontSize: 11, fontWeight: 700, fill: textColor } },
+    legends: {
+      text: { fontFamily: "'Courier New', monospace", fontSize: 11, fill: textColor },
+      title: { text: { fontFamily: "'Courier New', monospace", fill: textColor } },
+    },
+    tooltip: {
+      container: {
+        background: "#0b1220",
+        border: "1px solid #1a2f28",
+        borderRadius: 4,
+        padding: "8px 12px",
+        boxShadow: "0 8px 24px #00000088",
+      },
+    },
+    grid: { line: { stroke: "#1a2f28" } },
+  }
+
   const total = data.reduce((sum, item) => sum + item.value, 0)
 
   const coloredData = data.map((item, i) => ({
@@ -59,6 +62,10 @@ const MyPieChart = ({ data }: MyPieProps) => {
 
   const manyItems = data.length > 15
   const someItems = data.length > 10
+
+  const visibleLegendData = coloredData.length > maxLegendItems
+    ? coloredData.slice(0, maxLegendItems)
+    : coloredData
 
   return (
     <ResponsivePie
@@ -78,7 +85,7 @@ const MyPieChart = ({ data }: MyPieProps) => {
         return `${pct}%`
       }}
       arcLabelsSkipAngle={14}
-      arcLabelsTextColor={{ from: "color", modifiers: [["brighter", 1.5]] }}
+      arcLabelsTextColor={textColor}
       arcLabelsRadiusOffset={0.65}
       arcLinkLabel={(d) => `${d.id} (${d.value})`}
       arcLinkLabelsSkipAngle={10}
@@ -87,7 +94,7 @@ const MyPieChart = ({ data }: MyPieProps) => {
       arcLinkLabelsStraightLength={20}
       arcLinkLabelsThickness={1}
       arcLinkLabelsColor={{ from: "color", modifiers: [["darker", 0.3]] }}
-      arcLinkLabelsTextColor="#8ab0a0"
+      arcLinkLabelsTextColor={textColor}
       tooltip={({ datum }) => <CustomTooltip datum={datum} />}
       theme={BIO_THEME}
       legends={[
@@ -95,8 +102,13 @@ const MyPieChart = ({ data }: MyPieProps) => {
           anchor: "right",
           direction: "column",
           justify: false,
-          translateX: manyItems ? 74 : 140,
+          translateX: manyItems ? 74 : 100,
           translateY: 0,
+          data: visibleLegendData.map((d) => ({
+            id: d.id,
+            label: String(d.label ?? d.id),
+            color: d.color ?? BIO_COLORS[0],
+          })),
           itemsSpacing: someItems ? 3 : 8,
           itemWidth: manyItems ? 64 : 130,
           itemHeight: someItems ? 10 : 18,

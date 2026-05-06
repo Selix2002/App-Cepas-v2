@@ -69,3 +69,29 @@ export async function addAttribute(
   })
   return data
 }
+
+// ---------------------------------------------------------------------------
+// IMPORT — importa cepas desde CSV o Excel (backend parsea el archivo)
+// ---------------------------------------------------------------------------
+
+export interface ImportRowResult {
+  cepa: string
+  status: "created" | "duplicate" | "error"
+  error?: string
+}
+
+export interface ImportResult {
+  created: number
+  skipped: number
+  errors: number
+  rows: ImportRowResult[]
+}
+
+export async function importCepas(file: File): Promise<ImportResult> {
+  const formData = new FormData()
+  formData.append("file", file)
+  const { data } = await api.post<ImportResult>("/cepas/import", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  })
+  return data
+}

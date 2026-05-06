@@ -3,6 +3,7 @@
 
 import type { Cepa } from "../../../../shared/interfaces"
 import type { PieDataItem } from "../../../../shared/interfaces/index_charts"
+import { resolveAlias } from "../../../../shared/utils/labelNormalize"
 
 const BIO_COLORS: string[] = [
   "#00e5b4", "#4d9fff", "#ff8c42", "#a78bfa", "#ff4d6d",
@@ -37,12 +38,12 @@ export const processDataForPieChart = (
   for (const row of rawData) {
     const raw = row[column.field as keyof Cepa]
     const valueAsString = raw !== null && raw !== undefined ? String(raw) : "N/I"
-    const lowerKey = valueAsString.toLowerCase()
+    const canonicalKey = resolveAlias(valueAsString.toLowerCase())
 
-    if (!originalCaseMap[lowerKey]) {
-      originalCaseMap[lowerKey] = valueAsString
+    if (!originalCaseMap[canonicalKey]) {
+      originalCaseMap[canonicalKey] = canonicalKey.charAt(0).toUpperCase() + canonicalKey.slice(1)
     }
-    counts[lowerKey] = (counts[lowerKey] ?? 0) + 1
+    counts[canonicalKey] = (counts[canonicalKey] ?? 0) + 1
   }
 
   const uniqueLabels = Object.values(originalCaseMap)
@@ -54,8 +55,8 @@ export const processDataForPieChart = (
         : generateBioColor(label)
   })
 
-  return Object.entries(counts).map(([lowerKey, count]) => {
-    const label = originalCaseMap[lowerKey]
+  return Object.entries(counts).map(([canonicalKey, count]) => {
+    const label = originalCaseMap[canonicalKey]
     return {
       id: label,
       label,

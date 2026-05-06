@@ -15,15 +15,12 @@ type SectionDef = {
   fields: string[]
 }
 
+// Solo campos fijos del modelo. Los atributos dinámicos se asignan a secciones
+// desde "Nuevo Atributo" y se añaden automáticamente a la sección correspondiente.
 const SECTIONS: SectionDef[] = [
-  { id: "identificacion", title: "Identificación", color: "#00e5b4", cols: 3, fields: ["cepa", "codigo_lab", "origen"] },
-  { id: "ubicacion", title: "Ubicación", color: "#4d9fff", cols: 2, fields: ["latitud", "longitud"] },
-  { id: "caracteristicas", title: "Características", color: "#ff8c42", cols: 3, fields: ["pigmentacion", "gram", "medio", "morfologia_1", "morfologia_2", "temperatura_80"] },
+  { id: "identificacion", title: "Identificación", color: "#00e5b4", cols: 1, fields: ["cepa"] },
+  { id: "ubicacion",      title: "Ubicación",      color: "#4d9fff", cols: 2, fields: ["latitud", "longitud"] },
   { id: "almacenamiento", title: "Almacenamiento", color: "#00c4a0", cols: 1, fields: ["envio_punta_arenas"] },
-  { id: "enzimatica", title: "Actividad enzimática", color: "#a78bfa", cols: 3, fields: ["lecitinasa", "ureasa", "lipasa", "amilasa", "proteasa", "catalasa", "celulasa", "fosfatasa", "aia"] },
-  { id: "temperatura", title: "Temperatura de crecimiento", color: "#ffb347", cols: 3, fields: ["temp_5c", "temp_25c", "temp_37c"] },
-  { id: "antibiotica", title: "Resistencia antibiótica", color: "#ff4d6d", cols: 3, fields: ["amp", "ctx", "cxm", "caz", "ak", "c", "te", "am_ecoli", "am_saureus"] },
-  { id: "genetica", title: "Genética y proyectos", color: "#c084fc", cols: 2, fields: ["gen_16s", "metabolomica", "nicolas", "nombre_proyecto"] },
 ]
 
 // Fields fijos asignados a alguna sección estática
@@ -62,7 +59,7 @@ function Field({
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>, index: number) => void
 }) {
   const isNumeric = col.type === "number"
-  const REQUIRED_FIELDS = new Set(["cepa", "latitud", "longitud", "origen"])
+  const REQUIRED_FIELDS = new Set(["cepa", "latitud", "longitud"])
   const isRequired = REQUIRED_FIELDS.has(col.field)
 
   return (
@@ -159,7 +156,7 @@ export default function NewCepaForm({
     )
   }
 
-  const REQUIRED_FIELDS = ["cepa", "latitud", "longitud", "origen"]
+  const REQUIRED_FIELDS = ["cepa", "latitud", "longitud"]
 
   const latVal = parseFloat(formData["latitud"] ?? "")
   const lonVal = parseFloat(formData["longitud"] ?? "")
@@ -257,7 +254,7 @@ export default function NewCepaForm({
       {/* footer sticky */}
       <div className="nc-footer">
         <span className="nc-footer-hint">
-          Enter para avanzar campo &nbsp;·&nbsp; * Cepa, Latitud, Longitud y Origen son requeridos
+          Enter para avanzar campo &nbsp;·&nbsp; * Cepa, Latitud y Longitud son requeridos
         </span>
         <button
           className="nc-btn-submit"

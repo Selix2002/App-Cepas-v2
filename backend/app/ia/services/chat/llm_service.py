@@ -10,6 +10,7 @@ import logging
 import json
 import os
 from datetime import datetime
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -345,7 +346,8 @@ class LLMService:
         })
 
         logger.info(f"📨 Enviando a LLM | modelos={self.models} | temp={self.temperature}")
-        self._dump_request(pregunta, messages)
+        if settings.debug:  # S11: only dump user data to disk in debug mode
+            self._dump_request(pregunta, messages)
 
         try:
             data, modelo_usado = await self._post_with_fallback({
@@ -373,7 +375,7 @@ class LLMService:
 
         except Exception as e:
             logger.error(f"❌ Error en generar_respuesta: {type(e).__name__}: {e}", exc_info=True)
-            raise Exception(f"Error al generar respuesta: {e}")
+            raise Exception(f"Error al generar respuesta: {e}") from e  # B12: preserve traceback
 
     # -----------------------------------------------------------------------
     # MQL helpers
@@ -423,7 +425,8 @@ class LLMService:
         logger.info(f"   Modelos (prioridad)  : {self.models}")
         logger.info(f"   Temperature          : 0 (determinístico)")
         logger.debug("[MQL] System prompt completo:\n" + system_prompt)
-        self._dump_mql("1_query_request", payload_base)
+        if settings.debug:  # S11
+            self._dump_mql("1_query_request", payload_base)
 
         raw_text = ""
         try:
@@ -435,7 +438,8 @@ class LLMService:
             logger.info(f"   Tokens prompt        : {usage.get('prompt_tokens')}")
             logger.info(f"   Tokens completion    : {usage.get('completion_tokens')}")
             logger.info(f"📤 [MQL] Respuesta RAW del LLM:\n{raw_text}")
-            self._dump_mql("2_query_response", {"raw": raw_text, "usage": usage})
+            if settings.debug:  # S11
+                self._dump_mql("2_query_response", {"raw": raw_text, "usage": usage})
 
             # ── Paso 1: quitar code fences de markdown ───────────────────
             raw_text = re.sub(r"```json\s*", "", raw_text, flags=re.IGNORECASE)

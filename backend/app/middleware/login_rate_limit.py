@@ -60,12 +60,14 @@ class LoginRateLimitMiddleware:
         client_ip = self._get_client_ip(scope)
         key = f"{self.key_prefix}:{client_ip}"
 
-        # Incrementamos el contador en Redis
+        # B15: INCR + EXPIRE en un solo script Lua para eliminar la race condition
+        _LUA_INCR_EXPIRE = (
+            "local n = redis.call('INCR', KEYS[1]) "
+            "if n == 1 then redis.call('EXPIRE', KEYS[1], tonumber(ARGV[1])) end "
+            "return n"
+        )
         try:
-            current = await self.redis.incr(key)
-            if current == 1:
-                # Primera vez que se usa esta key → setear expiración
-                await self.redis.expire(key, self.window_seconds)
+            current = await self.redis.eval(_LUA_INCR_EXPIRE, 1, key, self.window_seconds)
         except Exception as e:
             # Si Redis falla, no queremos tirar abajo el login (fail-open)
             rate_logger.error(f"Error al acceder a Redis para rate limit: {e}")

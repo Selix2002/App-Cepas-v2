@@ -1,4 +1,5 @@
-from datetime import datetime
+import re
+from datetime import datetime, timezone
 
 from beanie import PydanticObjectId
 from beanie.operators import RegEx
@@ -9,8 +10,6 @@ from app.schema.dtos import (
     CepaUpdateDTO,
     CepaFilterParams,
 )
-from app.ia.services.chat.embedding_service import get_embedding_service
-from app.ia.services.chat.dbSearch_service import DatabaseService
 
 
 class CepaNotFoundError(Exception):
@@ -19,6 +18,39 @@ class CepaNotFoundError(Exception):
 
 class CepaAlreadyExistsError(Exception):
     pass
+
+
+# ---------------------------------------------------------------------------
+# Coordenadas por origen conocido
+# ---------------------------------------------------------------------------
+
+# Clave: nombre normalizado (minúsculas, sin espacios extra)
+# Valor: (latitud, longitud)
+ORIGEN_COORDS: dict[str, tuple[float, float]] = {
+    "planta laguna amarga": (-50.975656, -72.749295),
+    "planta l. amarga":     (-50.975656, -72.749295),
+    "laguna amarga":        (-50.975656, -72.749295),
+    "lago pehoe":           (-51.099674, -73.066238),
+    "Lago grey":            (-51.054339, -73.163511),
+    "lago maravilloso":       (-51.315441, -72.758702),
+    "cascada lm":           (-39.522724, -72.034290),   
+}
+
+
+def resolve_coords_from_origen(
+    origen: str | None,
+    current_lat: float | None,
+    current_lon: float | None,
+) -> tuple[float | None, float | None]:
+    """Devuelve (lat, lon) rellenando desde ORIGEN_COORDS si aún no están definidas."""
+    if current_lat is not None and current_lon is not None:
+        return current_lat, current_lon
+    if not origen:
+        return current_lat, current_lon
+    coords = ORIGEN_COORDS.get(origen.strip().lower())
+    if coords:
+        return coords
+    return current_lat, current_lon
 
 
 class CepaRepository:
@@ -31,11 +63,22 @@ class CepaRepository:
         if existing:
             raise CepaAlreadyExistsError(f"Ya existe una cepa con nombre '{dto.cepa}'")
 
-        cepa = Cepa(**dto.model_dump())
+        data = dto.model_dump()
+        lat, lon = resolve_coords_from_origen(data.get("origen"), data.get("latitud"), data.get("longitud"))
+        data["latitud"] = lat
+        data["longitud"] = lon
+
+        cepa = Cepa(**data)
         await cepa.insert()
 
-        cepa.embedding = get_embedding_service().encode(DatabaseService._cepa_a_texto(cepa))
-        await cepa.save()
+        # A1: lazy import so CepaRepository doesn't hard-depend on IA packages
+        try:
+            from app.ia.services.chat.embedding_service import get_embedding_service
+            from app.ia.services.chat.dbSearch_service import DatabaseService
+            cepa.embedding = get_embedding_service().encode(DatabaseService._cepa_a_texto(cepa))
+            await cepa.save()
+        except ImportError:
+            pass
 
         return cepa
 
@@ -62,8 +105,8 @@ class CepaRepository:
         query = Cepa.find()
 
         if filters.cepa:
-            # búsqueda parcial case-insensitive
-            query = query.find(RegEx(Cepa.cepa, filters.cepa, "i"))
+            # S10: re.escape prevents ReDoS from user-supplied regex metacharacters
+            query = query.find(RegEx(Cepa.cepa, re.escape(filters.cepa), "i"))
 
         total = await query.count()
         items = await query.to_list()
@@ -80,12 +123,18 @@ class CepaRepository:
         if not update_data:
             return cepa  # nada que actualizar
 
-        update_data["fecha_actualizacion"] = datetime.utcnow()
+        update_data["fecha_actualizacion"] = datetime.now(timezone.utc)
 
         await cepa.set(update_data)
 
-        cepa.embedding = get_embedding_service().encode(DatabaseService._cepa_a_texto(cepa))
-        await cepa.save()
+        # A1: lazy import so CepaRepository doesn't hard-depend on IA packages
+        try:
+            from app.ia.services.chat.embedding_service import get_embedding_service
+            from app.ia.services.chat.dbSearch_service import DatabaseService
+            cepa.embedding = get_embedding_service().encode(DatabaseService._cepa_a_texto(cepa))
+            await cepa.save()
+        except ImportError:
+            pass
 
         return cepa
 

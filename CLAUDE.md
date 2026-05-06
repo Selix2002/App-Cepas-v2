@@ -107,8 +107,11 @@ Embeddings use `sentence-transformers/all-MiniLM-L6-v2`. Disable the whole AI mo
 ## Environment Variables
 
 Backend (`backend/.env`):
+- `SECRET_KEY` — **requerido**, clave JWT (sin default en código)
 - `GROQ_API_KEY` — required for AI chat
 - `GROQ_MODELS` — comma-separated list of Groq models to use
+- `ALLOWED_ORIGINS` — JSON array de origins permitidos para CORS (default: localhost:5173)
+- `DEBUG` — `true` activa stack traces y dumps a disco (default: `false`)
 - MongoDB and Redis use `localhost` defaults if not set
 
 Frontend:
@@ -123,93 +126,93 @@ Commits are written in Spanish following the pattern `Se [verbo] [qué] [detalle
 
 ---
 
-## Backend Audit (2026-04-20)
+## Backend Audit (2026-04-20) — Estado al 2026-05-01
 
-Auditoría completa del backend. Issues ordenados por categoría y prioridad.
+Auditoría completa del backend. Issues marcados con ✅ han sido corregidos.
 
 ### Seguridad
 
-| ID | Archivo | Problema |
-|----|---------|---------|
-| S1 | `backend/.env` | **API key de Groq commiteada.** Rotar y agregar `.env` al `.gitignore`. |
-| S2 | `core/config.py:11` | `secret_key = "secret123"` es el valor de producción real (no hay `SECRET_KEY` en `.env`). Hacer el campo requerido, sin default. |
-| S3 | `main.py:34-39` | `allow_origins=["*"]` + `allow_credentials=True` es inválido/inseguro. Especificar origins explícitos. |
-| S4 | `core/config.py:8` | `debug: bool = True` por defecto expone stack traces. Default debe ser `False`. |
-| S5 | `login_rate_limit.py:69-73` | Si Redis falla, el rate limit se desactiva (fail-open). Crítico en endpoints de auth. |
-| S6 | `login_rate_limit.py:95-109` | `X-Forwarded-For` se confía ciegamente — cualquier cliente puede falsear su IP. Usar el peer TCP directo o un allow-list de proxies. |
-| S7 | `login_rate_limit.py` | Solo límite por IP, no por username → brute force distribuido contra un usuario específico. |
-| S8 | `user_repository.py:23-29` | `bcrypt.hashpw/checkpw` son bloqueantes en el event loop. Wrappear con `asyncio.to_thread()`. |
-| S9 | `auth_service.py:10-14` | Cuando el usuario no existe se omite el hash → timing attack para enumerar usuarios válidos. |
-| S10 | `cepa_repository.py:66`, `query_parser_service.py:243` | Parámetros del usuario van directamente como regex de MongoDB sin `re.escape()` → **ReDoS**. |
-| S11 | `llm_service.py:280-306` | `_dump_request`/`_dump_mql` escriben datos del usuario a disco sin rotación, de forma bloqueante, en cada request. Gatear por flag debug. |
-| S12 | `input_validator_service.py:28-52` | Detección de prompt-injection por regex sin normalización unicode; fácilmente eludible. |
-| S13 | `router.py:60-65` | `_LEAK_INDICATORS` usa substring match simple; puede bloquear respuestas legítimas sobre bacterias. |
-| S14 | `router.py:62` + `llm_service.py:19` | El `SECURITY_PREAMBLE` contiene strings que también son `_LEAK_INDICATORS` → el sistema puede bloquearse a sí mismo. |
-| S15 | `routes_cepas.py:105-111` | `field` en `add_attribute` no está sanitizado → un nombre como `"$set"` o `"a.b.c"` corrompe documentos MongoDB. |
+| ID | Estado | Archivo | Problema |
+|----|--------|---------|---------|
+| S1 | ✅ | `backend/.env` | `.env` ya excluido por `backend/.gitignore`. `SECRET_KEY` añadido al `.env`. |
+| S2 | ✅ | `core/config.py` | `secret_key` ahora es campo requerido sin default. |
+| S3 | ✅ | `main.py` | CORS usa `settings.ALLOWED_ORIGINS` (configurable vía `.env`). |
+| S4 | ✅ | `core/config.py` | `debug` default cambiado a `False`. |
+| S5 | — | `login_rate_limit.py:69-73` | Si Redis falla, el rate limit se desactiva (fail-open). Crítico en endpoints de auth. |
+| S6 | — | `login_rate_limit.py:95-109` | `X-Forwarded-For` se confía ciegamente — cualquier cliente puede falsear su IP. |
+| S7 | — | `login_rate_limit.py` | Solo límite por IP, no por username → brute force distribuido. |
+| S8 | ✅ | `user_repository.py` | `bcrypt.hashpw/checkpw` wrapped en `asyncio.to_thread()`. |
+| S9 | ✅ | `auth_service.py` | Dummy hash cuando usuario no existe — elimina timing attack. |
+| S10 | ✅ | `cepa_repository.py`, `query_parser_service.py` | `re.escape()` aplicado a todos los regex de usuario hacia MongoDB. |
+| S11 | ✅ | `llm_service.py` | `_dump_request`/`_dump_mql` gateados detrás de `settings.debug`. |
+| S12 | — | `input_validator_service.py:28-52` | Detección de prompt-injection por regex sin normalización unicode. |
+| S13 | — | `router.py:60-65` | `_LEAK_INDICATORS` usa substring match simple; puede bloquear respuestas legítimas. |
+| S14 | — | `router.py:62` + `llm_service.py:19` | `SECURITY_PREAMBLE` contiene strings que también son `_LEAK_INDICATORS`. |
+| S15 | ✅ | `routes_cepas.py` | `field` en `add_attribute` validado con regex — bloquea `$set`, `a.b.c`, etc. |
 
 ### Bugs
 
-| ID | Archivo | Problema |
-|----|---------|---------|
-| B1 | `dbSearch_service.py:89-95` | **Crash en runtime:** `buscar_cepas_similares` llama `_busqueda_vectorial(pregunta, limit)` pero la firma espera 4 args. Falla cuando no hay embeddings. |
-| B2 | `cepa_repository.py:37, 87` | El modelo de sentence-transformers corre sincrónicamente en el handler async. Primera llamada puede bloquear 5–30 s. |
-| B3 | Múltiples archivos | `datetime.utcnow()` deprecado en Python 3.13. Reemplazar por `datetime.now(timezone.utc)`. |
-| B4 | `schema/dtos.py:180-188` | Enviar `{"cepa": ""}` en un PATCH guarda `null`, rompiendo el índice único. |
-| B5 | `cepa_repository.py:76-90` | Al renombrar una cepa no verifica unicidad → `DuplicateKeyError` sube como 500. |
-| B6 | `routes_cepas.py:96-116` | `add_attribute`: N round-trips sin transacción, fallo parcial deja docs inconsistentes. Usar `bulk_write`. |
-| B7 | `query_parser_service.py:258-259` | Año 2024 hardcodeado → queries de fecha rotas en 2025+. |
-| B8 | `dbSearch_service.py:76` | Query `{"embedding": {"$exists": True}}` incluye docs con `embedding: null`, que se traen por red y se descartan en Python. |
-| B9 | `llm_service.py:69-87` | `_extract_json_object` no maneja `{` dentro de strings (ej: `{"regex": "a{2,4}"}`), puede truncar JSON válido. |
-| B10 | `llm_service.py:90-101` | `_repair_unquoted_keys`: regex puede doble-quotear keys dentro de valores string. |
-| B11 | `mql_executor_service.py:89-98` | `_execute_aggregate` hace shallow-copy del pipeline; `_resolve_dates` puede mutar los dicts anidados del original. |
-| B12 | `llm_service.py:375-376` | `raise Exception(...)` pierde el traceback encadenado. Usar `raise ... from e`. |
-| B13 | `query_parser_service.py:302` | `dia = 28` como fallback de febrero ignora años bisiestos. |
-| B14 | `dbSearch_service.py:144-165` | `_cepa_a_texto` tiene `# ... resto del código ...` — solo concatena 3 campos. Los embeddings capturan muy poca información; la búsqueda semántica es casi inútil. |
-| B15 | `login_rate_limit.py:65-68`, `ia/middleware.py:64-66` | Race condition: `INCR` + `EXPIRE` son dos round-trips no atómicos. Usar Lua script o patrón `SET NX EX`. |
-| B16 | `feedback_service.py:35` | `limpiar_antiguos()` se llama en cada insert → count + delete_many por cada feedback. Usar TTL index de MongoDB. |
-| B17 | `router.py:273-277` | `modelo_usado` en feedback siempre guarda `groq_models[0]`, ignorando el modelo real de la respuesta. |
-| B18 | `dbSearch_service.py:21-27` | Caches `_campos_cache`/`_valores_cache` como atributos de clase → no son process-safe con múltiples workers uvicorn. |
-| B19 | `dbSearch_service.py:430-442` | `generar_embeddings_batch` hace `await cepa.save()` por documento → N round-trips. Usar `bulk_write`. |
+| ID | Estado | Archivo | Problema |
+|----|--------|---------|---------|
+| B1 | ✅ | `dbSearch_service.py` | Fallback sin embeddings corregido: ahora llama `get_todas_las_cepas()`. |
+| B2 | — | `cepa_repository.py:37, 87` | Modelo sentence-transformers corre sincrónicamente. Primera llamada bloquea 5–30 s. |
+| B3 | ✅ | Múltiples archivos | `datetime.utcnow()` → `datetime.now(timezone.utc)`. |
+| B4 | — | `schema/dtos.py:180-188` | PATCH con `{"cepa": ""}` guarda `null`, rompe índice único. |
+| B5 | — | `cepa_repository.py:76-90` | Renombrar cepa sin verificar unicidad → `DuplicateKeyError` como 500. |
+| B6 | — | `routes_cepas.py:96-116` | `add_attribute`: N round-trips sin transacción. Usar `bulk_write`. |
+| B7 | ✅ | `query_parser_service.py` | Año hardcodeado `2024` → `datetime.now().year`. |
+| B8 | ✅ | `dbSearch_service.py` | Query de embeddings: añadido `$ne: null` para excluir docs nulos en DB. |
+| B9 | — | `llm_service.py:69-87` | `_extract_json_object` no maneja `{` dentro de strings. |
+| B10 | — | `llm_service.py:90-101` | `_repair_unquoted_keys`: regex puede doble-quotear keys en valores string. |
+| B11 | — | `mql_executor_service.py:89-98` | Shallow-copy del pipeline; `_resolve_dates` puede mutar dicts anidados del original. |
+| B12 | ✅ | `llm_service.py` | `raise Exception(...)` → `raise Exception(...) from e`. |
+| B13 | — | `query_parser_service.py:302` | `dia = 28` como fallback de febrero ignora años bisiestos. |
+| B14 | — | `dbSearch_service.py:144-165` | `_cepa_a_texto` solo concatena 3 campos; embeddings capturan muy poca info. |
+| B15 | ✅ | `login_rate_limit.py` | Race condition INCR+EXPIRE eliminada con script Lua atómico. |
+| B16 | — | `feedback_service.py:35` | `limpiar_antiguos()` en cada insert. Usar TTL index de MongoDB. |
+| B17 | — | `router.py:273-277` | `modelo_usado` en feedback siempre guarda `groq_models[0]`. |
+| B18 | — | `dbSearch_service.py:21-27` | Caches de clase no son process-safe con múltiples workers uvicorn. |
+| B19 | — | `dbSearch_service.py:430-442` | `generar_embeddings_batch`: N `save()` individuales. Usar `bulk_write`. |
 
 ### Performance
 
-| ID | Archivo | Problema |
-|----|---------|---------|
-| P1 | `dbSearch_service.py:170-193` | Descubrimiento de campos: scan completo de la colección en cada cache miss (TTL 5 min). |
-| P2 | `dbSearch_service.py:195-229` | `descubrir_valores_campos`: N `distinct()` seriales. Usar `asyncio.gather()`. |
-| P3 | `dbSearch_service.py:110-142` | Similitud coseno por documento en Python puro. Para miles de cepas: >1 s. Reemplazar con matmul numpy: `(E @ q) / (‖E‖ * ‖q‖)`. |
-| P4 | `dbSearch_service.py:254-265` | Sin filtros, trae todas las cepas con su embedding (~3 KB/cepa). 10k cepas = 30 MB/request. |
-| P5 | `models/models.py` | Sin índices en campos de filtro comunes (`gram`, `origen`, `envio_punta_arenas`, etc.). Solo indexados `cepa` y `username`. |
-| P6 | `llm_service.py:147-155` | `httpx.AsyncClient` se crea por request → reconexión TLS a Groq en cada llamada. Mantener cliente compartido. |
-| P7 | `llm_service.py:298, 390` | `open()` bloqueante en async handler. Usar `aiofiles`. |
-| P8 | `input_validator_service.py:86-90` | Embedding model se carga en el primer request (~5 s). Pre-calentar en `on_startup`. |
-| P9 | `feedback_repository.py:78-94` | `get_stats` carga todo el feedback a memoria + loop Python. Reemplazar con `$group` aggregate. |
-| P10 | `dbSearch_service.py:304, 321` | `encode(pregunta)` se llama dos veces por request en `busqueda_hibrida`. Computar una vez y pasar como parámetro. |
+| ID | Estado | Archivo | Problema |
+|----|--------|---------|---------|
+| P1 | — | `dbSearch_service.py:170-193` | Scan completo en cada cache miss de campos (TTL 5 min). |
+| P2 | — | `dbSearch_service.py:195-229` | `descubrir_valores_campos`: N `distinct()` seriales. Usar `asyncio.gather()`. |
+| P3 | ✅ | `dbSearch_service.py` | Similitud coseno vectorizada con numpy matmul en `_busqueda_vectorial` y `_busqueda_semantica`. |
+| P4 | — | `dbSearch_service.py:254-265` | Sin filtros, trae todas las cepas con embedding (~3 KB/cepa). |
+| P5 | — | `models/models.py` | Sin índices en `gram`, `origen`, `envio_punta_arenas`, etc. |
+| P6 | — | `llm_service.py:147-155` | `httpx.AsyncClient` se crea por request → reconexión TLS cada vez. |
+| P7 | — | `llm_service.py:298, 390` | `open()` bloqueante en async handler. Usar `aiofiles`. (Mitigado: dumps solo en debug mode) |
+| P8 | — | `input_validator_service.py:86-90` | Embedding model se carga en el primer request (~5 s). Pre-calentar en `on_startup`. |
+| P9 | — | `feedback_repository.py:78-94` | `get_stats` carga todo el feedback a memoria. Reemplazar con `$group` aggregate. |
+| P10 | — | `dbSearch_service.py:304, 321` | `encode(pregunta)` se llama dos veces por request en `busqueda_hibrida`. |
 
 ### Arquitectura
 
-| ID | Descripción |
-|----|-------------|
-| A1 | `cepa_repository.py` importa módulos de IA aunque `IA_ENABLED=false`. Si `sentence-transformers` no está instalado, el import falla aunque la IA esté deshabilitada. |
-| A2 | `CepaRepository.create` llama al servicio de embeddings inline. El repositorio mezcla capa de datos con lógica de negocio. |
-| A3 | `DatabaseService` tiene demasiadas responsabilidades: búsqueda, coseno, batch de embeddings, introspección de schema, serialización de texto. |
-| A4 | Manejo de errores inconsistente: algunos módulos usan excepciones de dominio, otros `raise Exception("...")`. Definir jerarquía unificada. |
-| A5 | Strings mágicos para modos (`"estadístico"`, `"semántico"`, `"híbrido"`, etc.). Usar `Enum`. |
-| A6 | `cepa_service.py` existe pero está vacío. Poblar o eliminar. |
-| A7 | `logs/` y `temp/` deben estar en `.gitignore`. `temp/` recibe dumps con preguntas de usuarios. |
-| A8 | Logging fragmentado: `setup_logging()` + `basicConfig` separados → handlers duplicados en producción. Centralizar con `logging.dictConfig`. |
-| A9 | Sin request-ID/correlation-ID middleware → logs de múltiples requests se mezclan en el path MQL/semántico. |
-| A10 | Tests en `tests/` no integrados a CI, sin `[tool.pytest]` en `pyproject.toml`. |
+| ID | Estado | Descripción |
+|----|--------|-------------|
+| A1 | ✅ | `cepa_repository.py`: imports de IA movidos a lazy imports dentro de métodos. |
+| A2 | — | `CepaRepository.create` mezcla capa de datos con lógica de embeddings. |
+| A3 | — | `DatabaseService` tiene demasiadas responsabilidades. |
+| A4 | — | Manejo de errores inconsistente entre módulos. |
+| A5 | — | Strings mágicos para modos (`"estadístico"`, etc.). Usar `Enum`. |
+| A6 | — | `cepa_service.py` existe pero está vacío. Poblar o eliminar. |
+| A7 | — | `logs/` no está en `.gitignore`. `temp/` ya está excluido. |
+| A8 | — | Logging fragmentado: `setup_logging()` + `basicConfig` separados. |
+| A9 | — | Sin request-ID/correlation-ID middleware. |
+| A10 | — | Tests no integrados a CI, sin `[tool.pytest]` en `pyproject.toml`. |
 
-### Top 10 — Prioridad inmediata
+### Issues pendientes (por prioridad)
 
-1. **Rotar la API key de Groq y excluir `.env` del repo** (S1)
-2. **`secret_key` sin default + `debug=False`** (S2, S4)
-3. **Corregir `_busqueda_vectorial` fallback** — crash garantizado cuando no hay embeddings (B1)
-4. **`re.escape()` en todos los regex de usuario hacia MongoDB** — ReDoS (S10)
-5. **Sanitizar `field` en `add_attribute`** — corrupción de documentos (S15, B6)
-6. **`asyncio.to_thread()` para bcrypt + dummy hash en user-miss** — bloqueo del event loop + timing attack (S8, S9)
-7. **Fix año hardcodeado 2024** — queries de fecha rotas actualmente (B7)
-8. **Desacoplar imports de IA de `CepaRepository`** — falla al instalar sin deps de IA (A1)
-9. **Gatear `_dump_request`/`_dump_mql` detrás de flag debug + async I/O** (S11, P7)
-10. **Vectorizar similitud coseno con numpy matmul** — mayor ganancia de performance sin cambiar arquitectura (P3)
+1. **S5** — Rate limit fail-open cuando Redis cae (auth endpoint)
+2. **S6/S7** — `X-Forwarded-For` sin validar; sin límite por username
+3. **B2** — sentence-transformers bloqueante en primer request (5–30 s)
+4. **B4** — PATCH con cepa vacía rompe índice único
+5. **B5** — Renombrar cepa sin check de unicidad → 500
+6. **B6** — `add_attribute` sin transacción (fallo parcial)
+7. **P6** — `httpx.AsyncClient` recreado por request (reconexión TLS)
+8. **P2** — `distinct()` seriales en descubrimiento de valores
+9. **B14** — `_cepa_a_texto` incompleto → embeddings inútiles
+10. **P5** — Faltan índices MongoDB en campos de filtro comunes

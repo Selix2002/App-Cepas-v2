@@ -32,7 +32,7 @@ logging.getLogger("sentence_transformers").setLevel(logging.WARNING)
 
 
 cors = CORSConfig(
-    allow_origins=["*"],
+    allow_origins=settings.ALLOWED_ORIGINS,  # S3: explicit origins required with credentials
     allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["*"],
     allow_credentials=True,

@@ -2,6 +2,7 @@
 
 import time
 import statistics
+import numpy as np
 from app.models.models import Cepa
 from app.ia.services.chat.embedding_service import get_embedding_service
 from typing import TYPE_CHECKING, List, Tuple
@@ -87,8 +88,9 @@ class DatabaseService:
                     threshold
                 )
             else:
-                logger.warning("⚠️  No hay embeddings disponibles, usando búsqueda de texto")
-                return await self._busqueda_vectorial(pregunta, limit)
+                # B1: fallback correcto — _busqueda_vectorial requiere 4 args, no 2
+                logger.warning("⚠️  No hay embeddings disponibles, retornando todas las cepas")
+                return await self.get_todas_las_cepas()
 
         except Exception as e:
             logger.error(f"❌ Error en búsqueda: {str(e)}", exc_info=True)
@@ -101,38 +103,34 @@ class DatabaseService:
         limit: int,
         threshold: float
     ) -> List[Cepa]:
-        """Búsqueda por similitud de embeddings"""
+        """Búsqueda por similitud de embeddings (vectorizada con numpy, P3)."""
         logger.debug(f"🔬 Calculando similitudes con {len(cepas)} cepas...")
 
-        resultados = []
-        excluidas = []
+        cepas_validas = [c for c in cepas if c.embedding]
+        cepas_sin = [c for c in cepas if not c.embedding]
 
-        for cepa in cepas:
-            if not cepa.embedding:
-                excluidas.append((cepa.cepa, None, "sin_embedding"))
-                continue
+        if cepas_sin:
+            logger.debug(f"   {len(cepas_sin)} cepas sin embedding omitidas")
 
-            similitud = self.embedding_service.cosine_similarity(
-                query_embedding,
-                cepa.embedding
-            )
+        if not cepas_validas:
+            logger.warning("⚠️  Ninguna cepa tiene embedding")
+            return []
 
-            if similitud >= threshold:
-                resultados.append((cepa, similitud))
-                logger.debug(f"   ✓ {cepa.cepa}: similitud={similitud:.4f}")
-            else:
-                excluidas.append((cepa.cepa, similitud, "bajo_threshold"))
+        # P3: matmul batch en lugar de bucle por cepa
+        E = np.array([c.embedding for c in cepas_validas], dtype=np.float32)
+        q = np.array(query_embedding, dtype=np.float32)
+        norms = np.linalg.norm(E, axis=1) * np.linalg.norm(q)
+        norms = np.where(norms == 0, 1.0, norms)
+        similitudes = (E @ q) / norms
 
-        # Ordenar por similitud descendente
+        resultados = [
+            (cepa, float(sim))
+            for cepa, sim in zip(cepas_validas, similitudes)
+            if sim >= threshold
+        ]
         resultados.sort(key=lambda x: x[1], reverse=True)
 
         logger.info(f"✅ Incluidas: {len(resultados)} cepas (similitud >= {threshold})")
-
-        if excluidas:
-            logger.debug(f"🚫 Excluidas del contexto ({len(excluidas)} cepas):")
-            for nombre, sim, motivo in sorted(excluidas, key=lambda x: x[1] if x[1] is not None else -1):
-                sim_str = f"{sim:.4f}" if sim is not None else "N/A"
-                logger.debug(f"   ✗ {nombre}: similitud={sim_str} motivo={motivo}")
 
         if resultados:
             logger.info("🏆 Top 3 más similares:")
@@ -321,7 +319,7 @@ class DatabaseService:
         query_embedding = self.embedding_service.encode(pregunta)
 
         cepas_con_embedding = await Cepa.find(
-            {"embedding": {"$exists": True, "$ne": None}}
+            {"embedding": {"$exists": True, "$ne": None}}  # B8: exclude null embeddings at DB level
         ).to_list()
         logger.debug(f"   Cepas con embedding disponibles: {len(cepas_con_embedding)}")
 
@@ -329,11 +327,13 @@ class DatabaseService:
             logger.warning("⚠️  No hay embeddings en la DB → retornando todas las cepas")
             return await self.get_todas_las_cepas()
 
-        # Calcular todos los scores primero
-        scores: list[tuple[Cepa, float]] = [
-            (cepa, self.embedding_service.cosine_similarity(query_embedding, cepa.embedding))
-            for cepa in cepas_con_embedding
-        ]
+        # P3: vectorized cosine similarity via numpy matmul
+        E = np.array([c.embedding for c in cepas_con_embedding], dtype=np.float32)
+        q = np.array(query_embedding, dtype=np.float32)
+        norms = np.linalg.norm(E, axis=1) * np.linalg.norm(q)
+        norms = np.where(norms == 0, 1.0, norms)
+        sims = (E @ q) / norms
+        scores: list[tuple[Cepa, float]] = list(zip(cepas_con_embedding, sims.tolist()))
 
         threshold = self._calcular_threshold_dinamico(
             [s for _, s in scores],

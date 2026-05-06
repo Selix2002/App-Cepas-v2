@@ -27,27 +27,31 @@ class ParsedQuery:
 
 class QueryParserService:
 
-    # Gram
-    _GRAM_POSITIVO = [r"\bgram\s*\+", r"\bgram\s*positiv", r"\bgrampositiv"]
-    _GRAM_NEGATIVO = [r"\bgram\s*-", r"\bgram\s*negativ", r"\bgramnegativ"]
+    # -- Campos estáticos comentados al migrar a modelo dinámico (2026-05-01) --
+    # Reactivar si se vuelven a usar campos fijos de dominio biológico.
 
-    # Tests enzimáticos fijos
-    _TESTS = [
-        "lecitinasa", "ureasa", "lipasa", "amilasa", "proteasa",
-        "catalasa", "celulasa", "fosfatasa", "aia",
-    ]
+    # # Gram
+    # _GRAM_POSITIVO = [r"\bgram\s*\+", r"\bgram\s*positiv", r"\bgrampositiv"]
+    # _GRAM_NEGATIVO = [r"\bgram\s*-", r"\bgram\s*negativ", r"\bgramnegativ"]
 
-    # Antibióticos: nombre legible → campo en modelo
-    _ANTIBIOTICOS = {
-        "ampicilina": "amp",
-        "cefotaxima": "ctx",
-        "cefuroxima": "cxm",
-        "ceftazidima": "caz",
-        "amikacina": "ak",
-        "cloranfenicol": "c",
-        "tetraciclina": "te",
-    }
+    # # Tests enzimáticos fijos
+    # _TESTS = [
+    #     "lecitinasa", "ureasa", "lipasa", "amilasa", "proteasa",
+    #     "catalasa", "celulasa", "fosfatasa", "aia",
+    # ]
 
+    # # Antibióticos: nombre legible → campo en modelo
+    # _ANTIBIOTICOS = {
+    #     "ampicilina": "amp",
+    #     "cefotaxima": "ctx",
+    #     "cefuroxima": "cxm",
+    #     "ceftazidima": "caz",
+    #     "amikacina": "ak",
+    #     "cloranfenicol": "c",
+    #     "tetraciclina": "te",
+    # }
+
+    # Usados por _parse_campos_dinamicos — se mantienen activos
     _POSITIVO_RE = r"positiv[ao]|postiv[ao]|positi[bv][ao]|\+{1,3}|activ[ao]|present[e]"
     _NEGATIVO_RE = r"negativ[ao]|negatv[ao]|\bausente\b|inactiv[ao]"
 
@@ -65,15 +69,17 @@ class QueryParserService:
     ]
 
     # Campos que nunca se consideran "dinámicos" para matching
+    # Solo contiene los campos fijos del nuevo modelo dinámico
     _CAMPOS_BASE = {
         "_id", "id", "embedding", "fecha_creacion", "fecha_actualizacion",
-        "cepa", "codigo_lab", "origen", "latitud", "longitud",
-        "gram", "morfologia_1", "morfologia_2", "pigmentacion",
-        "temp_5c", "temp_25c", "temp_37c",
-        "lecitinasa", "ureasa", "lipasa", "amilasa", "proteasa",
-        "catalasa", "celulasa", "fosfatasa", "aia",
-        "amp", "ctx", "cxm", "caz", "ak", "c", "te", "am_ecoli", "am_saureus",
-        "envio_punta_arenas",  # campo de fecha — manejado por _parse_envio_punta_arenas
+        "cepa", "latitud", "longitud",
+        "envio_punta_arenas",  # manejado por _parse_envio_punta_arenas
+        # -- Campos estáticos del modelo anterior (comentados al migrar a modelo dinámico) --
+        # "codigo_lab", "origen", "gram", "morfologia_1", "morfologia_2", "pigmentacion",
+        # "temp_5c", "temp_25c", "temp_37c",
+        # "lecitinasa", "ureasa", "lipasa", "amilasa", "proteasa",
+        # "catalasa", "celulasa", "fosfatasa", "aia",
+        # "amp", "ctx", "cxm", "caz", "ak", "c", "te", "am_ecoli", "am_saureus",
     }
 
     # Meses en español → número
@@ -122,11 +128,13 @@ class QueryParserService:
 
         logger.debug(f"🔍 QueryParser — pregunta: '{pregunta}'")
 
-        self._parse_gram(texto, filtros, terminos)
-        self._parse_tests(texto, filtros, terminos)
-        self._parse_antibioticos(texto, filtros, terminos)
-        self._parse_temperaturas(texto, filtros, terminos)
-        self._parse_origen(pregunta, filtros, terminos)
+        # Parsers de campos estáticos desactivados al migrar a modelo dinámico (2026-05-01)
+        # self._parse_gram(texto, filtros, terminos)
+        # self._parse_tests(texto, filtros, terminos)
+        # self._parse_antibioticos(texto, filtros, terminos)
+        # self._parse_temperaturas(texto, filtros, terminos)
+        # self._parse_origen(pregunta, filtros, terminos)
+
         self._parse_envio_punta_arenas(texto, filtros, terminos)
         self._parse_campos_dinamicos(texto, filtros, terminos)
 
@@ -155,94 +163,73 @@ class QueryParserService:
     # Parsers individuales
     # ------------------------------------------------------------------
 
-    def _parse_gram(
-        self, texto: str, filtros: dict, terminos: list
-    ) -> None:
-        for patron in self._GRAM_POSITIVO:
-            if re.search(patron, texto):
-                filtros["gram"] = "+"
-                terminos.append("gram:positiva(+)")
-                logger.debug("   ✓ Gram positiva detectada")
-                return
-        for patron in self._GRAM_NEGATIVO:
-            if re.search(patron, texto):
-                filtros["gram"] = "-"
-                terminos.append("gram:negativa(-)")
-                logger.debug("   ✓ Gram negativa detectada")
-                return
+    # -- Métodos de parseo de campos estáticos (comentados al migrar a modelo dinámico) --
+    # Reactivar junto con las llamadas en parse() y las class variables correspondientes.
 
-    def _parse_tests(
-        self, texto: str, filtros: dict, terminos: list
-    ) -> None:
-        for test in self._TESTS:
-            if test not in texto:
-                continue
-            if re.search(self._POSITIVO_RE, texto):
-                filtros[test] = {"$in": ["+", "++", "+++"]}
-                terminos.append(f"{test}:positivo")
-                logger.debug(f"   ✓ Test {test} positivo")
-            elif re.search(self._NEGATIVO_RE, texto):
-                filtros[test] = "-"
-                terminos.append(f"{test}:negativo")
-                logger.debug(f"   ✓ Test {test} negativo")
-            else:
-                # Solo mencionado, sin valor → filtrar por existencia
-                filtros[test] = {"$exists": True, "$ne": None}
-                terminos.append(f"{test}:mencionado")
-                logger.debug(f"   ✓ Test {test} mencionado (sin valor)")
+    # def _parse_gram(self, texto, filtros, terminos):
+    #     for patron in self._GRAM_POSITIVO:
+    #         if re.search(patron, texto):
+    #             filtros["gram"] = "+"
+    #             terminos.append("gram:positiva(+)")
+    #             return
+    #     for patron in self._GRAM_NEGATIVO:
+    #         if re.search(patron, texto):
+    #             filtros["gram"] = "-"
+    #             terminos.append("gram:negativa(-)")
+    #             return
 
-    def _parse_antibioticos(
-        self, texto: str, filtros: dict, terminos: list
-    ) -> None:
-        for nombre, campo in self._ANTIBIOTICOS.items():
-            if nombre not in texto:
-                continue
-            if re.search(r"\bresistente", texto):
-                filtros[campo] = "R"
-                terminos.append(f"{campo}:resistente")
-                logger.debug(f"   ✓ {nombre} resistente")
-            elif re.search(r"\bsensible", texto):
-                filtros[campo] = "S"
-                terminos.append(f"{campo}:sensible")
-                logger.debug(f"   ✓ {nombre} sensible")
-            elif re.search(r"\bintermedio", texto):
-                filtros[campo] = "I"
-                terminos.append(f"{campo}:intermedio")
-                logger.debug(f"   ✓ {nombre} intermedio")
+    # def _parse_tests(self, texto, filtros, terminos):
+    #     for test in self._TESTS:
+    #         if test not in texto:
+    #             continue
+    #         if re.search(self._POSITIVO_RE, texto):
+    #             filtros[test] = {"$in": ["+", "++", "+++"]}
+    #             terminos.append(f"{test}:positivo")
+    #         elif re.search(self._NEGATIVO_RE, texto):
+    #             filtros[test] = "-"
+    #             terminos.append(f"{test}:negativo")
+    #         else:
+    #             filtros[test] = {"$exists": True, "$ne": None}
+    #             terminos.append(f"{test}:mencionado")
 
-    def _parse_temperaturas(
-        self, texto: str, filtros: dict, terminos: list
-    ) -> None:
-        temp_map = {"5": "temp_5c", "25": "temp_25c", "37": "temp_37c"}
-        crece_re = self._POSITIVO_RE + r"|crece|crecimiento"
-        no_crece_re = self._NEGATIVO_RE + r"|no\s+crece"
+    # def _parse_antibioticos(self, texto, filtros, terminos):
+    #     for nombre, campo in self._ANTIBIOTICOS.items():
+    #         if nombre not in texto:
+    #             continue
+    #         if re.search(r"\bresistente", texto):
+    #             filtros[campo] = "R"
+    #             terminos.append(f"{campo}:resistente")
+    #         elif re.search(r"\bsensible", texto):
+    #             filtros[campo] = "S"
+    #             terminos.append(f"{campo}:sensible")
+    #         elif re.search(r"\bintermedio", texto):
+    #             filtros[campo] = "I"
+    #             terminos.append(f"{campo}:intermedio")
 
-        for temp_val, campo in temp_map.items():
-            if not re.search(rf"\b{temp_val}\s*°?\s*c\b", texto):
-                continue
-            if re.search(crece_re, texto):
-                filtros[campo] = {"$in": ["+", "++"]}
-                terminos.append(f"{campo}:crece")
-                logger.debug(f"   ✓ Temperatura {temp_val}°C con crecimiento")
-            elif re.search(no_crece_re, texto):
-                filtros[campo] = "-"
-                terminos.append(f"{campo}:no_crece")
-                logger.debug(f"   ✓ Temperatura {temp_val}°C sin crecimiento")
+    # def _parse_temperaturas(self, texto, filtros, terminos):
+    #     temp_map = {"5": "temp_5c", "25": "temp_25c", "37": "temp_37c"}
+    #     crece_re = self._POSITIVO_RE + r"|crece|crecimiento"
+    #     no_crece_re = self._NEGATIVO_RE + r"|no\s+crece"
+    #     for temp_val, campo in temp_map.items():
+    #         if not re.search(rf"\b{temp_val}\s*°?\s*c\b", texto):
+    #             continue
+    #         if re.search(crece_re, texto):
+    #             filtros[campo] = {"$in": ["+", "++"]}
+    #             terminos.append(f"{campo}:crece")
+    #         elif re.search(no_crece_re, texto):
+    #             filtros[campo] = "-"
+    #             terminos.append(f"{campo}:no_crece")
 
-    def _parse_origen(
-        self, pregunta: str, filtros: dict, terminos: list
-    ) -> None:
-        """Detecta lugares/nombres después de preposiciones de origen."""
-        patron = (
-            r"(?:de|desde|origen|proveniente\s+de|aislad[ao]\s+(?:en|de))"
-            r"\s+([A-ZÁÉÍÓÚ][A-ZÁÉÍÓÚa-záéíóúñ\s]{2,40}?)(?:\s|$|,|\.)"
-        )
-        match = re.search(patron, pregunta)
-        if match:
-            lugar = match.group(1).strip()
-            filtros["origen"] = {"$regex": lugar, "$options": "i"}
-            terminos.append(f"origen:{lugar}")
-            logger.debug(f"   ✓ Origen detectado: '{lugar}'")
+    # def _parse_origen(self, pregunta, filtros, terminos):
+    #     patron = (
+    #         r"(?:de|desde|origen|proveniente\s+de|aislad[ao]\s+(?:en|de))"
+    #         r"\s+([A-ZÁÉÍÓÚ][A-ZÁÉÍÓÚa-záéíóúñ\s]{2,40}?)(?:\s|$|,|\.)"
+    #     )
+    #     match = re.search(patron, pregunta)
+    #     if match:
+    #         lugar = match.group(1).strip()
+    #         filtros["origen"] = {"$regex": re.escape(lugar), "$options": "i"}
+    #         terminos.append(f"origen:{lugar}")
 
     def _parse_envio_punta_arenas(
         self, texto: str, filtros: dict, terminos: list
@@ -254,9 +241,9 @@ class QueryParserService:
         # Construir patrón de meses
         meses_patron = "|".join(self._MESES_ES.keys())
 
-        # Detectar año explícito (ej: "2024")
+        # Detectar año explícito (ej: "2024"); fallback al año actual (B7)
         year_match = re.search(r"\b(20\d{2})\b", texto)
-        year = int(year_match.group(1)) if year_match else 2024
+        year = int(year_match.group(1)) if year_match else datetime.now().year
 
         # Rangos: "entre X y Y"
         rango_re = (
