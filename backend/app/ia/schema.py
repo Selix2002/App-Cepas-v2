@@ -1,7 +1,7 @@
 # app/ia/schema.py
 
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Literal
 
 
 class HistorialMensaje(BaseModel):
@@ -68,6 +68,28 @@ class FeedbackStatsDTO(BaseModel):
     promedio_calificacion: float
     distribucion: dict[str, int]          # {"1": n, "2": n, ...}
     total_con_comentario: int
+
+
+class FeedbackListItemDTO(BaseModel):
+    """Un registro de feedback para la lista paginada"""
+    id: str
+    pregunta: str
+    respuesta: str
+    calificacion: int
+    comentario: Optional[str] = None
+    fecha: str                            # ISO 8601
+    modelo_usado: str
+    modo_busqueda: Optional[str] = None
+    mql_query: Optional[dict] = None
+
+
+class FeedbackListResponseDTO(BaseModel):
+    """Respuesta paginada de feedback"""
+    items: List[FeedbackListItemDTO]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
 
 
 class EmbeddingStatsDTO(BaseModel):

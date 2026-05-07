@@ -150,6 +150,22 @@
   letter-spacing: 1px;
 }
 
+/* ── limits note ─────────────────────────────────────────────────────────── */
+
+.im-limits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 6px 10px;
+  background: var(--bg-base);
+  border: 1px solid var(--border-dim);
+  border-radius: 4px;
+  font-size: 9px;
+  color: var(--accent-mid);
+  letter-spacing: 1px;
+}
+
 /* ── error banner ────────────────────────────────────────────────────────── */
 
 .im-error {

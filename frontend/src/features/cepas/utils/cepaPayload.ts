@@ -1,5 +1,5 @@
 // src/features/cepas/utils/cepaPayload.ts
-import type { ColDef } from "ag-grid-community";
+import type { CepaColumnDef } from "../types/tableTypes";
 
 const RELATIONS = [
     "almacenamiento",
@@ -94,13 +94,13 @@ export function buildCepaPayloadFromFieldMap(
  */
 export function buildCepaPayloadFromHeaderMap(
     flatByHeader: Record<string, string>,
-    columns: ColDef[]
+    columns: CepaColumnDef[]
 ): CepaPayload {
     const payload = createBaseCepaPayload();
 
     const headerToField = columns
         .filter(
-            (col): col is ColDef & { field: string } =>
+            (col): col is CepaColumnDef & { field: string } =>
                 typeof col.field === "string" && col.field !== "id"
         )
         .reduce<Record<string, string>>((acc, col) => {

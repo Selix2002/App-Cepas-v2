@@ -3,6 +3,12 @@
 // la parte derecha (stats + búsqueda + tabla + paginación).
 
 import { useRef, type KeyboardEvent } from "react"
+import {
+  DndContext, closestCenter, PointerSensor,
+  useSensor, useSensors, type DragEndEvent,
+} from "@dnd-kit/core"
+import { SortableContext, horizontalListSortingStrategy, useSortable } from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
 import "./bioTable.css"
 import type { CepaColumnDef, SortConfig, NotificationState } from "../../types/tableTypes"
 import type { Cepa } from "../../../../shared/interfaces"
@@ -37,6 +43,70 @@ function CellValue({ value, queries }: { value: unknown; queries: string[] }) {
   return <>{highlight(raw, queries)}</>
 }
 
+// ─── SortableTh ──────────────────────────────────────────────────────────────
+interface SortableThProps {
+  col: CepaColumnDef
+  isSelected: boolean
+  isSorted: boolean
+  sortDir: "asc" | "desc"
+  hasFilter: boolean
+  color: string
+  onSort: () => void
+  onColumnToggle: () => void
+}
+
+function SortableTh({ col, isSelected, isSorted, sortDir, hasFilter, color, onSort, onColumnToggle }: SortableThProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: col.field })
+
+  const classes = [
+    isSelected ? "col-selected" : "",
+    isSorted   ? "sorted"       : "",
+    hasFilter && !isSelected ? "has-filter" : "",
+    isDragging ? "bio-th-dragging" : "",
+  ].filter(Boolean).join(" ")
+
+  return (
+    <th
+      ref={setNodeRef}
+      style={{
+        width: col.width ?? 120,
+        minWidth: col.width ?? 100,
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.4 : 1,
+        position: isDragging ? "relative" : undefined,
+        zIndex:   isDragging ? 999 : undefined,
+      }}
+      className={classes}
+      {...attributes}
+      onClick={onSort}
+    >
+      <div className="bio-th-inner">
+        <span
+          className="bio-th-drag-handle"
+          {...listeners}
+          onClick={e => e.stopPropagation()}
+          title="Arrastrá para reordenar"
+        >⠿</span>
+        <div
+          className={`bio-col-checkbox${isSelected ? " bio-col-checkbox--active" : ""}`}
+          style={{ "--col-color": color } as React.CSSProperties}
+          onClick={e => { e.stopPropagation(); onColumnToggle() }}
+          title={isSelected ? "Quitar del gráfico" : "Añadir al gráfico"}
+        >
+          {isSelected && <span className="bio-col-checkbox-check">✓</span>}
+        </div>
+        <span className="bio-th-text">{col.headerName}</span>
+        <span className="bio-sort-arrow">
+          {isSorted ? (sortDir === "asc" ? "▲" : "▼") : "⇅"}
+        </span>
+        {hasFilter && <span className="bio-filter-dot">●</span>}
+      </div>
+    </th>
+  )
+}
+
+// ─── Props ────────────────────────────────────────────────────────────────────
 interface CepasTableProps {
   columnDefs: CepaColumnDef[]
   visibleColumnDefs: CepaColumnDef[]
@@ -74,6 +144,7 @@ interface CepasTableProps {
 
   selectedColumns: ColumnSelection[]
   onColumnToggle: (col: ColumnSelection, checked: boolean) => void
+  reorderColumns: (activeId: string, overId: string) => void
 }
 
 export default function CepasTable({
@@ -105,8 +176,17 @@ export default function CepasTable({
   notification,
   selectedColumns,
   onColumnToggle,
+  reorderColumns,
 }: CepasTableProps) {
   const searchRef = useRef<HTMLInputElement>(null)
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    reorderColumns(String(active.id), String(over.id))
+  }
 
   const isColSelectedForChart = (field: string) =>
     selectedColumns.some((c) => c.field === field)
@@ -181,57 +261,55 @@ export default function CepasTable({
       )}
 
       {/* table */}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <div className="bio-table-wrap">
         <table className={`bio-table${isAdmin ? " bio-table--admin" : ""}`}>
             <thead>
               {/* header row */}
               <tr>
-                {orderedCols.map((col) => {
+                {/* columna pinned (cepa) — no arrastreable */}
+                {pinnedCol && (() => {
+                  const col = pinnedCol
                   const isSelected = isColSelectedForChart(col.field)
                   const isSorted   = sortConfig.field === col.field
                   const hasFilter  = hasColFilter(col.field)
-                  const ci         = colColorIndex(col.field)
-                  const color      = dc(ci)
-
-                  const classes = [
-                    col.pinned ? "frozen" : "",
+                  const color      = dc(colColorIndex(col.field))
+                  const classes    = [
+                    "frozen",
                     isSelected ? "col-selected" : "",
                     isSorted   ? "sorted"       : "",
                     hasFilter && !isSelected ? "has-filter" : "",
                   ].filter(Boolean).join(" ")
-
                   return (
-                    <th
-                      key={col.field}
-                      style={{ width: col.width ?? 120, minWidth: col.width ?? 100 }}
-                      className={classes}
-                      onClick={() => handleSort(col.field)}
-                    >
+                    <th key={col.field} style={{ width: col.width ?? 120, minWidth: col.width ?? 100 }} className={classes} onClick={() => handleSort(col.field)}>
                       <div className="bio-th-inner">
-                        {/* checkbox de selección para gráfico */}
-                        <div
-                          className={`bio-col-checkbox${isSelected ? " bio-col-checkbox--active" : ""}`}
-                          style={{ '--col-color': color } as React.CSSProperties}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onColumnToggle({ field: col.field, name: col.headerName }, !isSelected)
-                          }}
-                          title={isSelected ? "Quitar del gráfico" : "Añadir al gráfico"}
-                        >
+                        <div className={`bio-col-checkbox${isSelected ? " bio-col-checkbox--active" : ""}`} style={{ "--col-color": color } as React.CSSProperties} onClick={e => { e.stopPropagation(); onColumnToggle({ field: col.field, name: col.headerName }, !isSelected) }} title={isSelected ? "Quitar del gráfico" : "Añadir al gráfico"}>
                           {isSelected && <span className="bio-col-checkbox-check">✓</span>}
                         </div>
-
                         <span className="bio-th-text">{col.headerName}</span>
-
-                        <span className="bio-sort-arrow">
-                          {isSorted ? (sortConfig.dir === "asc" ? "▲" : "▼") : "⇅"}
-                        </span>
-
+                        <span className="bio-sort-arrow">{isSorted ? (sortConfig.dir === "asc" ? "▲" : "▼") : "⇅"}</span>
                         {hasFilter && <span className="bio-filter-dot">●</span>}
                       </div>
                     </th>
                   )
-                })}
+                })()}
+
+                {/* columnas arrastreables */}
+                <SortableContext items={restCols.map(c => c.field)} strategy={horizontalListSortingStrategy}>
+                  {restCols.map((col) => (
+                    <SortableTh
+                      key={col.field}
+                      col={col}
+                      isSelected={isColSelectedForChart(col.field)}
+                      isSorted={sortConfig.field === col.field}
+                      sortDir={sortConfig.dir}
+                      hasFilter={hasColFilter(col.field)}
+                      color={dc(colColorIndex(col.field))}
+                      onSort={() => handleSort(col.field)}
+                      onColumnToggle={() => onColumnToggle({ field: col.field, name: col.headerName }, !isColSelectedForChart(col.field))}
+                    />
+                  ))}
+                </SortableContext>
               </tr>
 
               {/* filter row */}
@@ -317,10 +395,10 @@ export default function CepasTable({
                         key={col.field}
                         className={tdClass}
                         onDoubleClick={() => {
-                          if (isAdmin && !col.pinned)
+                          if (isAdmin)
                             startEdit(String(row.id), col.field, strValue)
                         }}
-                        title={isAdmin && !col.pinned ? "Doble click para editar" : undefined}
+                        title={isAdmin ? "Doble click para editar" : undefined}
                       >
                         {isEditing ? (
                           <input
@@ -342,6 +420,7 @@ export default function CepasTable({
             </tbody>
           </table>
       </div>
+      </DndContext>
 
       {/* pagination */}
       <div className="bio-pagination">

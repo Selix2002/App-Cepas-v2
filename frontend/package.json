@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
     "@headlessui/react": "^2.2.4",
     "@heroicons/react": "^2.2.0",
     "@nivo/bar": "^0.99.0",
@@ -17,8 +19,6 @@
     "@nivo/pie": "^0.99.0",
     "@tanstack/react-query": "^5.76.2",
     "@tanstack/react-table": "^8.21.3",
-    "ag-grid-community": "^33.3.1",
-    "ag-grid-react": "^33.3.1",
     "axios": "^1.9.0",
     "exceljs": "^4.4.0",
     "file-saver": "^2.0.5",

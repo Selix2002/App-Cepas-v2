@@ -152,6 +152,7 @@ export default function HomeHeader({
                                     { to: "/home/addcepa", label: "🧫 Nueva Cepa" },
                                     { to: "/home/addatribute", label: "🧬 Nuevo Atributo" },
                                     { to: "/home/UserManagement", label: "👤 Nuevo Usuario" },
+                                    { to: "/home/FeedbackIA", label: "📊 Feedback IA" },
                                 ].map(({ to, label }) => (
                                     <Link
                                         key={to}

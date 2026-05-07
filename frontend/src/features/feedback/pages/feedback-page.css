@@ -1,0 +1,40 @@
+/* src/features/feedback/pages/feedback-page.css */
+
+.fbp-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--bg-base);
+  overflow: hidden;
+  font-family: 'Courier New', monospace;
+}
+
+/* ── error state ──────────────────────────────────── */
+.fbp-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex: 1;
+  font-size: 13px;
+  color: var(--error);
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.5px;
+}
+
+.fbp-error-icon {
+  font-size: 18px;
+}
+
+.fbp-error-retry {
+  background: transparent;
+  border: 1px solid var(--error);
+  border-radius: 4px;
+  color: var(--error);
+  font-family: inherit;
+  font-size: 11px;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.fbp-error-retry:hover { background: #e5737311; }

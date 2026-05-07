@@ -1,6 +1,7 @@
 import csv
 import io
 import re
+import unicodedata
 from datetime import datetime, timezone
 from typing import Annotated, Literal
 
@@ -45,6 +46,16 @@ class AddAttributeDTO(BaseModel):
 # Import helpers
 # ---------------------------------------------------------------------------
 
+_MAX_FILE_MB = 10
+_MAX_CEPA_ROWS = 5_000
+_MAX_COLUMNS = 100
+_MAX_VALUE_LEN = 1_000
+_MAX_CEPA_LEN = 200
+
+_XLSX_MAGIC = b"PK\x03\x04"
+_XLS_MAGIC = b"\xd0\xcf\x11\xe0"
+_RESERVED_KEYS = {"_id", "id", "embedding"}
+
 # Campos fijos del modelo — el resto es dinámico
 _FIXED_FIELD_ALIASES: dict[str, str] = {
     "cepa": "cepa",
@@ -66,6 +77,31 @@ def _is_null(v: str) -> bool:
     return v.strip().lower() in _NULL_VALUES
 
 
+def _check_magic(content: bytes, filename: str) -> None:
+    magic = content[:4]
+    if filename.endswith((".xlsx", ".xls")):
+        if magic not in (_XLSX_MAGIC, _XLS_MAGIC):
+            raise HTTPException(
+                status_code=400,
+                detail="El archivo no es un Excel válido. Asegurate de subir un archivo .xlsx o .xls real.",
+            )
+    else:
+        if magic in (_XLSX_MAGIC, _XLS_MAGIC):
+            raise HTTPException(
+                status_code=400,
+                detail="El archivo parece ser un Excel renombrado como .csv. Subilo con extensión .xlsx.",
+            )
+
+
+def _check_column_count(headers: list[str]) -> None:
+    non_empty = [h for h in headers if h.strip()]
+    if len(non_empty) > _MAX_COLUMNS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"El archivo tiene demasiadas columnas ({len(non_empty)}). El máximo permitido es {_MAX_COLUMNS}.",
+        )
+
+
 def _parse_date(v: str) -> datetime | None:
     v = v.strip()
     if not v or _is_null(v):
@@ -80,7 +116,10 @@ def _parse_date(v: str) -> datetime | None:
 
 def _normalize_dynamic_key(header: str) -> str:
     """Convierte un encabezado a clave de campo MongoDB válida."""
-    return re.sub(r"[^a-zA-Z0-9_]", "_", header.strip().lower()).strip("_")
+    # Transliterate accented chars (ó→o, é→e, ñ→n, etc.) before stripping
+    nfkd = unicodedata.normalize("NFKD", header.strip().lower())
+    ascii_str = nfkd.encode("ascii", "ignore").decode("ascii")
+    return re.sub(r"[^a-zA-Z0-9_]", "_", ascii_str).strip("_")
 
 
 def _parse_rows(raw_rows: list[dict[str, str]]) -> list[dict]:
@@ -94,7 +133,7 @@ def _parse_rows(raw_rows: list[dict[str, str]]) -> list[dict]:
             field = _FIXED_FIELD_ALIASES.get(norm_header)
 
             if field == "cepa":
-                val = raw_value.strip()
+                val = raw_value.strip()[:_MAX_CEPA_LEN]
                 if not val or _is_null(val):
                     continue
                 doc["cepa"] = val
@@ -116,7 +155,12 @@ def _parse_rows(raw_rows: list[dict[str, str]]) -> list[dict]:
                 key = _normalize_dynamic_key(header)
                 if not key:
                     continue
-                doc[key] = None if _is_null(raw_value) else raw_value.strip()
+                if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', key):
+                    continue
+                if key in _RESERVED_KEYS:
+                    continue
+                val = None if _is_null(raw_value) else raw_value.strip()[:_MAX_VALUE_LEN]
+                doc[key] = val
 
         if doc.get("cepa"):
             lat, lon = resolve_coords_from_origen(
@@ -158,31 +202,98 @@ def _read_csv(content: bytes) -> list[dict[str, str]]:
     except csv.Error:
         delimiter = ","
 
-    if settings.debug:
-        print(f"[DEBUG][import] CSV encoding={used_encoding!r}  delimiter={delimiter!r}")
+    raw_reader = csv.reader(io.StringIO(text), delimiter=delimiter)
+    all_csv_rows = list(raw_reader)
 
-    reader = csv.DictReader(io.StringIO(text), delimiter=delimiter)
-    rows = [dict(row) for row in reader]
+    if not all_csv_rows:
+        return []
+
+    headers = all_csv_rows[0]
+    header_count = len(headers)
+    _check_column_count(headers)
+
+    rows: list[dict[str, str]] = []
+    for line_num, row in enumerate(all_csv_rows[1:], start=2):
+        if not any(v.strip() for v in row):
+            continue
+        if len(row) != header_count:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"El CSV tiene formato inválido en la fila {line_num}: "
+                    f"se encontraron {len(row)} campo(s) pero el encabezado tiene {header_count}. "
+                    f"Revisa que todos los delimitadores estén correctos."
+                ),
+            )
+        rows.append(dict(zip(headers, row)))
+
+    cepa_key = next((k for k in headers if k.strip().lower() == "cepa"), None)
+    if cepa_key:
+        cepa_count = sum(
+            1 for r in rows
+            if r.get(cepa_key, "").strip() and not _is_null(r[cepa_key])
+        )
+        if cepa_count > _MAX_CEPA_ROWS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"El archivo supera el límite de {_MAX_CEPA_ROWS:,} filas con cepa ({cepa_count:,} encontradas).",
+            )
 
     if settings.debug:
-        headers = list(rows[0].keys()) if rows else []
-        print(f"[DEBUG][import] CSV filas brutas={len(rows)}  columnas={headers}")
+        print(f"[DEBUG][import] CSV encoding={used_encoding!r}  delimiter={delimiter!r}  filas={len(rows)}  columnas={headers}")
 
     return rows
 
 
 def _read_xlsx(content: bytes) -> list[dict[str, str]]:
-    wb = openpyxl.load_workbook(io.BytesIO(content), read_only=True, data_only=True)
-    ws = wb.active
-    rows = list(ws.iter_rows(values_only=True))
-    if not rows:
+    # Primera pasada: validar columnas y contar filas con cepa (streaming, barato)
+    wb_pre = openpyxl.load_workbook(io.BytesIO(content), read_only=True, data_only=True)
+    if not wb_pre.worksheets:
+        wb_pre.close()
+        raise HTTPException(status_code=400, detail="El archivo Excel no contiene hojas.")
+    ws_pre = wb_pre.worksheets[0]
+    row_iter = ws_pre.iter_rows(values_only=True)
+    header_row = next(row_iter, None)
+    if header_row is None:
+        wb_pre.close()
         return []
-    headers = [str(h).strip() if h is not None else "" for h in rows[0]]
+    headers_lower = [str(h).strip().lower() if h is not None else "" for h in header_row]
+    _check_column_count(headers_lower)
+    cepa_idx = next((i for i, h in enumerate(headers_lower) if h == "cepa"), None)
+    cepa_count = 0
+    if cepa_idx is not None:
+        for row in row_iter:
+            if cepa_idx < len(row) and row[cepa_idx] is not None and str(row[cepa_idx]).strip():
+                cepa_count += 1
+    wb_pre.close()
+
+    if cepa_count > _MAX_CEPA_ROWS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"El archivo supera el límite de {_MAX_CEPA_ROWS:,} filas con cepa ({cepa_count:,} encontradas).",
+        )
+
+    # Segunda pasada: carga completa para detectar filas ocultas
+    wb = openpyxl.load_workbook(io.BytesIO(content), read_only=False, data_only=True)
+    ws = wb.worksheets[0]
+    all_rows = list(ws.iter_rows())
+    if not all_rows:
+        wb.close()
+        return []
+    headers = [str(cell.value).strip() if cell.value is not None else "" for cell in all_rows[0]]
     result = []
-    for row in rows[1:]:
-        obj = {headers[i]: (str(cell) if cell is not None else "") for i, cell in enumerate(row) if i < len(headers) and headers[i]}
+    for list_idx, row in enumerate(all_rows[1:]):
+        excel_row_num = list_idx + 2  # header ocupa la fila 1
+        if ws.row_dimensions[excel_row_num].hidden:
+            continue
+        obj = {
+            headers[i]: (str(cell.value) if cell.value is not None else "")
+            for i, cell in enumerate(row)
+            if i < len(headers) and headers[i]
+        }
         if any(v.strip() for v in obj.values()):
             result.append(obj)
+    wb.close()
     return result
 
 
@@ -259,6 +370,14 @@ class CepaController(Controller):
 
         if settings.debug:
             print(f"[DEBUG][import] archivo={data.filename!r}  tamaño={len(content)} bytes")
+
+        if len(content) > _MAX_FILE_MB * 1024 * 1024:
+            raise HTTPException(
+                status_code=400,
+                detail=f"El archivo supera el tamaño máximo de {_MAX_FILE_MB} MB.",
+            )
+
+        _check_magic(content, filename)
 
         if filename.endswith((".xlsx", ".xls")):
             raw_rows = _read_xlsx(content)

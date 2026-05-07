@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from litestar import Controller, post, get
+from typing import Optional
 from litestar.di import Provide
 from litestar.exceptions import HTTPException
 from litestar.status_codes import HTTP_500_INTERNAL_SERVER_ERROR, HTTP_400_BAD_REQUEST
@@ -15,6 +16,7 @@ from app.ia.schema import (
     ChatFeedbackCreateDTO,
     ChatFeedbackResponseDTO,
     FeedbackStatsDTO,
+    FeedbackListResponseDTO,
 )
 from app.ia.services.chat.dbSearch_service import get_database_service, DatabaseService
 from app.ia.services.chat.llm_service import get_llm_service, LLMService
@@ -284,6 +286,32 @@ class ChatController(Controller):
             raise HTTPException(
                 status_code=HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Error al guardar el feedback",
+            )
+
+    @get("/feedback", guards=[admin_guard])
+    async def listar_feedback(
+        self,
+        feedback_service: FeedbackService,
+        page: int = 1,
+        page_size: int = 20,
+        sort_by: str = "fecha",
+        order: str = "desc",
+        calificacion: Optional[int] = None,
+    ) -> FeedbackListResponseDTO:
+        try:
+            result = await feedback_service.listar_feedback(
+                page=page,
+                page_size=min(page_size, 100),
+                sort_by=sort_by,
+                order=order,
+                calificacion=calificacion,
+            )
+            return FeedbackListResponseDTO(**result)
+        except Exception as e:
+            logger.error(f"Error listando feedback: {str(e)}", exc_info=True)
+            raise HTTPException(
+                status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error al obtener la lista de feedback",
             )
 
     @get("/feedback/stats", guards=[admin_guard])

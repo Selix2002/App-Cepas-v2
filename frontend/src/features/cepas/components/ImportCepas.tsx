@@ -180,6 +180,13 @@ export default function ImportCepas({ existingNames, onImported }: Props) {
         {!file && <div className="im-drag-hint">También puedes arrastrar un archivo aquí</div>}
       </div>
 
+      {/* ── limits note ──────────────────────────────────────────────────── */}
+      <div className="im-limits">
+        <span>· Max 10 MB</span>
+        <span>· Max 5.000 filas con cepa</span>
+        <span>· Las filas ocultas son omitidas (solo Excel)</span>
+      </div>
+
       {/* ── error ────────────────────────────────────────────────────────── */}
       {error && <div className="im-error">{error}</div>}
 

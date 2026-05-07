@@ -1,0 +1,61 @@
+/* src/features/feedback/components/feedback-stats-panel.css */
+
+.fsp-row {
+  display: flex;
+  gap: 1px;
+  background: var(--border);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.fsp-card {
+  flex: 1;
+  background: var(--bg-0);
+  padding: 14px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: background 0.15s;
+}
+.fsp-card:hover { background: var(--bg-1); }
+
+.fsp-card-loading { opacity: 0.5; }
+
+.fsp-card-label {
+  font-family: 'Courier New', monospace;
+  font-size: 9px;
+  color: var(--accent-mid);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.fsp-card-value {
+  font-family: 'Courier New', monospace;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1.1;
+}
+
+.fsp-card-sub {
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  color: var(--text-1);
+  letter-spacing: 0.5px;
+}
+
+/* ── star display ─────────────────────────────────── */
+.fsp-stars {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.fsp-star-on  { color: var(--accent);     font-size: 20px; }
+.fsp-star-off { color: var(--accent-mid); font-size: 20px; opacity: 0.35; }
+
+.fsp-star-num {
+  font-size: 14px;
+  color: var(--text-1);
+  margin-left: 6px;
+}

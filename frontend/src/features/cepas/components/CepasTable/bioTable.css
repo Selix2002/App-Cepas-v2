@@ -452,3 +452,39 @@
   padding: 3px 6px;
   cursor: pointer;
 }
+
+/* ── drag handles ────────────────────────────────────────────────────────── */
+.bio-th-drag-handle {
+  cursor: grab;
+  color: #1e3a30;
+  font-size: 12px;
+  padding: 0 2px;
+  flex-shrink: 0;
+  transition: color 0.15s;
+  user-select: none;
+}
+.bio-th-drag-handle:hover { color: var(--accent-mid); }
+.bio-th-drag-handle:active { cursor: grabbing; }
+
+.bio-col-drag-handle {
+  cursor: grab;
+  color: #1e3a30;
+  font-size: 11px;
+  flex-shrink: 0;
+  transition: color 0.15s;
+  user-select: none;
+  padding: 0 1px;
+}
+.bio-col-drag-handle:hover { color: var(--accent-mid); }
+.bio-col-drag-handle:active { cursor: grabbing; }
+
+.bio-col-drag-placeholder {
+  width: 13px;
+  flex-shrink: 0;
+}
+
+/* ── dragging state ──────────────────────────────────────────────────────── */
+.bio-th-dragging {
+  background: var(--bg-hover) !important;
+  outline: 1px solid var(--accent-dim);
+}

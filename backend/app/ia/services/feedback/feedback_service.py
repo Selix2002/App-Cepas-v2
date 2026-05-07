@@ -38,6 +38,16 @@ class FeedbackService:
 
         return feedback
 
+    async def listar_feedback(
+        self,
+        page: int = 1,
+        page_size: int = 20,
+        sort_by: str = "fecha",
+        order: str = "desc",
+        calificacion: int | None = None,
+    ) -> dict:
+        return await self.repo.listar(page, page_size, sort_by, order, calificacion)
+
     async def get_stats(self) -> dict:
         return await self.repo.get_stats()
 

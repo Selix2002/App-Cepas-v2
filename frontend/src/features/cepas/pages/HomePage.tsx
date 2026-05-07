@@ -86,11 +86,12 @@ export function HomePage() {
         {/* ── content area: [sidebar | main] ────────────────────────────── */}
         <div className="home-content">
           <CepasSidebar
-            columnDefs={table.columnDefs}
+            columnDefs={table.orderedColumnDefs}
             hiddenFields={table.hiddenFields}
             toggleColumnVisibility={table.toggleColumnVisibility}
             selectedColumns={charts.selectedColumns}
             onColumnToggle={charts.handleColumnToggle}
+            reorderColumns={table.reorderColumns}
             collapsed={!sidebarOpen}
             onToggle={() => setSidebarOpen((v) => !v)}
           />
@@ -158,6 +159,7 @@ export function HomePage() {
 
                 selectedColumns={charts.selectedColumns}
                 onColumnToggle={charts.handleColumnToggle}
+                reorderColumns={table.reorderColumns}
               />
             </div>
           </div>

@@ -65,6 +65,50 @@ class FeedbackRepository:
             )
         return eliminados
 
+    async def listar(
+        self,
+        page: int = 1,
+        page_size: int = 20,
+        sort_by: str = "fecha",
+        order: str = "desc",
+        calificacion: int | None = None,
+    ) -> dict:
+        base = (
+            ChatFeedback.find(ChatFeedback.calificacion == calificacion)
+            if calificacion is not None
+            else ChatFeedback.find()
+        )
+        total = await base.count()
+        sort_direction = -1 if order == "desc" else 1
+        items = (
+            await base
+            .sort([(sort_by, sort_direction)])
+            .skip((page - 1) * page_size)
+            .limit(page_size)
+            .to_list()
+        )
+        total_pages = max(1, (total + page_size - 1) // page_size)
+        return {
+            "items": [self._to_dto(f) for f in items],
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": total_pages,
+        }
+
+    def _to_dto(self, f: ChatFeedback) -> dict:
+        return {
+            "id": str(f.id),
+            "pregunta": f.pregunta,
+            "respuesta": f.respuesta,
+            "calificacion": f.calificacion,
+            "comentario": f.comentario,
+            "fecha": f.fecha.isoformat(),
+            "modelo_usado": f.modelo_usado,
+            "modo_busqueda": f.modo_busqueda,
+            "mql_query": f.mql_query,
+        }
+
     async def get_stats(self) -> dict:
         total = await ChatFeedback.count()
         if total == 0:

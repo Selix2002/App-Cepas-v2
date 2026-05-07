@@ -18,18 +18,35 @@ import { loader } from "../../../../shared/utils/loader"
 
 // ─── localStorage helpers ────────────────────────────────────────────────────
 const hiddenKey = (userId: string) => `bio_hidden_cols_${userId}`
+const orderKey  = (userId: string) => `bio_col_order_${userId}`
 
 function loadHidden(userId: string): string[] {
     try {
         const raw = localStorage.getItem(hiddenKey(userId))
         return raw ? JSON.parse(raw) : []
-    } catch {
-        return []
-    }
+    } catch { return [] }
 }
 
 function saveHidden(userId: string, fields: string[]) {
     localStorage.setItem(hiddenKey(userId), JSON.stringify(fields))
+}
+
+function loadColumnOrder(userId: string): string[] {
+    try {
+        const raw = localStorage.getItem(orderKey(userId))
+        return raw ? JSON.parse(raw) : []
+    } catch { return [] }
+}
+
+function saveColumnOrder(userId: string, order: string[]) {
+    localStorage.setItem(orderKey(userId), JSON.stringify(order))
+}
+
+function arrayMove<T>(arr: T[], from: number, to: number): T[] {
+    const next = [...arr]
+    const [item] = next.splice(from, 1)
+    next.splice(to, 0, item)
+    return next
 }
 
 // ─── types ───────────────────────────────────────────────────────────────────
@@ -111,6 +128,7 @@ export function useCepasTableCore({ user, onDataLoaded }: Params) {
     // columns
     const [columnDefs, setColumnDefs] = useState<CepaColumnDef[]>([])
     const [hiddenFields, setHiddenFields] = useState<Set<string>>(new Set())
+    const [columnOrder, setColumnOrder] = useState<string[]>([])
 
     // filters
     const [globalSearch, setGlobalSearch] = useState("")
@@ -139,10 +157,15 @@ export function useCepasTableCore({ user, onDataLoaded }: Params) {
                 const defs = getCepasColumnDefsWithExtras(items as unknown as Record<string, unknown>[])
                 setColumnDefs(defs)
 
-                // restore hidden columns from localStorage
                 if (user?.id) {
-                    const hidden = loadHidden(user.id)
-                    setHiddenFields(new Set(hidden))
+                    setHiddenFields(new Set(loadHidden(user.id)))
+
+                    const nonPinned = defs.filter(c => !c.pinned).map(c => c.field)
+                    const saved = loadColumnOrder(user.id).filter(f => nonPinned.includes(f))
+                    const unsaved = nonPinned.filter(f => !saved.includes(f))
+                    setColumnOrder([...saved, ...unsaved])
+                } else {
+                    setColumnOrder(defs.filter(c => !c.pinned).map(c => c.field))
                 }
             })
             .catch((err) => setError(err instanceof Error ? err : new Error(String(err))))
@@ -152,10 +175,18 @@ export function useCepasTableCore({ user, onDataLoaded }: Params) {
             })
     }, [refreshToken]) // eslint-disable-line react-hooks/exhaustive-deps
 
-    // ── derived: visible columns ───────────────────────────────────────────────
+    // ── derived: columns in user-defined order ────────────────────────────────
+    const orderedColumnDefs = useMemo(() => {
+        const defMap = new Map(columnDefs.map(c => [c.field, c]))
+        const pinned = columnDefs.filter(c => c.pinned)
+        const ordered = columnOrder.map(f => defMap.get(f)).filter((c): c is CepaColumnDef => !!c)
+        return [...pinned, ...ordered]
+    }, [columnDefs, columnOrder])
+
+    // ── derived: visible columns (ordered + filtered) ──────────────────────────
     const visibleColumnDefs = useMemo(
-        () => columnDefs.filter((c) => !hiddenFields.has(c.field)),
-        [columnDefs, hiddenFields]
+        () => orderedColumnDefs.filter((c) => !hiddenFields.has(c.field)),
+        [orderedColumnDefs, hiddenFields]
     )
 
     // ── derived: filtered + sorted rows ───────────────────────────────────────
@@ -254,6 +285,18 @@ export function useCepasTableCore({ user, onDataLoaded }: Params) {
                 : { field, dir: "asc" }
         )
     }, [])
+
+    // ── column reorder ────────────────────────────────────────────────────────
+    const reorderColumns = useCallback((activeId: string, overId: string) => {
+        setColumnOrder(prev => {
+            const from = prev.indexOf(activeId)
+            const to   = prev.indexOf(overId)
+            if (from === -1 || to === -1) return prev
+            const next = arrayMove(prev, from, to)
+            if (user?.id) saveColumnOrder(user.id, next)
+            return next
+        })
+    }, [user])
 
     // ── column visibility ─────────────────────────────────────────────────────
     const toggleColumnVisibility = useCallback(
@@ -367,9 +410,11 @@ export function useCepasTableCore({ user, onDataLoaded }: Params) {
 
         // columns
         columnDefs,
+        orderedColumnDefs,
         visibleColumnDefs,
         hiddenFields,
         toggleColumnVisibility,
+        reorderColumns,
 
         // search & filter
         globalSearch,
