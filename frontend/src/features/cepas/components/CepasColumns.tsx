@@ -29,9 +29,11 @@ export const getCepasColumnDefs = (): CepaColumnDef[] => [...FIXED_COLUMN_DEFS]
 /**
  * Columnas fijas + columnas dinámicas descubiertas desde los datos.
  * Los campos dinámicos se ordenan alfabéticamente tras los fijos.
+ * `labels` es el mapa field→header original del backend (opcional).
  */
 export const getCepasColumnDefsWithExtras = (
-  data: Record<string, unknown>[]
+  data: Record<string, unknown>[],
+  labels: Record<string, string> = {}
 ): CepaColumnDef[] => {
   const extraKeys = Array.from(
     new Set(
@@ -43,7 +45,7 @@ export const getCepasColumnDefsWithExtras = (
 
   const extras: CepaColumnDef[] = extraKeys.map((k) => ({
     field: k,
-    headerName: fieldToHeader(k),
+    headerName: labels[k] ?? fieldToHeader(k),
     width: 130,
     type: "text",
   }))

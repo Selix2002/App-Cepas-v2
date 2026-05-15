@@ -3,7 +3,7 @@
 // Sin ninguna dependencia de ag-grid.
 
 import { useState, useEffect, useMemo, useCallback } from "react"
-import { getCepas, updateCepa } from "../../services/CepasQuery"
+import { getCepas, getFieldLabels, updateCepa } from "../../services/CepasQuery"
 import { getCepasColumnDefsWithExtras } from "../../components/CepasColumns"
 import type { Cepa, CepaUpdate, User } from "../../../../shared/interfaces"
 import type {
@@ -150,11 +150,11 @@ export function useCepasTableCore({ user, onDataLoaded }: Params) {
     useEffect(() => {
         setLoading(true)
         loader(true)
-        getCepas()
-            .then(({ items }) => {
+        Promise.all([getCepas(), getFieldLabels().catch(() => ({}))])
+            .then(([{ items }, labels]) => {
                 setRawData(items)
                 onDataLoaded?.(items)
-                const defs = getCepasColumnDefsWithExtras(items as unknown as Record<string, unknown>[])
+                const defs = getCepasColumnDefsWithExtras(items as unknown as Record<string, unknown>[], labels)
                 setColumnDefs(defs)
 
                 if (user?.id) {

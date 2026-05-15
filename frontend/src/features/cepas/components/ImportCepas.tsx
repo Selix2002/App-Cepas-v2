@@ -63,6 +63,7 @@ async function parseExcelNames(file: File): Promise<string[]> {
   const names: string[] = []
   sheet.eachRow((row, rowNumber) => {
     if (rowNumber === 1) return
+    if (row.hidden) return
     const cell = (row.values as (ExcelJS.CellValue | undefined)[])[cepaIdx + 1]
     const name = cell != null ? String(cell).trim() : ""
     if (name) names.push(name)
@@ -122,6 +123,19 @@ export default function ImportCepas({ existingNames, onImported }: Props) {
     try {
       const names = await extractCepaNames(file)
       if (names.length === 0) { setError("No se encontraron cepas en el archivo."); return }
+
+      const seen = new Set<string>()
+      const intraDups = new Set<string>()
+      for (const name of names) {
+        const norm = normalize(name)
+        if (seen.has(norm)) intraDups.add(name)
+        else seen.add(norm)
+      }
+      if (intraDups.size > 0) {
+        setError(`El archivo contiene cepas repetidas: ${[...intraDups].join(", ")}`)
+        return
+      }
+
       const existingSet = new Set(existingNames.map(normalize))
       setPrecheckRows(names.map((name) => ({ name, isDuplicate: existingSet.has(normalize(name)) })))
     } catch (e) {

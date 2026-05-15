@@ -97,7 +97,7 @@ class ChatController(Controller):
 
             # ── Validación de input (inyección + off-topic) ──────────────────
             input_validator = get_input_validator()
-            validation = input_validator.validate(pregunta, domain_threshold=ia_settings.DOMAIN_THRESHOLD)
+            validation = await input_validator.validate(pregunta, domain_threshold=ia_settings.DOMAIN_THRESHOLD)
 
             if not validation.is_valid:
                 logger.warning(

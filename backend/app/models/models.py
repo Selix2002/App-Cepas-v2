@@ -16,6 +16,15 @@ class User(Document):
         name = "users"
 
 
+class ColumnLabels(Document):
+    """Mapa de field_name → label original para campos dinámicos de cepas."""
+    namespace: str
+    labels: dict[str, str] = Field(default_factory=dict)
+
+    class Settings:
+        name = "column_labels"
+
+
 class Cepa(Document):
     model_config = ConfigDict(extra="allow")
 

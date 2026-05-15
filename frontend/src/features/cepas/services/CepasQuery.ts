@@ -87,6 +87,15 @@ export interface ImportResult {
   rows: ImportRowResult[]
 }
 
+// ---------------------------------------------------------------------------
+// FIELD LABELS — mapa field_name→label original para columnas dinámicas
+// ---------------------------------------------------------------------------
+
+export async function getFieldLabels(): Promise<Record<string, string>> {
+  const { data } = await api.get<Record<string, string>>("/cepas/labels")
+  return data
+}
+
 export async function importCepas(file: File): Promise<ImportResult> {
   const formData = new FormData()
   formData.append("file", file)

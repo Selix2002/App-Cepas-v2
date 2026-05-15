@@ -67,7 +67,7 @@
 /* ── overlay ────────────────────────────────────────────────────────────── */
 
 .fb-overlay {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 190;
   background: var(--overlay, rgba(7, 12, 22, 0.6));
@@ -85,8 +85,8 @@
 /* ── modal ──────────────────────────────────────────────────────────────── */
 
 .fb-modal {
-  position: fixed;
-  top: 90%;
+  position: absolute;
+  top: 50%;
   left: 50%;
   z-index: 200;
   width: 320px;

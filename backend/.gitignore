@@ -7,3 +7,6 @@ __pycache__/
 temp/
 app/scripts/
 /temp
+/graphify-out
+/data
+/tests/resultados

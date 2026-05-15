@@ -1,3 +1,4 @@
+import asyncio
 import csv
 import io
 import re
@@ -119,7 +120,17 @@ def _normalize_dynamic_key(header: str) -> str:
     # Transliterate accented chars (ó→o, é→e, ñ→n, etc.) before stripping
     nfkd = unicodedata.normalize("NFKD", header.strip().lower())
     ascii_str = nfkd.encode("ascii", "ignore").decode("ascii")
-    return re.sub(r"[^a-zA-Z0-9_]", "_", ascii_str).strip("_")
+    # Replace non-alphanum with '_', collapse runs, strip edges
+    key = re.sub(r"[^a-zA-Z0-9_]", "_", ascii_str)
+    key = re.sub(r"_+", "_", key)
+    return key.strip("_")
+
+
+# Pre-built lookup using normalized keys so headers with '/', '°', accents, etc. still match
+_FIXED_FIELD_ALIASES_NORMALIZED: dict[str, str] = {
+    _normalize_dynamic_key(k): v
+    for k, v in _FIXED_FIELD_ALIASES.items()
+}
 
 
 def _parse_rows(raw_rows: list[dict[str, str]]) -> list[dict]:
@@ -129,8 +140,8 @@ def _parse_rows(raw_rows: list[dict[str, str]]) -> list[dict]:
     for raw in raw_rows:
         doc: dict = {}
         for header, raw_value in raw.items():
-            norm_header = header.strip().lower()
-            field = _FIXED_FIELD_ALIASES.get(norm_header)
+            norm_key = _normalize_dynamic_key(header)
+            field = _FIXED_FIELD_ALIASES_NORMALIZED.get(norm_key)
 
             if field == "cepa":
                 val = raw_value.strip()[:_MAX_CEPA_LEN]
@@ -151,16 +162,15 @@ def _parse_rows(raw_rows: list[dict[str, str]]) -> list[dict]:
                 doc[field] = _parse_date(raw_value)
 
             else:
-                # Campo dinámico
-                key = _normalize_dynamic_key(header)
-                if not key:
+                # Campo dinámico — reutiliza la clave ya normalizada
+                if not norm_key:
                     continue
-                if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', key):
+                if not re.match(r'^[a-zA-Z0-9_]+$', norm_key):
                     continue
-                if key in _RESERVED_KEYS:
+                if norm_key in _RESERVED_KEYS:
                     continue
                 val = None if _is_null(raw_value) else raw_value.strip()[:_MAX_VALUE_LEN]
-                doc[key] = val
+                doc[norm_key] = val
 
         if doc.get("cepa"):
             lat, lon = resolve_coords_from_origen(
@@ -282,8 +292,10 @@ def _read_xlsx(content: bytes) -> list[dict[str, str]]:
         return []
     headers = [str(cell.value).strip() if cell.value is not None else "" for cell in all_rows[0]]
     result = []
-    for list_idx, row in enumerate(all_rows[1:]):
-        excel_row_num = list_idx + 2  # header ocupa la fila 1
+    for row in all_rows[1:]:
+        if not row:
+            continue
+        excel_row_num = row[0].row  # número real de fila en Excel
         if ws.row_dimensions[excel_row_num].hidden:
             continue
         obj = {
@@ -310,6 +322,33 @@ class ImportResultDTO(BaseModel):
     rows: list[ImportRowResult]
 
 
+async def _upsert_column_labels(new_labels: dict[str, str]) -> None:
+    """Guarda/actualiza el mapa field_name→label original en MongoDB."""
+    from app.models.models import ColumnLabels
+    doc = await ColumnLabels.find_one(ColumnLabels.namespace == "cepas")
+    if doc:
+        doc.labels.update(new_labels)
+        await doc.save()
+    else:
+        await ColumnLabels(namespace="cepas", labels=new_labels).insert()
+
+
+def _collect_dynamic_labels(raw_rows: list[dict[str, str]]) -> dict[str, str]:
+    """Devuelve {norm_key: header_original} para todos los campos dinámicos del archivo."""
+    if not raw_rows:
+        return {}
+    labels: dict[str, str] = {}
+    for original_header in raw_rows[0]:
+        norm = _normalize_dynamic_key(original_header)
+        if not norm or norm in _RESERVED_KEYS:
+            continue
+        if _FIXED_FIELD_ALIASES_NORMALIZED.get(norm):
+            continue
+        if re.match(r'^[a-zA-Z0-9_]+$', norm):
+            labels[norm] = original_header.strip()
+    return labels
+
+
 # ---------------------------------------------------------------------------
 # Controller
 # ---------------------------------------------------------------------------
@@ -334,6 +373,15 @@ class CepaController(Controller):
             total=total,
             items=[CepaResponseDTO(id=str(c.id), **c.model_dump(exclude={"id"})) for c in items],
         )
+
+    # ------------------------------------------------------------------
+    # GET /labels — mapa field→label para columnas dinámicas
+    # ------------------------------------------------------------------
+    @get("/labels")
+    async def get_labels(self) -> dict[str, str]:
+        from app.models.models import ColumnLabels
+        doc = await ColumnLabels.find_one(ColumnLabels.namespace == "cepas")
+        return doc.labels if doc else {}
 
     # ------------------------------------------------------------------
     # GET BY ID
@@ -390,6 +438,7 @@ class CepaController(Controller):
         if not raw_rows:
             raise HTTPException(status_code=400, detail="El archivo no contiene filas válidas")
 
+        dynamic_labels = _collect_dynamic_labels(raw_rows)
         parsed_rows = _parse_rows(raw_rows)
 
         if settings.debug:
@@ -397,6 +446,26 @@ class CepaController(Controller):
 
         if not parsed_rows:
             raise HTTPException(status_code=400, detail="No se encontraron filas con campo 'cepa' válido")
+
+        seen_names: set[str] = set()
+        dup_names: list[str] = []
+        for doc in parsed_rows:
+            norm = doc["cepa"].strip().lower()
+            if norm in seen_names:
+                if doc["cepa"] not in dup_names:
+                    dup_names.append(doc["cepa"])
+            else:
+                seen_names.add(norm)
+        if dup_names:
+            sample = ", ".join(f'"{n}"' for n in dup_names[:10])
+            suffix = f" (y {len(dup_names) - 10} más)" if len(dup_names) > 10 else ""
+            raise HTTPException(
+                status_code=400,
+                detail=f"El archivo contiene cepas repetidas: {sample}{suffix}",
+            )
+
+        if dynamic_labels:
+            await _upsert_column_labels(dynamic_labels)
 
         results: list[ImportRowResult] = []
 
@@ -417,11 +486,12 @@ class CepaController(Controller):
                 try:
                     from app.ia.services.chat.embedding_service import get_embedding_service
                     from app.ia.services.chat.dbSearch_service import DatabaseService
-                    cepa_obj.embedding = get_embedding_service().encode(
-                        DatabaseService._cepa_a_texto(cepa_obj)
+                    cepa_obj.embedding = await asyncio.to_thread(
+                        get_embedding_service().encode,
+                        DatabaseService._cepa_a_texto(cepa_obj),
                     )
                     await cepa_obj.save()
-                except ImportError:
+                except Exception:
                     pass
 
                 if settings.debug:

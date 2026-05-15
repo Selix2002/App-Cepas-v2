@@ -1,5 +1,6 @@
 # app/ia/services/chat/dbSearch_service.py
 
+import asyncio
 import time
 import statistics
 import numpy as np
@@ -69,7 +70,7 @@ class DatabaseService:
         try:
             # Generar embedding de la pregunta
             logger.debug("📝 Generando embedding de la pregunta...")
-            query_embedding = self.embedding_service.encode(pregunta)
+            query_embedding = await asyncio.to_thread(self.embedding_service.encode, pregunta)
             logger.debug(f"✅ Embedding generado: {len(query_embedding)} dimensiones")
 
             # Buscar cepas con embeddings
@@ -139,28 +140,25 @@ class DatabaseService:
 
         return [cepa for cepa, _ in resultados[:limit]]
 
+    _EXCLUIR_TEXTO = frozenset({
+        "embedding", "fecha_creacion", "fecha_actualizacion", "latitud", "longitud",
+    })
+
     @staticmethod
     def _cepa_a_texto(cepa: Cepa) -> str:
-        """Convierte una cepa a texto representativo para embedding"""
         partes = []
 
-        # Campos fijos principales
         if cepa.cepa:
             partes.append(f"Cepa {cepa.cepa}")
-        if cepa.codigo_lab:
-            partes.append(f"Código {cepa.codigo_lab}")
-        if cepa.origen:
-            partes.append(f"Origen {cepa.origen}")
+        if cepa.envio_punta_arenas:
+            partes.append(f"Enviada el {cepa.envio_punta_arenas.strftime('%Y-%m-%d')}")
 
-        # ... resto del código ...
+        for key, value in (cepa.__pydantic_extra__ or {}).items():
+            if key in DatabaseService._EXCLUIR_TEXTO or value is None or str(value).strip() == "":
+                continue
+            partes.append(f"{key}: {value}")
 
-        texto_final = " ".join(partes)
-
-        logger.debug(f"📄 Texto generado para '{cepa.cepa}':")
-        logger.debug(f"   Longitud: {len(texto_final)} caracteres")
-        logger.debug(f"   Contenido: {texto_final[:150]}...")
-
-        return texto_final
+        return ". ".join(partes)
 
     async def get_total_cepas(self) -> int:
         return await Cepa.count()
@@ -299,7 +297,7 @@ class DatabaseService:
             )
             return subconjunto, "híbrido_sin_vector"
 
-        query_embedding = self.embedding_service.encode(pregunta)
+        query_embedding = await asyncio.to_thread(self.embedding_service.encode, pregunta)
         ranked = await self._busqueda_vectorial(
             query_embedding,
             cepas_con_embedding,
@@ -316,7 +314,7 @@ class DatabaseService:
         from app.ia.config import ia_settings as settings
 
         logger.debug("🧠 Búsqueda semántica — generando embedding de la pregunta...")
-        query_embedding = self.embedding_service.encode(pregunta)
+        query_embedding = await asyncio.to_thread(self.embedding_service.encode, pregunta)
 
         cepas_con_embedding = await Cepa.find(
             {"embedding": {"$exists": True, "$ne": None}}  # B8: exclude null embeddings at DB level
@@ -428,7 +426,7 @@ class DatabaseService:
             return 0, 0.0
 
         textos = [self._cepa_a_texto(cepa) for cepa in cepas_sin_embedding]
-        embeddings = self.embedding_service.encode_batch(textos)
+        embeddings = await asyncio.to_thread(self.embedding_service.encode_batch, textos)
 
         procesadas = 0
         for cepa, embedding in zip(cepas_sin_embedding, embeddings):

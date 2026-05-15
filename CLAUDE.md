@@ -155,7 +155,7 @@ Auditoría completa del backend. Issues marcados con ✅ han sido corregidos.
 | ID | Estado | Archivo | Problema |
 |----|--------|---------|---------|
 | B1 | ✅ | `dbSearch_service.py` | Fallback sin embeddings corregido: ahora llama `get_todas_las_cepas()`. |
-| B2 | — | `cepa_repository.py:37, 87` | Modelo sentence-transformers corre sincrónicamente. Primera llamada bloquea 5–30 s. |
+| B2 | ✅ | `dbSearch_service.py`, `input_validator_service.py`, `routes_cepas.py` | Todos los `encode()` / `encode_batch()` envueltos en `asyncio.to_thread()`. |
 | B3 | ✅ | Múltiples archivos | `datetime.utcnow()` → `datetime.now(timezone.utc)`. |
 | B4 | — | `schema/dtos.py:180-188` | PATCH con `{"cepa": ""}` guarda `null`, rompe índice único. |
 | B5 | — | `cepa_repository.py:76-90` | Renombrar cepa sin verificar unicidad → `DuplicateKeyError` como 500. |
@@ -208,8 +208,7 @@ Auditoría completa del backend. Issues marcados con ✅ han sido corregidos.
 
 1. **S5** — Rate limit fail-open cuando Redis cae (auth endpoint)
 2. **S6/S7** — `X-Forwarded-For` sin validar; sin límite por username
-3. **B2** — sentence-transformers bloqueante en primer request (5–30 s)
-4. **B4** — PATCH con cepa vacía rompe índice único
+3. **B4** — PATCH con cepa vacía rompe índice único
 5. **B5** — Renombrar cepa sin check de unicidad → 500
 6. **B6** — `add_attribute` sin transacción (fallo parcial)
 7. **P6** — `httpx.AsyncClient` recreado por request (reconexión TLS)

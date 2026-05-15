@@ -195,7 +195,7 @@ export default function ChatPanel({
     }, [])
 
     return (
-        <div className={`cp-drawer${open ? " cp-open" : ""}`} role="dialog" aria-modal="false" aria-label="Chat IA">
+        <div id="cp-drawer" className={`cp-drawer${open ? " cp-open" : ""}`} role="dialog" aria-modal="false" aria-label="Chat IA">
 
             {/* ── header ──────────────────────────────────────────────── */}
             <div className="cp-header">

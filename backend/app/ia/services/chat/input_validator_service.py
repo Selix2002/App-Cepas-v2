@@ -1,5 +1,6 @@
 # app/ia/services/chat/input_validator_service.py
 
+import asyncio
 import re
 import logging
 from dataclasses import dataclass
@@ -89,7 +90,7 @@ class InputValidatorService:
         self._anchor_embeddings = self._embedding_service.encode_batch(self._DOMAIN_ANCHORS)
         logger.info(f"✅ InputValidatorService listo ({len(self._DOMAIN_ANCHORS)} anclas)")
 
-    def validate(self, pregunta: str, domain_threshold: float) -> ValidationResult:
+    async def validate(self, pregunta: str, domain_threshold: float) -> ValidationResult:
         logger.debug(f"🛡️  Validando input ({len(pregunta)} chars): '{pregunta[:80]}'")
 
         texto_lower = pregunta.lower()
@@ -124,7 +125,7 @@ class InputValidatorService:
                 )
 
         # ── 4. Similitud semántica con el dominio ─────────────────────────────
-        query_embedding = self._embedding_service.encode(pregunta)
+        query_embedding = await asyncio.to_thread(self._embedding_service.encode, pregunta)
         similitudes = [
             self._embedding_service.cosine_similarity(query_embedding, anchor)
             for anchor in self._anchor_embeddings
