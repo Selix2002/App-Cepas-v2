@@ -24,6 +24,45 @@ function parseInline(str: string, keyPrefix: string): React.ReactNode[] {
     return nodes
 }
 
+function parseTableRow(line: string): string[] {
+    return line.split("|").slice(1, -1).map(cell => cell.trim())
+}
+
+function isTableBlock(lines: string[]): boolean {
+    return (
+        lines.length >= 2 &&
+        lines[0].startsWith("|") &&
+        /^\|[\s|:-]+\|/.test(lines[1])
+    )
+}
+
+function MdTable({ lines, bi }: { lines: string[]; bi: number }) {
+    const headers = parseTableRow(lines[0])
+    const rows = lines.slice(2).filter(l => l.trim()).map(parseTableRow)
+    return (
+        <div className="cp-md-table-wrap">
+            <table className="cp-md-table">
+                <thead>
+                    <tr>
+                        {headers.map((h, i) => (
+                            <th key={i}>{parseInline(h, `${bi}-h-${i}`)}</th>
+                        ))}
+                    </tr>
+                </thead>
+                <tbody>
+                    {rows.map((row, ri) => (
+                        <tr key={ri}>
+                            {row.map((cell, ci) => (
+                                <td key={ci}>{parseInline(cell, `${bi}-${ri}-${ci}`)}</td>
+                            ))}
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    )
+}
+
 function MdText({ text }: { text: string }) {
     const blocks = text.split(/\n{2,}/)
     return (
@@ -31,6 +70,10 @@ function MdText({ text }: { text: string }) {
             {blocks.map((block, bi) => {
                 const lines = block.split("\n")
                 const listLines = lines.filter(l => /^[-*]\s/.test(l))
+
+                if (isTableBlock(lines)) {
+                    return <MdTable key={bi} lines={lines} bi={bi} />
+                }
 
                 if (listLines.length > 0 && listLines.length === lines.length) {
                     return (
@@ -104,6 +147,9 @@ function BubbleMessage({
     const showFeedback = msg.role === "ia" && !isError && animDone
     const showFilters  = msg.role === "ia" && !isError && animDone && !!msg.filtrosAplicados
 
+    const hasTable = msg.role === "ia" && animDone && !isError &&
+        displayed.split("\n").some(l => l.startsWith("|"))
+
     const renderContent = () => {
         if (msg.role !== "ia" || isError || !animDone) return displayed
         return <MdText text={displayed} />
@@ -111,7 +157,7 @@ function BubbleMessage({
 
     return (
         <div className={`cp-bubble-wrap cp-${msg.role}`}>
-            <div className={`cp-bubble${isError ? " cp-error" : ""}${msg.role === "ia" && animDone && !isError ? " cp-bubble-md" : ""}`}>
+            <div className={`cp-bubble${isError ? " cp-error" : ""}${msg.role === "ia" && animDone && !isError ? " cp-bubble-md" : ""}${hasTable ? " cp-bubble-has-table" : ""}`}>
                 {renderContent()}
             </div>
             <div className="cp-bubble-meta">

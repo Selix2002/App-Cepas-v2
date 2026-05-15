@@ -1,7 +1,10 @@
 # app/core/config.py
 
+from pathlib import Path
 from pydantic_settings import BaseSettings
 from pydantic import SecretStr
+
+_ENV_FILE = Path(__file__).parent.parent.parent / ".env"
 
 
 class Settings(BaseSettings):
@@ -20,7 +23,7 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "DEBUG"
 
     class Config:
-        env_file = ".env",
+        env_file = str(_ENV_FILE)
         extra = "ignore"
 
 

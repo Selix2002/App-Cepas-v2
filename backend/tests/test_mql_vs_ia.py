@@ -93,7 +93,7 @@ CASOS: list[dict] = [
         "eval_tipo":  "count",
         "mql": {
             "type": "aggregate",
-            "pipeline": [{"$match": {"temp_37c": "1.0"}}, {"$count": "total"}],
+            "pipeline": [{"$match": {"37_c": "+"}}, {"$count": "total"}],
         },
     },
 
@@ -382,7 +382,7 @@ CASOS: list[dict] = [
         "eval_campo": "cepa",
         "mql": {
             "type": "find",
-            "filter": {"temp_37c": "0.0"},
+            "filter": {"37_c": {"$ne": "+"}},
         },
     },
     {
@@ -725,7 +725,7 @@ def main() -> None:
 
     # 4. Guardar JSON
     from datetime import datetime
-    output = args.output or f"tests/resultados/resultados_vs_ia_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    output = args.output or f"resultados/resultados_vs_ia_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
     Path(output).write_text(
         json.dumps(resultados, ensure_ascii=False, indent=2, default=str),
         encoding="utf-8",

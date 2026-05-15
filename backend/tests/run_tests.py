@@ -178,7 +178,7 @@ def main() -> None:
     imprimir_resumen(resultados, PROMPTS, tiempo_total)
 
     # Guardar resultados en JSON si se especificó output
-    output_path = args.output or f"tests/resultados_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    output_path = args.output or f"resultados_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
     Path(output_path).write_text(
         json.dumps(resultados, ensure_ascii=False, indent=2, default=str),
         encoding="utf-8",

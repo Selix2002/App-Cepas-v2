@@ -5,6 +5,7 @@
 // Checkbox     → oculta/muestra columna (persiste en localStorage)
 // Dot          → selecciona columna para el gráfico
 
+import { useState } from "react"
 import {
     DndContext, closestCenter, PointerSensor,
     useSensor, useSensors, type DragEndEvent,
@@ -121,6 +122,8 @@ export default function CepasSidebar({
     collapsed = false,
     onToggle,
 }: Props) {
+    const [search, setSearch] = useState("")
+
     const isSelected = (field: string) => selectedColumns.some((c) => c.field === field)
 
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
@@ -131,7 +134,11 @@ export default function CepasSidebar({
         reorderColumns(String(active.id), String(over.id))
     }
 
-    const sortableIds = columnDefs.filter(c => !c.pinned).map(c => c.field)
+    const filteredColumns = search.trim()
+        ? columnDefs.filter(c => c.headerName.toLowerCase().includes(search.toLowerCase()))
+        : columnDefs
+
+    const sortableIds = filteredColumns.filter(c => !c.pinned).map(c => c.field)
 
     return (
         <div className={`bio-sidebar${collapsed ? " bio-sidebar--collapsed" : ""}`}>
@@ -225,12 +232,24 @@ export default function CepasSidebar({
                 </button>
             </div>}
 
+            {/* ── search ───────────────────────────────────────────────────────── */}
+            {!collapsed && (
+                <div style={{ padding: "5px 14px 5px", borderBottom: "1px solid #0f2020" }}>
+                    <input
+                        className={`bio-col-filter-input${search ? " active" : ""}`}
+                        placeholder="Buscar columna..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                    />
+                </div>
+            )}
+
             {/* ── column list ──────────────────────────────────────────────────── */}
             {!collapsed && (
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                     <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
                         <div className="bio-sidebar-scroll">
-                            {columnDefs.map((col, i) => (
+                            {filteredColumns.map((col, i) => (
                                 <SortableColumnItem
                                     key={col.field}
                                     col={col}

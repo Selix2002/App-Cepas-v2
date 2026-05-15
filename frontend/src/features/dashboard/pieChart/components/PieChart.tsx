@@ -110,7 +110,7 @@ const MyPieChart = ({ data, maxLegendItems = 15 }: MyPieProps) => {
             color: d.color ?? BIO_COLORS[0],
           })),
           itemsSpacing: someItems ? 3 : 8,
-          itemWidth: manyItems ? 64 : 130,
+          itemWidth: manyItems ? 200 : 130,
           itemHeight: someItems ? 10 : 18,
           itemDirection: "left-to-right",
           symbolSize: someItems ? 8 : 12,
