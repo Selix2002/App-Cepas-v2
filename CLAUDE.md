@@ -138,9 +138,9 @@ Auditoría completa del backend. Issues marcados con ✅ han sido corregidos.
 | S2 | ✅ | `core/config.py` | `secret_key` ahora es campo requerido sin default. |
 | S3 | ✅ | `main.py` | CORS usa `settings.ALLOWED_ORIGINS` (configurable vía `.env`). |
 | S4 | ✅ | `core/config.py` | `debug` default cambiado a `False`. |
-| S5 | — | `login_rate_limit.py:69-73` | Si Redis falla, el rate limit se desactiva (fail-open). Crítico en endpoints de auth. |
-| S6 | — | `login_rate_limit.py:95-109` | `X-Forwarded-For` se confía ciegamente — cualquier cliente puede falsear su IP. |
-| S7 | — | `login_rate_limit.py` | Solo límite por IP, no por username → brute force distribuido. |
+| S5 | ✅ | `middleware/login_rate_limit.py`, `ia/middleware.py` | Fail-open eliminado: si Redis cae, ambos middlewares devuelven 503 (fail-closed). Parámetro `fail_open` removido. |
+| S6 | ✅ | `middleware/login_rate_limit.py` | `X-Forwarded-For` solo se acepta si la conexión directa viene de `trusted_proxies` (127.0.0.1 = Apache). XFF de IPs externas es ignorado. |
+| S7 | ✅ | `middleware/login_rate_limit.py` | Segundo contador por username (10 req / 300s) con script Lua atómico. Body leído con replay ASGI para no romper el handler. |
 | S8 | ✅ | `user_repository.py` | `bcrypt.hashpw/checkpw` wrapped en `asyncio.to_thread()`. |
 | S9 | ✅ | `auth_service.py` | Dummy hash cuando usuario no existe — elimina timing attack. |
 | S10 | ✅ | `cepa_repository.py`, `query_parser_service.py` | `re.escape()` aplicado a todos los regex de usuario hacia MongoDB. |
@@ -204,14 +204,25 @@ Auditoría completa del backend. Issues marcados con ✅ han sido corregidos.
 | A9 | — | Sin request-ID/correlation-ID middleware. |
 | A10 | — | Tests no integrados a CI, sin `[tool.pytest]` en `pyproject.toml`. |
 
+### Logging de seguridad — Estado al 2026-05-16
+
+Diagnóstico del sistema de logging actual. Ninguno de estos issues ha sido corregido aún.
+
+| ID | Archivo | Problema |
+|----|---------|---------|
+| L1 | `auth_service.py`, `routes_auth.py` | Sin logging de logins exitosos ni fallidos. No hay traza de si un brute force adivinó una contraseña. |
+| L2 | `core/logging_config.py`, `main.py` | Dos sistemas de logging paralelos: `setup_logging()` configura logger `rate_limit` con archivo; `basicConfig` configura el logger raíz solo hacia stdout. El resto de la app (IA router, Litestar) nunca llega al archivo. |
+| L3 | `ia/middleware.py:88` | Chat permitido se loggea en `DEBUG`, pero el handler de archivo está en `INFO` → el tráfico normal de chat es invisible en el archivo. |
+| L4 | — | Sin correlation ID (A9): no se puede vincular el bloqueo del middleware con el request ni reconstruir la secuencia de acciones de una IP. |
+| L5 | `core/logging_config.py` | Logs en texto libre, no estructurado. Dificulta alertas automáticas, procesamiento con scripts y parseo por herramientas externas. |
+| L6 | `.gitignore` | `logs/` no está en `.gitignore` (A7). Los archivos de log pueden entrar al repo, exponiendo IPs y usernames intentados. |
+
 ### Issues pendientes (por prioridad)
 
-1. **S5** — Rate limit fail-open cuando Redis cae (auth endpoint)
-2. **S6/S7** — `X-Forwarded-For` sin validar; sin límite por username
-3. **B4** — PATCH con cepa vacía rompe índice único
-5. **B5** — Renombrar cepa sin check de unicidad → 500
-6. **B6** — `add_attribute` sin transacción (fallo parcial)
-7. **P6** — `httpx.AsyncClient` recreado por request (reconexión TLS)
-8. **P2** — `distinct()` seriales en descubrimiento de valores
-9. **B14** — `_cepa_a_texto` incompleto → embeddings inútiles
-10. **P5** — Faltan índices MongoDB en campos de filtro comunes
+1. **B4** — PATCH con cepa vacía rompe índice único
+2. **B5** — Renombrar cepa sin check de unicidad → 500
+3. **B6** — `add_attribute` sin transacción (fallo parcial)
+4. **P6** — `httpx.AsyncClient` recreado por request (reconexión TLS)
+5. **P2** — `distinct()` seriales en descubrimiento de valores
+6. **B14** — `_cepa_a_texto` incompleto → embeddings inútiles
+7. **P5** — Faltan índices MongoDB en campos de filtro comunes

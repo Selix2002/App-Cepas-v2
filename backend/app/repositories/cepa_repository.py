@@ -32,6 +32,7 @@ ORIGEN_COORDS: dict[str, tuple[float, float]] = {
     "laguna amarga":        (-50.975656, -72.749295),
     "lago pehoe":           (-51.099674, -73.066238),
     "Lago grey":            (-51.054339, -73.163511),
+    "Lago Grey":            (-51.054339, -73.163511),
     "lago maravilloso":       (-51.315441, -72.758702),
     "cascada lm":           (-39.522724, -72.034290),   
 }

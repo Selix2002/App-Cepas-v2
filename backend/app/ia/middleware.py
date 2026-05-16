@@ -22,6 +22,12 @@ class ChatRateLimitMiddleware:
     """
 
     _logged_init: bool = False  # Litestar instancia el middleware una vez por ruta
+    _LUA_INCR_EXPIRE: str = (
+        "local n = redis.call('INCR', KEYS[1]) "
+        "if n == 1 then redis.call('EXPIRE', KEYS[1], tonumber(ARGV[1])) end "
+        "return n"
+    )
+
 
     def __init__(
         self,
@@ -30,6 +36,7 @@ class ChatRateLimitMiddleware:
         max_requests: int = 10,
         window_seconds: int = 60,
         key_prefix: str = "chat_requests",
+        
         **_: Any,
     ) -> None:
         self.app = app
@@ -61,12 +68,10 @@ class ChatRateLimitMiddleware:
         key = f"{self.key_prefix}:{client_ip}"
 
         try:
-            current = await self.redis.incr(key)
-            if current == 1:
-                await self.redis.expire(key, self.window_seconds)
+            current = await self.redis.eval(self._LUA_INCR_EXPIRE, 1, key, self.window_seconds)
         except Exception as e:
-            rate_logger.error(f"Error Redis en ChatRateLimit: {e}")
-            await self.app(scope, receive, send)
+            rate_logger.error(f"Redis no disponible para rate limit de chat | ip={client_ip} | error={e}")
+            await self._send_service_unavailable(send)
             return
 
         if current > self.max_requests:
@@ -96,6 +101,17 @@ class ChatRateLimitMiddleware:
         if client and isinstance(client, tuple):
             return client[0]
         return "unknown"
+
+    async def _send_service_unavailable(self, send: Send) -> None:
+        body = json.dumps({
+            "detail": "Servicio temporalmente no disponible. Inténtalo de nuevo en unos momentos.",
+        }).encode("utf-8")
+        await send({
+            "type": "http.response.start",
+            "status": 503,
+            "headers": [(b"content-type", b"application/json; charset=utf-8")],
+        })
+        await send({"type": "http.response.body", "body": body, "more_body": False})
 
     async def _send_too_many_requests(self, send: Send, retry_after: int) -> None:
         body = json.dumps(

@@ -57,6 +57,7 @@ middleware = [
         max_requests=5,
         window_seconds=60,
         redis_client=redis_client,
+        trusted_proxies={"127.0.0.1"},
     ),
 ]
 
