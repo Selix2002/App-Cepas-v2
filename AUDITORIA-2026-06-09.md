@@ -1,0 +1,112 @@
+# Auditoría App-Cepas-v2 — 2026-06-09
+
+Auditoría completa de seguridad, bugs, rendimiento, arquitectura, frontend y observabilidad.
+
+**Alcance:** issues pendientes (`—`) de `CLAUDE.md` + hallazgos nuevos del backend + primera auditoría completa del frontend (`frontend/src/`). Los issues ya corregidos (✅) no se re-reportan.
+
+**Convención de severidad:** `[CRÍTICA]` · `[ALTA]` · `[MEDIA]` · `[BAJA]`.
+
+## Resumen ejecutivo
+
+- **No existe ningún issue CRÍTICO** (compromiso sin autenticación / exfiltración de datos / RCE). El máximo es **una ALTA**.
+- La inyección MQL está **bien contenida** por el whitelist de operadores (`mql_validator_service.py`).
+- **No hay vectores XSS en el frontend** (verificado): no se usa `dangerouslySetInnerHTML` ni `innerHTML`; el renderer de markdown del chat y el de feedback construyen JSX escapado por React. Por eso el almacenamiento del JWT en `localStorage` es un riesgo residual, no explotable hoy vía la app.
+- Hallazgo destacado: el middleware de rate limit del chat confía en `X-Forwarded-For` de cualquier cliente — exactamente el bug que S6 corrigió para login, **no aplicado aquí**.
+
+---
+
+## 1. Seguridad
+
+| ID | Sev | Archivo:línea | Problema | Corrección |
+|----|-----|---------------|----------|------------|
+| ~~**S16**~~ ✅ | **ALTA** | `app/ia/middleware.py`, `app/ia/__init__.py`, `app/main.py` | **CORREGIDO (2026-06-23).** `ChatRateLimitMiddleware._get_client_ip` ahora honra `X-Forwarded-For` solo si la IP de la conexión directa está en `trusted_proxies` (`{"127.0.0.1"}` propagado desde `main.py` vía `get_ia_middleware`); en otro caso usa la IP del socket. Mismo patrón que S6 (login). XFF de clientes no confiables se ignora → bypass cerrado. | ✅ |
+| ~~**S17**~~ ✅ | MEDIA | `app/ia/services/chat/llm_service.py` | **CORREGIDO (2026-06-23).** Gateo movido al interior de `_dump_mql` y `_dump_request` (`if not settings.debug: return`); guards externos redundantes eliminados. Las dos llamadas de `formatear_resultados_mql` y cualquier call site futuro quedan gateados automáticamente. Verificado: `debug=False` → 0 escrituras, `debug=True` → escribe. | ✅ |
+| ~~**S18**~~ ✅ | MEDIA | `app/schema/dtos.py`, `app/api/routes_cepas.py`, `app/repositories/cepa_repository.py` | **CORREGIDO (2026-06-23).** Constante central `RESERVED_FIELDS` (`embedding`, `fecha_creacion`, `fecha_actualizacion`, `_id`, `id`). `add_attribute` rechaza (400) reservados + estructurados (`cepa`/`latitud`/`longitud`/`envio_punta_arenas`). `CepaUpdateDTO.to_update_dict()` y `CepaRepository.create()` stripean los reservados colados vía `extra="allow"`. Verificado: reservados/estructurados → 400, atributos personalizados → permitidos; extra interno → descartado del dict. | ✅ |
+| **S19** | BAJA | `app/core/security.py:16-19,33` | Un JWT válido de un usuario borrado devuelve 404 (no 401); sin check `is_active`/revocación → el token no expirado de un usuario eliminado sigue siendo distinguible/parcialmente usable. | Lanzar `NotAuthorizedException`; añadir check de cuenta activa. |
+| **S20** | BAJA | `app/middleware/login_rate_limit.py:122-140` | El contador por username incrementa en cada intento (incluidos logins exitosos y desde IPs atacantes), sin reset al éxito → DoS de bloqueo de cuenta sobre un username conocido (ej: `admin`). | Contar solo intentos fallidos; opcionalmente acotar por (username, IP). |
+| **S21** | BAJA | `app/core/security.py:26` | `/schema` (Scalar/OpenAPI) está excluido de auth y se sirve siempre → superficie completa de la API pública en producción. | Gatear tras `settings.debug` o auth. |
+| S12/S13/S14 | MED/BAJA | `input_validator_service.py:28-52`, `router.py:62-67` | **Pendientes confirmados:** regex de inyección sin normalización unicode; `_LEAK_INDICATORS` por substring; el preámbulo solapa los indicadores. | Según `CLAUDE.md`. |
+
+---
+
+## 2. Bugs
+
+| ID | Sev | Archivo:línea | Problema | Corrección |
+|----|-----|---------------|----------|------------|
+| ~~**B20**~~ ✅ | **ALTA** | `app/repositories/cepa_repository.py` | **CORREGIDO (2026-06-23).** `encode()` en `create()`/`update()` ahora corre vía `await asyncio.to_thread(embedding_service.encode, texto)` (mismo patrón que B2). El event loop ya no se bloquea durante el cómputo del embedding. No resuelve B22 (manejo de errores del bloque) ni P8 (carga fría del modelo). | ✅ |
+| ~~**B21** (= B5)~~ ✅ | MEDIA | `app/repositories/cepa_repository.py`, `app/api/routes_cepas.py` | **CORREGIDO (2026-06-23).** `update()` verifica unicidad del nombre antes de `set()` (patrón de `UserRepository.update`) y lanza `CepaAlreadyExistsError`; el handler `update` del controller lo mapea a 409 (igual que `create`). Verificado: colisión → 409, misma cepa / sin colisión → no bloquea. | ✅ |
+| **B22** | MEDIA | `cepa_repository.py:75-82`, `routes_cepas.py:486-495` | El embedding se genera *después* del insert y el repo solo traga `ImportError`, mientras el import hace `except: pass` → o 500 tras un insert exitoso (estado parcial), o cepa sin embedding silenciosamente y sin log. | Generar antes del insert / en tarea de fondo; loggear fallos en vez de `pass`. |
+| **B23** | MEDIA | `app/api/routes_cepas.py:363-371` | El query param `offset` de `get_all` se acepta pero nunca se pasa a `repo.get_all()` → la paginación server-side está muerta y cada llamada devuelve todas las filas. | Propagar `offset`/`limit` al repo (`.skip().limit()`). |
+| ~~**B24**~~ ✅ | MEDIA | `app/ia/services/chat/dbSearch_service.py` | **CORREGIDO (2026-06-23).** El fallback del `except` en `buscar_cepas_similares` ahora llama `get_todas_las_cepas()` (antes `_busqueda_vectorial(pregunta, limit)` con aridad/tipos incorrectos → `TypeError`). Verificado forzando una excepción dentro del `try`: devuelve la lista, no lanza. | ✅ |
+| **B25** (= B3 incompleto) | BAJA | `ia/router.py:77,156,226`, `feedback_repository.py:55`, `ia/models.py:15` | `datetime.utcnow()` aún en uso (deprecado en 3.12+, devuelve datetimes naive), pese a que B3 está marcado como corregido. | `datetime.now(timezone.utc)`. |
+| B9/B10 | MEDIA | `llm_service.py:70-102` | **Pendientes confirmados:** `_repair_unquoted_keys` corrompe fechas como `2024-05-01T00:00:00Z` (el token `T00:` matchea el regex identificador-antes-de-dos-puntos) y `_extract_json_object` no maneja llaves dentro de strings → MQL de fecha válido cae silenciosamente al fallback. | Tokenizar/parsear en vez de regex. |
+| B13/B4 | BAJA | `query_parser_service.py:289`, `dtos.py:99-103` | **Pendientes confirmados:** fallback `dia=28` en "antes de [mes]"; coerción string-vacío→None. | Según `CLAUDE.md`. |
+
+---
+
+## 3. Rendimiento
+
+| ID | Sev | Archivo:línea | Problema | Corrección |
+|----|-----|---------------|----------|------------|
+| **P11** | MEDIA | `app/api/routes_cepas.py:258-309` | `_read_xlsx` parsea el workbook **dos veces** (pre-pasada read-only + carga `read_only=False`) y `list(ws.iter_rows())` carga toda la hoja → ~2× tiempo + pico de memoria en un upload de 10 MB. | Una sola pasada en streaming; reutilizar el workbook read-only. |
+| **P12** | MEDIA | `app/api/routes_cepas.py:472-504` | Loop de import: por fila find_one + insert + `encode` (sync-in-thread) + `save` en serie (2 escrituras + 1 embedding c/u) → muy lento con 5.000 filas. | Batch insert, batch encode, `bulk_write`. |
+| **P13** | MEDIA | `frontend useCepasTableCore.ts:150-176`, `CepasQuery.ts:13-16` | La tabla trae todas las cepas sin filtro/límite server-side y filtra/ordena/pagina en cliente, re-escaneando el dataset completo en cada tecla (agrava B23 → no hay paginación real en ningún lado). | Paginación server-side + filtrado server-side con debounce. |
+| **P14** | BAJA | `frontend/vite.config.ts` | Sin `build.rollupOptions.manualChunks`; ag-Grid + Nivo + Leaflet + ExcelJS + html2canvas-pro caen en chunks compartidos grandes. | Separar vendor chunks / lazy-load de export y mapa. |
+| P6/P2/P9/P8/B16/B19/B18 | — | según `CLAUDE.md` | **Pendientes confirmados:** `httpx.AsyncClient` por intento (`llm_service.py:148`); `distinct()` seriales (`dbSearch:210-216`); `get_stats` carga todo a memoria (`feedback_repository.py:122`); carga fría del modelo de embeddings; `limpiar_antiguos` por insert; N `save()` en batch; caches de clase no process-safe. | Según `CLAUDE.md`. |
+
+---
+
+## 4. Arquitectura
+
+| ID | Sev | Archivo:línea | Problema | Corrección |
+|----|-----|---------------|----------|------------|
+| **A11** | MEDIA | `frontend AuthContext.tsx:36,55,75`, `authSession.ts` | Los headers de auth se setean en el `axios` global, pero **todas** las llamadas usan la instancia `api` (que inyecta el token vía su propio interceptor leyendo localStorage). El mecanismo global y todo `authSession.ts` son **código muerto** (`grep`: no hay llamadas a axios global) → la corrección de la auth depende silenciosamente solo del interceptor. | Eliminar el path global/`authSession.ts`; estandarizar en la instancia `api`. |
+| **A12** | BAJA | `frontend features/dashboard/**` (7 archivos); `utils/cepaPayload.ts:17-35,95-148` | La feature `dashboard` nunca se importa/rutea (muerta); `createBaseCepaPayload`/`buildCepaPayloadFromHeaderMap` sin uso y referencian el esquema anidado obsoleto (`nombre`/`cod_lab`/relaciones). | Eliminar. |
+| **A13** | BAJA | `frontend utils/cepaPayload.ts:79` | El alta manual convierte campos vacíos al literal `"N/I"` (el backend solo lo trata como null en el path de import, no en create) → datos contaminados con `"N/I"`. | Enviar `null` para vacíos también en create. |
+| **A14** | BAJA | `frontend vite.config.ts:8-13` | El proxy de dev `/api` está configurado pero sin uso (axios `baseURL=VITE_API_URL` apunta directo al backend) → dev depende de CORS, no del proxy. | Elegir uno. |
+| A6 | BAJA | `app/services/cepa_service.py` | **Confirmado:** sigue siendo un archivo vacío (código muerto). | Poblar o eliminar. |
+
+---
+
+## 5. Frontend
+
+> **Sin sinks XSS** (verificado): no hay `dangerouslySetInnerHTML`/`innerHTML`; el renderer de markdown del chat (`ChatPanel.tsx`) y el de feedback (`FeedbackDetailModal.tsx`) construyen JSX escapado por React.
+
+| ID | Sev | Archivo:línea | Problema | Corrección |
+|----|-----|---------------|----------|------------|
+| ~~**F1**~~ ✅ | MEDIA | `src/app/router/AdminRoute.tsx` (nuevo), `AppRouter.tsx`, `src/features/feedback/pages/FeedbackPage.tsx` | **CORREGIDO (2026-06-23).** Nuevo componente `AdminRoute` que verifica `is_admin` (race-safe: si hay token pero `user` aún rehidrata, muestra "Cargando…" en vez de expulsar). Las 4 rutas admin (`addcepa`, `addatribute`, `UserManagement`, `FeedbackIA`) anidadas bajo `AdminRoute` dentro de `PrivateRoute`. Self-guard de `FeedbackPage` consolidado (eliminado). Lint OK; sin errores TS nuevos. | ✅ |
+| **F2** | BAJA | `shared/services/api.ts` | Sin interceptor de respuesta para 401 → un token expirado/inválido a mitad de sesión no se maneja globalmente (sin auto-logout/redirect); cada componente debe atraparlo. | Añadir interceptor 401 → limpiar auth + redirigir a login. |
+| **F3** | BAJA | `users/components/UserTable.tsx:72,83,109` | Fallos de delete/toggle-admin/rename se tragan con solo `console.error` → el usuario no ve error y la UI parece no hacer nada (fallo silencioso). | Mostrar toast/estado de error. |
+| **F4** | BAJA | `shared/utils/loader.ts` | El loader global es un singleton DOM sin refcount → con llamadas async solapadas el primer `loader(false)` lo oculta mientras otra operación sigue pendiente. | Refcount o migrar a estado de React. |
+| **F5** | BAJA (info) | `api.ts:13`, `AuthContext.tsx` | JWT en `localStorage` — expuesto a XSS en principio, mitigado aquí al no existir sink XSS. | Solo nota de riesgo residual. |
+
+---
+
+## 6. Logging y Observabilidad (L1–L7)
+
+- **L1 [MEDIA]** abierto — `routes_auth.py` / `auth_service.py` no loggean logins exitosos ni fallidos → sin traza de brute-force / adivinación de credenciales.
+- **L2 [MEDIA]** abierto — `main.py:20-27`: `setup_logging()` (handler de archivo ligado solo al logger `rate_limit`) + `basicConfig` (logger raíz a stdout) → los logs de app/IA/Litestar nunca llegan al archivo.
+- **L3 [BAJA]** abierto — `ia/middleware.py:88` loggea chat permitido en DEBUG mientras el handler de archivo está en INFO → tráfico normal de chat invisible en el archivo.
+- **L4 [BAJA]** abierto — sin correlation/request ID; no se puede vincular un bloqueo del middleware con su request (A9).
+- **L5 [BAJA]** abierto — logs en texto libre, no estructurado.
+- **L6 [— mayormente mitigado]** — `backend/.gitignore` tiene `*.log` y `temp/`; `git ls-files` confirma que no hay logs/env/temp trackeados. Falta solo el patrón explícito `logs/`.
+- **L7 [BAJA] NUEVO** — `app/core/config.py:23` default `LOG_LEVEL="DEBUG"`; sin override, prod corre el logger raíz en DEBUG y los servicios de IA loggean prompts completos, preguntas y resultados de MongoDB a stdout (datos sensibles). Default a INFO/WARNING.
+
+---
+
+## Cola de prioridad — Top 10 (riesgo × esfuerzo)
+
+1. ~~**S16 — Bypass del rate limit del chat por XFF**~~ ✅ **CORREGIDO (2026-06-23).** `trusted_proxies` aplicado a `ChatRateLimitMiddleware` replicando el patrón de S6.
+2. ~~**B20 — `encode()` bloqueante en create/update async**~~ ✅ **CORREGIDO (2026-06-23).** Ambas llamadas envueltas en `asyncio.to_thread`.
+3. ~~**S17 — Dump MQL a disco sin gatear**~~ ✅ **CORREGIDO (2026-06-23).** Gateo interno en `_dump_mql`/`_dump_request`; a prueba de call sites futuros.
+4. ~~**B24 — Fallback del `except` lanza TypeError**~~ ✅ **CORREGIDO (2026-06-23).** Fallback a `get_todas_las_cepas()`.
+5. ~~**B21 — Renombrar cepa → 500**~~ ✅ **CORREGIDO (2026-06-23).** Check de unicidad en `update()` + mapeo a 409 en el controller.
+6. ~~**S18 — Mass-assignment de `add_attribute` sobre campos reservados**~~ ✅ **CORREGIDO (2026-06-23).** `RESERVED_FIELDS` + rechazo en `add_attribute` y stripeo en DTOs/`create`.
+7. ~~**F1 — Rutas de admin sin guard en la UI**~~ ✅ **CORREGIDO (2026-06-23).** Componente `AdminRoute` (guard de rol) envolviendo las 4 rutas admin.
+8. **B23 + P13 — Sin paginación real** (`routes_cepas.py:363`, `useCepasTableCore.ts:150`). Esfuerzo medio pero elimina un fetch de colección completa y un param muerto a la vez.
+9. **L1 — Sin logging de login** (`auth_service.py`). Bajo esfuerzo, alto valor de observabilidad para detectar brute force (acompaña al trabajo de rate-limit).
+10. **A11 — Path de auth global-axios muerto** (`AuthContext.tsx` / `authSession.ts`). Eliminar código muerto; quita un segundo mecanismo de auth engañoso para que el real (interceptor) sea obvio.
+
+---
+
+*Auditoría de solo lectura. No se modificó código de la aplicación. Hallazgos volcados a `CLAUDE.md` (tablas S16–S21, B20–B25, P11–P14, A11–A14, sección Frontend F1–F5, L7).*

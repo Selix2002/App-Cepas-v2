@@ -1,3 +1,4 @@
+import asyncio
 import re
 from datetime import datetime, timezone
 
@@ -9,6 +10,7 @@ from app.schema.dtos import (
     CepaCreateDTO,
     CepaUpdateDTO,
     CepaFilterParams,
+    RESERVED_FIELDS,
 )
 
 
@@ -64,7 +66,8 @@ class CepaRepository:
         if existing:
             raise CepaAlreadyExistsError(f"Ya existe una cepa con nombre '{dto.cepa}'")
 
-        data = dto.model_dump()
+        # S18: descarta campos internos colados vía extra="allow" (embedding, fecha_*, _id)
+        data = {k: v for k, v in dto.model_dump().items() if k not in RESERVED_FIELDS}
         lat, lon = resolve_coords_from_origen(data.get("origen"), data.get("latitud"), data.get("longitud"))
         data["latitud"] = lat
         data["longitud"] = lon
@@ -76,7 +79,10 @@ class CepaRepository:
         try:
             from app.ia.services.chat.embedding_service import get_embedding_service
             from app.ia.services.chat.dbSearch_service import DatabaseService
-            cepa.embedding = get_embedding_service().encode(DatabaseService._cepa_a_texto(cepa))
+            # B20: encode() es CPU-bound y síncrono; to_thread evita bloquear el event loop
+            texto = DatabaseService._cepa_a_texto(cepa)
+            embedding_service = get_embedding_service()
+            cepa.embedding = await asyncio.to_thread(embedding_service.encode, texto)
             await cepa.save()
         except ImportError:
             pass
@@ -124,6 +130,15 @@ class CepaRepository:
         if not update_data:
             return cepa  # nada que actualizar
 
+        # B21: si cambia el nombre, verificar unicidad antes de set() (igual que UserRepository)
+        # — sin esto, un nombre duplicado provoca DuplicateKeyError → 500.
+        if "cepa" in update_data:
+            existing = await Cepa.find_one(Cepa.cepa == update_data["cepa"])
+            if existing and str(existing.id) != cepa_id:
+                raise CepaAlreadyExistsError(
+                    f"Ya existe una cepa con nombre '{update_data['cepa']}'"
+                )
+
         update_data["fecha_actualizacion"] = datetime.now(timezone.utc)
 
         await cepa.set(update_data)
@@ -132,7 +147,10 @@ class CepaRepository:
         try:
             from app.ia.services.chat.embedding_service import get_embedding_service
             from app.ia.services.chat.dbSearch_service import DatabaseService
-            cepa.embedding = get_embedding_service().encode(DatabaseService._cepa_a_texto(cepa))
+            # B20: encode() es CPU-bound y síncrono; to_thread evita bloquear el event loop
+            texto = DatabaseService._cepa_a_texto(cepa)
+            embedding_service = get_embedding_service()
+            cepa.embedding = await asyncio.to_thread(embedding_service.encode, texto)
             await cepa.save()
         except ImportError:
             pass

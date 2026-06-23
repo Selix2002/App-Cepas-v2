@@ -22,6 +22,7 @@ from app.schema.dtos import (
     CepaResponseDTO,
     PaginatedCepasDTO,
     CepaFilterParams,
+    RESERVED_FIELDS,
 )
 from app.repositories.cepa_repository import (
     CepaRepository,
@@ -520,6 +521,9 @@ class CepaController(Controller):
             raise HTTPException(status_code=400, detail="attribute_name no puede estar vacío")
         if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', field):
             raise HTTPException(status_code=400, detail="attribute_name solo puede contener letras, números y guión bajo")
+        # S18: rechaza campos reservados (internos) y estructurados (tienen su propio path de PATCH)
+        if field.lower() in RESERVED_FIELDS or field.lower() in {"cepa", "latitud", "longitud", "envio_punta_arenas"}:
+            raise HTTPException(status_code=400, detail=f"'{field}' es un campo reservado y no puede modificarse por este endpoint")
 
         updated = 0
         not_found = []
@@ -543,6 +547,8 @@ class CepaController(Controller):
             cepa = await repo.update(cepa_id, data)
         except CepaNotFoundError as e:
             raise NotFoundException(detail=str(e))
+        except CepaAlreadyExistsError as e:
+            raise HTTPException(status_code=409, detail=str(e))
         return CepaResponseDTO(id=str(cepa.id), **cepa.model_dump(exclude={"id"}))
 
     # ------------------------------------------------------------------

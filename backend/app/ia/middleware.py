@@ -36,7 +36,7 @@ class ChatRateLimitMiddleware:
         max_requests: int = 10,
         window_seconds: int = 60,
         key_prefix: str = "chat_requests",
-        
+        trusted_proxies: set[str] | None = None,
         **_: Any,
     ) -> None:
         self.app = app
@@ -44,6 +44,7 @@ class ChatRateLimitMiddleware:
         self.max_requests = max_requests
         self.window_seconds = window_seconds
         self.key_prefix = key_prefix
+        self.trusted_proxies: set[str] = trusted_proxies or set()
 
         if not ChatRateLimitMiddleware._logged_init:
             rate_logger.info(
@@ -91,16 +92,18 @@ class ChatRateLimitMiddleware:
         await self.app(scope, receive, send)
 
     def _get_client_ip(self, scope: Scope) -> str:
-        headers = dict(scope.get("headers", []))
-        xff = headers.get(b"x-forwarded-for")
-        if xff:
-            ip = xff.decode("latin1").split(",")[0].strip()
-            if ip:
-                return ip
         client = scope.get("client")
-        if client and isinstance(client, tuple):
-            return client[0]
-        return "unknown"
+        direct_ip = client[0] if client and isinstance(client, tuple) else None
+
+        if direct_ip in self.trusted_proxies:
+            headers_dict = {k.lower(): v for k, v in scope.get("headers", [])}
+            xff = headers_dict.get(b"x-forwarded-for")
+            if xff:
+                ip = xff.decode("latin1").split(",")[0].strip()
+                if ip:
+                    return ip
+
+        return direct_ip or "unknown"
 
     async def _send_service_unavailable(self, send: Send) -> None:
         body = json.dumps({

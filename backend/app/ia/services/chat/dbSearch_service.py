@@ -94,8 +94,11 @@ class DatabaseService:
                 return await self.get_todas_las_cepas()
 
         except Exception as e:
+            # B24: fallback a get_todas_las_cepas() — _busqueda_vectorial requiere
+            # (query_embedding, cepas, limit, threshold); llamarlo con (pregunta, limit)
+            # lanzaba TypeError y enmascaraba el error original.
             logger.error(f"❌ Error en búsqueda: {str(e)}", exc_info=True)
-            return await self._busqueda_vectorial(pregunta, limit)
+            return await self.get_todas_las_cepas()
 
     async def _busqueda_vectorial(
         self,

@@ -4,6 +4,11 @@ from typing import Any, Optional
 from datetime import datetime
 
 
+# S18: campos internos/derivados que ningún cliente debe poder asignar vía
+# mass-assignment (extra="allow"). Se stripean en los DTOs y se rechazan en add_attribute.
+RESERVED_FIELDS = frozenset({"embedding", "fecha_creacion", "fecha_actualizacion", "_id", "id"})
+
+
 def _coerce_coord(v: Any) -> Optional[float]:
     """Convierte el valor a float; retorna None si no es numérico."""
     if v is None:
@@ -100,6 +105,7 @@ class CepaUpdateDTO(BaseModel):
         return {
             k: None if isinstance(v, str) and not v.strip() else v
             for k, v in raw.items()
+            if k not in RESERVED_FIELDS  # S18: descarta campos internos colados como extra
         }
 
 

@@ -65,7 +65,7 @@ middleware = [
 if settings.IA_ENABLED:
     from app.ia import get_ia_route_handlers, get_ia_middleware
     route_handlers += get_ia_route_handlers()
-    middleware += get_ia_middleware(redis_client)
+    middleware += get_ia_middleware(redis_client, trusted_proxies={"127.0.0.1"})
 
 # ── App ──────────────────────────────────────────────────────────────────────
 app = Litestar(

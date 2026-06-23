@@ -14,7 +14,7 @@ def get_ia_route_handlers() -> list:
     return [ChatController]
 
 
-def get_ia_middleware(redis_client) -> list:
+def get_ia_middleware(redis_client, trusted_proxies: set[str] | None = None) -> list:
     from app.ia.middleware import ChatRateLimitMiddleware
     from app.ia.config import ia_settings
     return [
@@ -23,6 +23,7 @@ def get_ia_middleware(redis_client) -> list:
             max_requests=ia_settings.CHAT_RATE_LIMIT_REQUESTS,
             window_seconds=ia_settings.CHAT_RATE_LIMIT_SECONDS,
             redis_client=redis_client,
+            trusted_proxies=trusted_proxies,
         )
     ]
 

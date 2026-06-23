@@ -1,7 +1,5 @@
 // src/features/feedback/pages/FeedbackPage.tsx
 import { useState, useCallback, useEffect } from "react"
-import { useNavigate } from "react-router-dom"
-import { useAuth } from "../../auth/store/AuthContext"
 import FeedbackHeader from "../components/FeedbackHeader"
 import FeedbackStatsPanel from "../components/FeedbackStatsPanel"
 import FeedbackRatingChart from "../components/FeedbackRatingChart"
@@ -17,8 +15,6 @@ import {
 import "./feedback-page.css"
 
 export default function FeedbackPage() {
-    const { user } = useAuth()
-    const navigate  = useNavigate()
 
     const [stats,        setStats]        = useState<FeedbackStats | null>(null)
     const [listData,     setListData]     = useState<FeedbackListResponse | null>(null)
@@ -31,11 +27,6 @@ export default function FeedbackPage() {
     const [sortBy,       setSortBy]       = useState<"fecha" | "calificacion">("fecha")
     const [order,        setOrder]        = useState<"asc" | "desc">("desc")
     const [filterRating, setFilterRating] = useState<number | null>(null)
-
-    // Guard: solo admins
-    useEffect(() => {
-        if (user && !user.is_admin) navigate("/home", { replace: true })
-    }, [user, navigate])
 
     const loadAll = useCallback(async () => {
         try {
@@ -77,8 +68,6 @@ export default function FeedbackPage() {
         setFilterRating(r)
         setPage(1)
     }
-
-    if (user && !user.is_admin) return null
 
     return (
         <div className="fbp-page">

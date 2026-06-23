@@ -280,6 +280,8 @@ class LLMService:
 
     def _dump_request(self, pregunta: str, messages: List[Dict[str, Any]]) -> None:
         """Vuelca el payload exacto enviado a Groq en un archivo .txt dentro de temp/."""
+        if not settings.debug:  # S17: nunca volcar datos de usuario a disco en prod
+            return
         temp_dir = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "temp")
         temp_dir = os.path.abspath(temp_dir)
         os.makedirs(temp_dir, exist_ok=True)
@@ -346,8 +348,7 @@ class LLMService:
         })
 
         logger.info(f"📨 Enviando a LLM | modelos={self.models} | temp={self.temperature}")
-        if settings.debug:  # S11: only dump user data to disk in debug mode
-            self._dump_request(pregunta, messages)
+        self._dump_request(pregunta, messages)  # S17: gateado por settings.debug dentro del método
 
         try:
             data, modelo_usado = await self._post_with_fallback({
@@ -383,6 +384,8 @@ class LLMService:
 
     def _dump_mql(self, etapa: str, payload: dict) -> None:
         """Writes MQL request/response payloads to temp/ for offline inspection."""
+        if not settings.debug:  # S17: nunca volcar datos de usuario a disco en prod
+            return
         temp_dir = os.path.abspath(
             os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "temp")
         )
@@ -425,8 +428,7 @@ class LLMService:
         logger.info(f"   Modelos (prioridad)  : {self.models}")
         logger.info(f"   Temperature          : 0 (determinístico)")
         logger.debug("[MQL] System prompt completo:\n" + system_prompt)
-        if settings.debug:  # S11
-            self._dump_mql("1_query_request", payload_base)
+        self._dump_mql("1_query_request", payload_base)  # S17: gateado dentro del método
 
         raw_text = ""
         try:
@@ -438,8 +440,7 @@ class LLMService:
             logger.info(f"   Tokens prompt        : {usage.get('prompt_tokens')}")
             logger.info(f"   Tokens completion    : {usage.get('completion_tokens')}")
             logger.info(f"📤 [MQL] Respuesta RAW del LLM:\n{raw_text}")
-            if settings.debug:  # S11
-                self._dump_mql("2_query_response", {"raw": raw_text, "usage": usage})
+            self._dump_mql("2_query_response", {"raw": raw_text, "usage": usage})  # S17: gateado dentro del método
 
             # ── Paso 1: quitar code fences de markdown ───────────────────
             raw_text = re.sub(r"```json\s*", "", raw_text, flags=re.IGNORECASE)

@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { Suspense, lazy } from "react";
 import LoginPage from '../../features/auth/pages/LoginPage';
 import PrivateRoute from './PrivateRoute';
+import AdminRoute from './AdminRoute';
 import './app-router.css';
 
 const HomePage = lazy(() => import("../../features/cepas/pages/HomePage"));
@@ -18,10 +19,13 @@ export default function AppRouter() {
         <Route path="/login" element={<LoginPage />} />
         <Route element={<PrivateRoute />}>
           <Route path="/home"                  element={<HomePage />} />
-          <Route path="/home/addcepa"          element={<NewCepaPage />} />
-          <Route path="/home/addatribute"      element={<NewAtributePage />} />
-          <Route path="/home/UserManagement"   element={<UserManagementPage />} />
-          <Route path="/home/FeedbackIA"       element={<FeedbackPage />} />
+          {/* F1: rutas solo-admin protegidas por rol (is_admin), no solo por token */}
+          <Route element={<AdminRoute />}>
+            <Route path="/home/addcepa"        element={<NewCepaPage />} />
+            <Route path="/home/addatribute"    element={<NewAtributePage />} />
+            <Route path="/home/UserManagement" element={<UserManagementPage />} />
+            <Route path="/home/FeedbackIA"     element={<FeedbackPage />} />
+          </Route>
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
