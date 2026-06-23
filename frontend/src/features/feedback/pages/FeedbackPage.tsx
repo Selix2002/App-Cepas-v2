@@ -94,7 +94,6 @@ export default function FeedbackPage() {
                         items={listData?.items ?? []}
                         total={listData?.total ?? 0}
                         page={page}
-                        pageSize={20}
                         totalPages={listData?.total_pages ?? 1}
                         onPageChange={setPage}
                         onRowClick={setSelectedItem}

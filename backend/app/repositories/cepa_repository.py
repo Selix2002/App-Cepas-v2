@@ -107,7 +107,7 @@ class CepaRepository:
     # GET LIST (con filtros y paginación)
     # -----------------------------------------------------------------------
     async def get_all(
-        self, filters: CepaFilterParams
+        self, filters: CepaFilterParams, offset: int = 0, limit: int | None = None
     ) -> tuple[list[Cepa], int]:
         query = Cepa.find()
 
@@ -115,7 +115,16 @@ class CepaRepository:
             # S10: re.escape prevents ReDoS from user-supplied regex metacharacters
             query = query.find(RegEx(Cepa.cepa, re.escape(filters.cepa), "i"))
 
+        # total ANTES de paginar, para metadata de paginación correcta
         total = await query.count()
+
+        # B23: offset/limit son opt-in. Sin ellos, devuelve todo (el dashboard
+        # —tabla/mapa/charts/export— depende del dataset completo a la escala actual).
+        if offset and offset > 0:
+            query = query.skip(offset)
+        if limit is not None and limit > 0:
+            query = query.limit(limit)
+
         items = await query.to_list()
 
         return items, total

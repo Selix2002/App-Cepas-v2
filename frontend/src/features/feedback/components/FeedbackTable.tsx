@@ -6,7 +6,6 @@ interface Props {
     items: FeedbackListItem[]
     total: number
     page: number
-    pageSize: number
     totalPages: number
     onPageChange: (page: number) => void
     onRowClick: (item: FeedbackListItem) => void
@@ -61,7 +60,7 @@ function formatFecha(iso: string): string {
 }
 
 export default function FeedbackTable({
-    items, total, page, pageSize, totalPages,
+    items, total, page, totalPages,
     onPageChange, onRowClick, isLoading,
     filterRating, onFilterRating,
     sortBy, order, onSort,

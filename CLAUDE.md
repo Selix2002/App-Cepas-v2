@@ -182,7 +182,7 @@ Auditoría completa del backend. Issues marcados con ✅ han sido corregidos.
 | B20 | ✅ | `cepa_repository.py` | `encode()` en `create()`/`update()` envuelto en `asyncio.to_thread` (patrón de B2) → ya no bloquea el event loop en cada alta/edición de cepa. (No cubre B22: el bloque sigue tragando errores no-`ImportError`.) |
 | B21 | ✅ | `cepa_repository.py`, `routes_cepas.py` | `update()` verifica unicidad del nombre antes de `set()` y lanza `CepaAlreadyExistsError`; el handler `update` del controller lo mapea a 409 (igual que `create`). Antes: `DuplicateKeyError` → 500. Verificado con los 3 casos (colisión/misma cepa/sin colisión). |
 | B22 | — | `cepa_repository.py:75-82`, `routes_cepas.py:486-495` | Embedding se genera tras el insert y solo se traga `ImportError` (repo) / `except: pass` (import) → 500 tras insert exitoso, o cepa sin embedding sin log. |
-| B23 | — | `routes_cepas.py:363-371` | El query param `offset` de `get_all` se acepta pero nunca se pasa al repo → paginación server-side muerta, siempre devuelve todo. |
+| B23 | ✅ | `routes_cepas.py`, `cepa_repository.py` | `get_all` propaga `offset`/`limit` al repo (`.skip().limit()`), **opt-in**: sin ellos devuelve todo (como necesita el dashboard de 50 filas). `total` se calcula antes de paginar. Verificado contra DB real. |
 | B24 | ✅ | `dbSearch_service.py` | Fallback del `except` en `buscar_cepas_similares` ahora llama `get_todas_las_cepas()` (antes `_busqueda_vectorial(pregunta, limit)` con aridad/tipos incorrectos → `TypeError` que enmascaraba el error original). Verificado con excepción forzada. |
 | B25 | — | `router.py:77,156,226`, `feedback_repository.py:55`, `ia/models.py:15` | (= B3 incompleto) `datetime.utcnow()` aún en uso (deprecado, naive). Migrar a `datetime.now(timezone.utc)`. |
 
@@ -202,7 +202,7 @@ Auditoría completa del backend. Issues marcados con ✅ han sido corregidos.
 | P10 | — | `dbSearch_service.py:304, 321` | `encode(pregunta)` se llama dos veces por request en `busqueda_hibrida`. |
 | P11 | — | `routes_cepas.py:258-309` | `_read_xlsx` parsea el workbook dos veces (read-only + `read_only=False`) y `list(ws.iter_rows())` carga toda la hoja → ~2× tiempo + pico de memoria en archivos de 10 MB. |
 | P12 | — | `routes_cepas.py:472-504` | Loop de import: por fila find_one + insert + `encode` + `save` seriales (2 escrituras + 1 embedding c/u). Batch insert + `bulk_write`. |
-| P13 | — | `frontend useCepasTableCore.ts:150-176`, `CepasQuery.ts:13` | La tabla trae todas las cepas sin filtro/límite y filtra/ordena/pagina en cliente, re-escaneando todo en cada tecla (agrava B23). Paginación server-side. |
+| P13 | ⊘ N/A | `frontend useCepasTableCore.ts`, `HomePage.tsx` | **Descartado (2026-06-23).** No aplica a la escala/arquitectura actual: hay **50 cepas** y tabla+mapa+charts+export comparten un único dataset cliente (`table.filteredData`/`rawData`). Paginar server-side rompería mapa/charts/export y reimplementar la búsqueda cruzada + mini-lenguaje de fechas en Mongo. El DTO ya excluye `embedding`, así que el fetch completo es minúsculo. Reabrir solo si el dataset crece a miles. B23 (backend) ya quedó listo para uso futuro. |
 | P14 | — | `frontend vite.config.ts` | Sin `manualChunks`: ag-Grid + Nivo + Leaflet + ExcelJS + html2canvas-pro en chunks compartidos grandes. Separar/lazy-load vendor chunks. |
 
 ### Arquitectura
@@ -219,7 +219,7 @@ Auditoría completa del backend. Issues marcados con ✅ han sido corregidos.
 | A8 | — | Logging fragmentado: `setup_logging()` + `basicConfig` separados. |
 | A9 | — | Sin request-ID/correlation-ID middleware. |
 | A10 | — | Tests no integrados a CI, sin `[tool.pytest]` en `pyproject.toml`. |
-| A11 | — | `frontend AuthContext.tsx:36,55,75`, `authSession.ts`: headers de auth se setean en el `axios` global, pero todas las llamadas usan la instancia `api` (token vía su interceptor de localStorage). El path global y todo `authSession.ts` son código muerto; la auth depende solo del interceptor. |
+| A11 | ✅ | `frontend AuthContext.tsx`, `authSession.ts`, `UsersQuery.ts` | `authSession.ts` borrado; path global-axios eliminado de `AuthContext` (import + useEffect de montaje + 2 `delete axios.defaults`); línea redundante `api.defaults.headers` quitada de `login()` (opción B). El interceptor de `api` (lee localStorage) es ahora la única fuente de verdad. Cero cambio de comportamiento; build OK. |
 | A12 | — | `frontend features/dashboard/**` (7 archivos): nunca se importa/rutea (muerto). `utils/cepaPayload.ts`: `createBaseCepaPayload`/`buildCepaPayloadFromHeaderMap` sin uso y con esquema anidado obsoleto (`nombre`/`cod_lab`/relaciones). Eliminar. |
 | A13 | — | `frontend utils/cepaPayload.ts:79`: el alta manual convierte campos vacíos al literal `"N/I"` (el backend solo lo trata como null en import, no en create) → datos contaminados con `"N/I"`. |
 | A14 | — | `frontend vite.config.ts:8-13`: proxy `/api` configurado pero sin uso (axios apunta directo a `VITE_API_URL` vía CORS). |
@@ -242,7 +242,7 @@ Diagnóstico del sistema de logging actual. Ninguno de estos issues ha sido corr
 
 | ID | Archivo | Problema |
 |----|---------|---------|
-| L1 | `auth_service.py`, `routes_auth.py` | Sin logging de logins exitosos ni fallidos. No hay traza de si un brute force adivinó una contraseña. |
+| L1 ✅ | `routes_auth.py` | **CORREGIDO (2026-06-23).** El handler `login` loggea cada intento al logger `rate_limit` (persiste a `logs/rate_limit.log`): `LOGIN OK` (INFO) / `LOGIN FALLIDO` (WARNING), con username + IP (helper `_client_ip` con `trusted_proxies`, igual que S6/S16). Fallo genérico (sin enumeración). `auth_service` queda puro. |
 | L2 | `core/logging_config.py`, `main.py` | Dos sistemas de logging paralelos: `setup_logging()` configura logger `rate_limit` con archivo; `basicConfig` configura el logger raíz solo hacia stdout. El resto de la app (IA router, Litestar) nunca llega al archivo. |
 | L3 | `ia/middleware.py:88` | Chat permitido se loggea en `DEBUG`, pero el handler de archivo está en `INFO` → el tráfico normal de chat es invisible en el archivo. |
 | L4 | — | Sin correlation ID (A9): no se puede vincular el bloqueo del middleware con el request ni reconstruir la secuencia de acciones de una IP. |
@@ -261,8 +261,8 @@ Re-auditoría 2026-06-09 (backend completo + frontend). Top 10 por riesgo × esf
 5. ~~**B21/B5** — Renombrar cepa sin check de unicidad → 500~~ — ✅ corregido 2026-06-23 (check de unicidad + 409)
 6. ~~**S18** — `add_attribute` mass-assignment sobre campos reservados (`cepa`, `embedding`)~~ — ✅ corregido 2026-06-23 (`RESERVED_FIELDS` + rechazo/stripeo)
 7. ~~**F1** — Rutas de admin sin guard de rol en el frontend~~ — ✅ corregido 2026-06-23 (`AdminRoute`)
-8. **B23 + P13** — Sin paginación real (param `offset` muerto + filtrado en cliente)
-9. **L1** — Sin logging de login (éxitos/fallos) — sin traza de brute force
-10. **A11** — Path de auth global-axios muerto (la auth depende solo del interceptor)
+8. ~~**B23 + P13** — Sin paginación real (param `offset` muerto + filtrado en cliente)~~ — B23 ✅ corregido 2026-06-23 (offset/limit opt-in); P13 ⊘ descartado (no aplica a 50 filas + dataset compartido)
+9. ~~**L1** — Sin logging de login (éxitos/fallos) — sin traza de brute force~~ — ✅ corregido 2026-06-23 (login OK/FALLIDO con username+IP a rate_limit.log)
+10. ~~**A11** — Path de auth global-axios muerto (la auth depende solo del interceptor)~~ — ✅ corregido 2026-06-23 (`authSession.ts` borrado + path global eliminado)
 
 Pendientes previos que siguen abiertos: **B4** (PATCH cepa vacía), **B6** (`add_attribute` sin transacción), **P6** (`httpx.AsyncClient` por request), **P2** (`distinct()` seriales), **B14** (`_cepa_a_texto`), **P5** (índices MongoDB), **S12–S14** (validación IA), **B9/B10** (parseo JSON del LLM).

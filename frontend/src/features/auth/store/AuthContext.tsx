@@ -5,7 +5,6 @@ import {
   useState,
   type ReactNode,
 } from "react"
-import axios from "axios"
 import { login as apiLogin, getCurrentUser } from "../../users/services/UsersQuery"
 import type { User, AuthContextType } from "../../../shared/interfaces"
 
@@ -30,13 +29,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   })
 
-  // Al montar: si hay token guardado, inyectarlo en axios antes de cualquier request
-  useEffect(() => {
-    if (token) {
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`
-    }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
   // Si hay token pero no user (ej: refresh de página), rehydratar el user desde la API
   useEffect(() => {
     if (!token || user) return
@@ -52,12 +44,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null)
         localStorage.removeItem(TOKEN_KEY)
         localStorage.removeItem(USER_KEY)
-        delete axios.defaults.headers.common["Authorization"]
       })
   }, [token]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const login = async (username: string, password: string) => {
-    // apiLogin ya inyecta el header en axios y retorna el token como string
+    // apiLogin retorna el token; el interceptor de `api` lo inyecta en cada request leyéndolo de localStorage
     const accessToken = await apiLogin(username, password)
     localStorage.setItem(TOKEN_KEY, accessToken)
     setToken(accessToken)
@@ -72,7 +63,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
     localStorage.removeItem(TOKEN_KEY)
     localStorage.removeItem(USER_KEY)
-    delete axios.defaults.headers.common["Authorization"]
   }
 
   const value: AuthContextType = { user, token, login, logout }

@@ -367,9 +367,12 @@ class CepaController(Controller):
         repo: CepaRepository,
         cepa: str | None = None,
         offset: int = 0,
+        limit: int | None = None,
     ) -> PaginatedCepasDTO:
         filters = CepaFilterParams(cepa=cepa)
-        items, total = await repo.get_all(filters)
+        # B23: offset/limit ahora se propagan al repo (antes offset era un param muerto).
+        # Opt-in: sin ellos devuelve todo, como espera el dashboard.
+        items, total = await repo.get_all(filters, offset=offset, limit=limit)
         return PaginatedCepasDTO(
             total=total,
             items=[CepaResponseDTO(id=str(c.id), **c.model_dump(exclude={"id"})) for c in items],

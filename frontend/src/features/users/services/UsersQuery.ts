@@ -14,7 +14,8 @@ export async function login(username: string, password: string): Promise<string>
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
   })
 
-  api.defaults.headers.common["Authorization"] = `Bearer ${data.access_token}`
+  // A11: el token se persiste en localStorage (AuthContext) y el interceptor de `api`
+  // lo inyecta en cada request → setear api.defaults aquí era redundante.
   return data.access_token
 }
 
