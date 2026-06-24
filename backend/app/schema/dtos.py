@@ -71,12 +71,13 @@ class CepaUpdateDTO(BaseModel):
 
     @field_validator("cepa")
     @classmethod
-    def cepa_not_empty(cls, v: Optional[str]) -> Optional[str]:
-        if v is not None:
-            v = v.strip()
-            if not v:
-                raise ValueError("El nombre de la cepa no puede estar vacío")
-        return v
+    def cepa_not_empty(cls, v: Optional[str]) -> str:
+        # B4: el validator NO corre cuando 'cepa' está ausente (Pydantic no valida defaults),
+        # así que rechazar None aquí solo afecta a 'cepa' enviado explícitamente como null/vacío.
+        # Sin esto, PATCH {"cepa": null} guardaba cepa=null → rompía el índice único.
+        if v is None or not v.strip():
+            raise ValueError("El nombre de la cepa no puede ser vacío ni nulo")
+        return v.strip()
 
     @field_validator("latitud", mode="before")
     @classmethod

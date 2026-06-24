@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import re
 from datetime import datetime, timezone
 
@@ -12,6 +13,9 @@ from app.schema.dtos import (
     CepaFilterParams,
     RESERVED_FIELDS,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 class CepaNotFoundError(Exception):
@@ -73,8 +77,9 @@ class CepaRepository:
         data["longitud"] = lon
 
         cepa = Cepa(**data)
-        await cepa.insert()
 
+        # B22: el embedding es best-effort y se genera ANTES del insert → una sola escritura.
+        # Un fallo NO debe tumbar el alta (la cepa es válida), pero tampoco ser silencioso.
         # A1: lazy import so CepaRepository doesn't hard-depend on IA packages
         try:
             from app.ia.services.chat.embedding_service import get_embedding_service
@@ -83,10 +88,13 @@ class CepaRepository:
             texto = DatabaseService._cepa_a_texto(cepa)
             embedding_service = get_embedding_service()
             cepa.embedding = await asyncio.to_thread(embedding_service.encode, texto)
-            await cepa.save()
         except ImportError:
-            pass
+            pass  # módulo IA no disponible (IA_ENABLED=false) → alta sin embedding, esperado
+        except Exception as e:
+            # B22: antes solo se atrapaba ImportError → cualquier otro fallo daba 500 tras insert.
+            logger.warning("Cepa %r insertada sin embedding: %s", cepa.cepa, e)
 
+        await cepa.insert()
         return cepa
 
     # -----------------------------------------------------------------------
@@ -152,6 +160,8 @@ class CepaRepository:
 
         await cepa.set(update_data)
 
+        # B22: el update ya persistió vía set(); regenerar el embedding es best-effort.
+        # Un fallo aquí NO debe propagarse (sería 500 tras un update exitoso) pero sí loggearse.
         # A1: lazy import so CepaRepository doesn't hard-depend on IA packages
         try:
             from app.ia.services.chat.embedding_service import get_embedding_service
@@ -162,7 +172,9 @@ class CepaRepository:
             cepa.embedding = await asyncio.to_thread(embedding_service.encode, texto)
             await cepa.save()
         except ImportError:
-            pass
+            pass  # módulo IA no disponible (IA_ENABLED=false) → esperado
+        except Exception as e:
+            logger.warning("Cepa %r actualizada sin regenerar embedding: %s", cepa.cepa, e)
 
         return cepa
 

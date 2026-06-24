@@ -3,11 +3,35 @@
 import asyncio
 import re
 import logging
+import unicodedata
 from dataclasses import dataclass
 
 from app.ia.services.chat.embedding_service import get_embedding_service
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Normalización unicode para los chequeos de regex (S12)
+# ---------------------------------------------------------------------------
+
+def _normalize_for_checks(texto: str) -> str:
+    """Normaliza el texto antes de los regex de inyección/off-topic para evitar
+    evasiones unicode triviales (fullwidth, zero-width, acentos de evasión).
+
+    Solo se usa para los chequeos por patrón; la similitud semántica se calcula
+    sobre el texto original. No cubre homoglyphs de otro script (p.ej. cirílico);
+    para eso el backstop es el SECURITY_PREAMBLE del LLM.
+    """
+    # NFKC: pliega fullwidth/compatibilidad (ｉｇｎｏｒａ → ignora)
+    t = unicodedata.normalize("NFKC", texto)
+    # quita caracteres de formato/ancho cero (Cf): ig​nora → ignora
+    t = "".join(c for c in t if unicodedata.category(c) != "Cf")
+    # quita acentos combinados (ignòra/actûa → ignora/actua); los patrones ya toleran ambos
+    t = unicodedata.normalize("NFKD", t)
+    t = "".join(c for c in t if not unicodedata.combining(c))
+    # colapsa cualquier espacio unicode y baja a minúsculas
+    return re.sub(r"\s+", " ", t).lower().strip()
 
 # ---------------------------------------------------------------------------
 # Resultado de validación
@@ -93,9 +117,10 @@ class InputValidatorService:
     async def validate(self, pregunta: str, domain_threshold: float) -> ValidationResult:
         logger.debug(f"🛡️  Validando input ({len(pregunta)} chars): '{pregunta[:80]}'")
 
-        texto_lower = pregunta.lower()
+        # S12: texto normalizado (unicode) solo para los chequeos por regex.
+        texto_norm = _normalize_for_checks(pregunta)
 
-        # ── 1. Ratio de caracteres especiales ────────────────────────────────
+        # ── 1. Ratio de caracteres especiales (sobre el texto original) ───────
         permitidos = set(" .,;:?!¿¡áéíóúüñÁÉÍÓÚÜÑ-'\"()")
         especiales = sum(1 for c in pregunta if not c.isalnum() and c not in permitidos)
         ratio = especiales / max(len(pregunta), 1)
@@ -106,9 +131,9 @@ class InputValidatorService:
                 detail=f"ratio_especiales={ratio:.2f}"
             )
 
-        # ── 2. Patrones de inyección ──────────────────────────────────────────
+        # ── 2. Patrones de inyección (sobre texto normalizado) ────────────────
         for pattern in self._INJECTION_PATTERNS:
-            if re.search(pattern, texto_lower):
+            if re.search(pattern, texto_norm):
                 logger.warning(f"🛡️  RECHAZADO — inyección detectada: '{pattern}'")
                 return ValidationResult(
                     is_valid=False, reason="injection",
@@ -117,7 +142,7 @@ class InputValidatorService:
 
         # ── 3. Blacklist off-topic (rápida, antes del embedding) ──────────────
         for pattern in self._OFF_TOPIC_BLACKLIST:
-            if re.search(pattern, texto_lower):
+            if re.search(pattern, texto_norm):
                 logger.info(f"🛡️  RECHAZADO — off-topic por blacklist: '{pattern}'")
                 return ValidationResult(
                     is_valid=False, reason="off_topic",

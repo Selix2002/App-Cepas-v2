@@ -1,6 +1,7 @@
 import asyncio
 import csv
 import io
+import logging
 import re
 import unicodedata
 from datetime import datetime, timezone
@@ -33,6 +34,9 @@ from app.repositories.cepa_repository import (
 from app.models.models import Cepa
 from app.core.security import admin_guard
 from app.core.config import settings
+
+
+logger = logging.getLogger(__name__)
 
 
 def cepa_repository() -> CepaRepository:
@@ -472,6 +476,10 @@ class CepaController(Controller):
             await _upsert_column_labels(dynamic_labels)
 
         results: list[ImportRowResult] = []
+        # B22: si el embedding falla de forma sistémica (modelo caído/OOM o IA off), se
+        # loggea UNA vez y se dejan de intentar embeddings en las filas restantes → evita
+        # spam de logs y N encode() desperdiciados. Las cepas se siguen creando sin embedding.
+        embeddings_disabled = False
 
         for doc in parsed_rows:
             cepa_name = doc.get("cepa", "")
@@ -484,19 +492,27 @@ class CepaController(Controller):
                     continue
 
                 cepa_obj = Cepa(**doc)
-                await cepa_obj.insert()
 
-                # Generar embedding si el módulo IA está disponible
-                try:
-                    from app.ia.services.chat.embedding_service import get_embedding_service
-                    from app.ia.services.chat.dbSearch_service import DatabaseService
-                    cepa_obj.embedding = await asyncio.to_thread(
-                        get_embedding_service().encode,
-                        DatabaseService._cepa_a_texto(cepa_obj),
-                    )
-                    await cepa_obj.save()
-                except Exception:
-                    pass
+                # B22: embedding best-effort ANTES del insert (1 sola escritura).
+                # Un fallo NO aborta el alta (la fila queda "created" sin embedding).
+                if not embeddings_disabled:
+                    try:
+                        from app.ia.services.chat.embedding_service import get_embedding_service
+                        from app.ia.services.chat.dbSearch_service import DatabaseService
+                        cepa_obj.embedding = await asyncio.to_thread(
+                            get_embedding_service().encode,
+                            DatabaseService._cepa_a_texto(cepa_obj),
+                        )
+                    except ImportError:
+                        embeddings_disabled = True  # módulo IA no disponible (esperado)
+                    except Exception as e:
+                        logger.warning(
+                            "Importación: no se pudieron generar embeddings, "
+                            "se continúa sin ellos (regenerables luego): %s", e
+                        )
+                        embeddings_disabled = True
+
+                await cepa_obj.insert()
 
                 if settings.debug:
                     print(f"[DEBUG][import] creada: {cepa_name!r}")

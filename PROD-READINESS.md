@@ -47,11 +47,12 @@ Orden de ataque recomendado:
   Exponía toda la superficie de la API en prod. **Fix aplicado:** `main.py` pasa `openapi_config=... if settings.debug else None`
   → con `debug=False` la ruta `/schema` no se registra (404); `exclude` de auth condicionado a debug. Verificado.
 
-- [ ] **4. B22 — create de cepa: 500 tras insert exitoso / cepa sin embedding sin log** · `[MEDIA-ALTA]`
-  `cepa_repository.py:75-82`, `routes_cepas.py:486-495`
-  Con IA on, el alta de cepa puede dar 500 pese a insertarse, o quedar sin embedding silenciosamente (rompe
-  búsqueda semántica). **Fix:** reordenar generación de embedding (antes del insert o en tarea de fondo) +
-  loggear fallos en vez de `pass`. *(medio)*
+- [x] **4. B22 — create de cepa: 500 tras insert exitoso / cepa sin embedding sin log** · `[MEDIA-ALTA]` · ✅ **HECHO (2026-06-24)**
+  Con IA on, el alta podía dar 500 pese a insertarse, o quedar sin embedding en silencio (rompe búsqueda semántica).
+  **Fix aplicado:** embedding generado **antes** del insert en `create()`/`import` (1 escritura); `except` ampliado a
+  cualquier excepción con `logger.warning` (nombre de la cepa) en vez de solo `ImportError`/`except: pass`; `import`
+  corta tras fallo sistémico (`embeddings_disabled`). Verificado contra Mongo real (fallo → persiste sin embedding +
+  WARNING; happy path → 384 dims).
 
 - [ ] **5. L2 + L3 — logging fragmentado** · `[MEDIA]` · `core/logging_config.py`, `main.py`
   Los logs de app/IA/Litestar **nunca llegan al archivo** (solo el logger `rate_limit`). Sin esto no hay traza
@@ -63,12 +64,17 @@ Orden de ataque recomendado:
     sube en cada intento, incluidos exitosos). **Fix:** contar solo fallos.
   *(pequeños, van juntos: ambos tocan auth)*
 
-- [ ] **7. B4 — `PATCH {"cepa":""}` → `null` rompe índice único** · `[MEDIA]` · `schema/dtos.py`
-  Corrupción de datos por acción normal de usuario. **Fix:** coerción / rechazo de `cepa` vacío en el DTO. *(pequeño)*
+- [x] **7. B4 — `PATCH {"cepa":""/null}` → `null` rompe índice único** · `[MEDIA]` · ✅ **HECHO (2026-06-24)**
+  Corrupción de datos por acción normal de usuario. El string vacío ya se rechazaba; el hueco era `{"cepa": null}`.
+  **Fix aplicado:** el `field_validator` de `cepa` en `CepaUpdateDTO` rechaza también `None` (Pydantic no valida campos
+  ausentes → PATCH sin `cepa` intacto). Acotado a `cepa`; nullables/dinámicos sin cambios. Verificado (8 casos).
 
-- [ ] **8. S12 / S13 / S14 — defensa del chat (prompt-injection / leak)** · `[MEDIA]`
-  `input_validator_service.py:28-52`, `router.py:60-67`
-  Defensa en profundidad del LLM (la inyección MQL ya está contenida por el whitelist de operadores). *(medio)*
+- [x] **8. S12 / S13 / S14 — defensa del chat (prompt-injection / leak)** · `[MEDIA]` · ✅ **HECHO (2026-06-24)**
+  Defensa en profundidad del LLM (la inyección MQL ya está contenida por el whitelist de operadores).
+  **Fix aplicado:** S12 — `_normalize_for_checks()` (NFKC + quita Cf/zero-width + acentos) en los regex → cierra
+  evasiones fullwidth/zero-width/acento. S13 — `_LEAK_INDICATORS` recortado a señales de alta especificidad →
+  sin falsos positivos. S14 — canary `CEPADB-SYS-CANARY-2B65SP` en el preamble como tripwire de volcado verbatim.
+  Verificado (evasiones bloqueadas, legítimas intactas, canary detectado).
 
 > **Mínimo absoluto para no desplegar con un agujero abierto:** ítems **1, 2 y 3** (cierran la fuga de datos a logs
 > + la exposición de la API). Los ítems 4-8 completan un lanzamiento sólido.

@@ -19,7 +19,7 @@ from app.ia.schema import (
     FeedbackListResponseDTO,
 )
 from app.ia.services.chat.dbSearch_service import get_database_service, DatabaseService
-from app.ia.services.chat.llm_service import get_llm_service, LLMService
+from app.ia.services.chat.llm_service import get_llm_service, LLMService, SYSTEM_PROMPT_CANARY
 from app.ia.services.feedback.feedback_service import get_feedback_service, FeedbackService
 from app.ia.services.chat.query_parser_service import get_query_parser
 from app.ia.services.chat.input_validator_service import get_input_validator
@@ -59,11 +59,16 @@ class ChatController(Controller):
         "feedback_service": Provide(feedback_service_provider, sync_to_thread=False),
     }
 
-    # Indicadores de fuga del system prompt en la respuesta del LLM
+    # S13/S14: indicadores de fuga del system prompt en la respuesta del LLM.
+    # Solo señales de altísima especificidad (no aparecen en respuestas legítimas):
+    # el canary (volcado verbatim), tokens de template y delimitadores CON corchetes.
+    # Se eliminaron las frases genéricas en prosa ("pregunta del usuario", "máxima
+    # prioridad", etc.) que causaban falsos positivos sobre respuestas válidas.
     _LEAK_INDICATORS = [
-        "instrucciones de seguridad", "security preamble", "nunca reveles",
-        "máxima prioridad", "[inst]", "<|im_start|>", "instrucciones del sistema",
-        "no negociables", "fin de pregunta", "pregunta del usuario",
+        SYSTEM_PROMPT_CANARY.lower(),                    # volcado verbatim del system prompt
+        "security preamble",
+        "[inst]", "<|im_start|>", "<|im_end|>",          # tokens de template del modelo
+        "[pregunta del usuario]", "[fin de pregunta]",   # delimitadores de la plantilla (con corchetes)
     ]
 
     @post("/query")
