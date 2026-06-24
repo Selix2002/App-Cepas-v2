@@ -47,7 +47,8 @@ class UserRepository:
 
         user = User(
             username=dto.username,
-            password=await self._hash_password(dto.password),
+            # S22: desenvolver el SecretStr solo al hashear
+            password=await self._hash_password(dto.password.get_secret_value()),
             is_admin=dto.is_admin,
             hidden_columns=dto.hidden_columns,
         )

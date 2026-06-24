@@ -54,15 +54,20 @@ Orden de ataque recomendado:
   corta tras fallo sistémico (`embeddings_disabled`). Verificado contra Mongo real (fallo → persiste sin embedding +
   WARNING; happy path → 384 dims).
 
-- [ ] **5. L2 + L3 — logging fragmentado** · `[MEDIA]` · `core/logging_config.py`, `main.py`
-  Los logs de app/IA/Litestar **nunca llegan al archivo** (solo el logger `rate_limit`). Sin esto no hay traza
-  persistente de errores en prod. **Fix:** unificar `setup_logging` para el root logger. *(medio; encadena con L7)*
+- [x] **5. L2 + L3 — logging fragmentado** · `[MEDIA]` · ✅ **HECHO (2026-06-24)**
+  Los logs de app/IA/Litestar **nunca llegaban al archivo** (solo el logger `rate_limit`). **Fix aplicado:**
+  `setup_logging()` es la config única → root logger a stdout + `logs/app.log` (nivel desde `LOG_LEVEL`); `rate_limit`
+  con archivo dedicado `logs/rate_limit.log` y `propagate=False` (aislado de app.log). Se eliminó el `basicConfig`
+  paralelo (y su doble-stdout). L3: "Chat permitido" `DEBUG`→`INFO` (tráfico visible en auditoría). L6: añadido
+  `logs/` al `.gitignore` (cubre backups rotados). Verificado (aislamiento, nivel, `main` importa, git check-ignore).
 
-- [ ] **6. S19 + S20 — auth** · `[MEDIA]` · `core/security.py:16-19`, `middleware/login_rate_limit.py:122-140`
-  - **S19:** token de usuario borrado/inactivo sigue parcialmente usable (404 en vez de 401, sin check `is_active`).
-  - **S20:** DoS de bloqueo de cuenta — se puede bloquear al `admin` spammeando logins (el contador por username
-    sube en cada intento, incluidos exitosos). **Fix:** contar solo fallos.
-  *(pequeños, van juntos: ambos tocan auth)*
+- [x] **6. S19 + S20 + S22 — auth** · `[MEDIA]` · ✅ **HECHO (2026-06-24)**
+  - **S19:** `retrieve_user_handler` lanza `NotAuthorizedException` (401) en vez de 404 para token de usuario
+    inexistente. `is_active` **diferido** (no hay campo ni flujo de desactivación; `is_admin` ya se re-lee cada request).
+  - **S20:** contador por username acotado a `(username, IP)` → elimina el DoS de bloqueo de cuenta del `admin`
+    (Opción A; brute-force distribuido recae en el límite por IP).
+  - **S22:** `password` → `SecretStr` en `LoginDTO`/`UserCreateDTO` (no se filtra en `repr()`/logs/dumps).
+  Verificado: atacante bloqueado / admin real pasa; 401 para token huérfano; repr enmascarado + login e2e.
 
 - [x] **7. B4 — `PATCH {"cepa":""/null}` → `null` rompe índice único** · `[MEDIA]` · ✅ **HECHO (2026-06-24)**
   Corrupción de datos por acción normal de usuario. El string vacío ya se rechazaba; el hueco era `{"cepa": null}`.
@@ -78,6 +83,11 @@ Orden de ataque recomendado:
 
 > **Mínimo absoluto para no desplegar con un agujero abierto:** ítems **1, 2 y 3** (cierran la fuga de datos a logs
 > + la exposición de la API). Los ítems 4-8 completan un lanzamiento sólido.
+>
+> **✅ ESTADO (2026-06-24): todo el código del Tier 1 está hecho** (ítems 1, 3, 4, 5, 6, 7, 8 corregidos y
+> verificados). **Solo queda el ítem 2 — config del `.env` de prod**, que es una tarea de despliegue (no de código):
+> setear `ALLOWED_ORIGINS`, `LOG_LEVEL=INFO`, `SECRET_KEY` fuerte, `GROQ_API_KEY`/`GROQ_MODELS`, y verificar
+> Mongo + Redis accesibles. Ver el checklist operativo más abajo.
 
 ---
 
@@ -89,7 +99,7 @@ Orden de ataque recomendado:
 - **P14** — sin `manualChunks` en Vite → bundle inicial grande (UX de carga).
 - **A13** — el alta manual convierte vacíos a `"N/I"` literal → datos contaminados.
 - **B25** — `datetime.utcnow()` deprecado aún en uso (IA router/feedback).
-- **Observabilidad:** A8 (logging), A9/L4 (correlation ID), L5 (logs estructurados).
+- **Observabilidad:** ~~A8 (logging)~~ ✅ resuelto con L2; A9/L4 (correlation ID), L5 (logs estructurados) pendientes.
 - **IA (rendimiento/robustez):** P6 (`httpx.AsyncClient` por request), P8 (cold start del modelo), P9 (`get_stats`
   a memoria), P2/P10, B9/B10/B11 (parseo JSON del LLM), B14 (`_cepa_a_texto` pobre), B17 (`modelo_usado`).
 

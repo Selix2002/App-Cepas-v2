@@ -86,7 +86,9 @@ class ChatRateLimitMiddleware:
             await self._send_too_many_requests(send, retry_after)
             return
 
-        rate_logger.debug(
+        # L3: INFO (no DEBUG) para que el tráfico de chat permitido sea visible en el
+        # archivo de auditoría. Es telemetría (IP + contador), no contenido sensible.
+        rate_logger.info(
             f"Chat permitido. IP={client_ip}, contador={current}/{self.max_requests}"
         )
         await self.app(scope, receive, send)

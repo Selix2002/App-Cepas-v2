@@ -119,9 +119,12 @@ class LoginRateLimitMiddleware:
             await self._send_too_many_requests(send, retry_after)
             return
 
-        # Límite por username
+        # Límite por username, acotado por IP (S20). La clave incluye la IP del cliente para
+        # que un atacante solo pueda saturar el bucket (username, su_IP) y NO bloquear al
+        # usuario real desde su propia IP → elimina el DoS de bloqueo de cuenta. El límite por
+        # IP de arriba sigue siendo el backstop contra brute-force.
         if username:
-            user_key = f"{self.key_prefix_user}:{username}"
+            user_key = f"{self.key_prefix_user}:{username}:{client_ip}"
             try:
                 current_user = await self.redis.eval(self._LUA_INCR_EXPIRE, 1, user_key, self.window_seconds_user)
             except Exception as e:
@@ -134,7 +137,7 @@ class LoginRateLimitMiddleware:
                 retry_after = ttl if ttl and ttl > 0 else self.window_seconds_user
                 rate_logger.warning(
                     f"LOGIN BLOQUEADO por username. "
-                    f"username={username}, contador={current_user}, retry_after={retry_after}s"
+                    f"username={username}, ip={client_ip}, contador={current_user}, retry_after={retry_after}s"
                 )
                 await self._send_too_many_requests(send, retry_after)
                 return

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, SecretStr, field_validator
 from datetime import datetime
 
 
@@ -7,7 +7,9 @@ from datetime import datetime
 # ---------------------------------------------------------------------------
 class UserCreateDTO(BaseModel):
     username: str
-    password: str
+    # S22: SecretStr enmascara la contraseña en repr()/logs/dumps.
+    # Se desenvuelve con .get_secret_value() en el repositorio al hashear.
+    password: SecretStr
     is_admin: bool = False
     hidden_columns: list[str] = []
 
@@ -23,8 +25,8 @@ class UserCreateDTO(BaseModel):
 
     @field_validator("password")
     @classmethod
-    def password_strength(cls, v: str) -> str:
-        if len(v) < 8:
+    def password_strength(cls, v: SecretStr) -> SecretStr:
+        if len(v.get_secret_value()) < 8:
             raise ValueError("La contraseña debe tener al menos 8 caracteres")
         return v
 

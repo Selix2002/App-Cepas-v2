@@ -60,7 +60,7 @@ class AuthController(Controller):
         user = await authenticate_user(
             repo=repo,
             username=data.username,
-            password=data.password,
+            password=data.password.get_secret_value(),  # S22: desenvolver en el borde
         )
 
         if user is None:

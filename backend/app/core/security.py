@@ -2,7 +2,7 @@ from typing import Any
 
 from litestar.connection import ASGIConnection
 from litestar.contrib.jwt import OAuth2PasswordBearerAuth, Token
-from litestar.exceptions import NotAuthorizedException, NotFoundException
+from litestar.exceptions import NotAuthorizedException
 from litestar.handlers import BaseRouteHandler
 
 from app.core.config import settings
@@ -15,7 +15,9 @@ async def retrieve_user_handler(
 ) -> User:
     user = await User.find_one(User.username == token.sub)
     if not user:
-        raise NotFoundException(detail="Usuario no encontrado")
+        # S19: el token de un usuario inexistente/borrado es un fallo de AUTORIZACIÓN
+        # (401), no un "recurso no encontrado" (404). Sin filtrar si el usuario existía.
+        raise NotAuthorizedException(detail="No autorizado")
     return user
 
 
