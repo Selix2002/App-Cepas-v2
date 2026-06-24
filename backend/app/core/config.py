@@ -19,8 +19,10 @@ class Settings(BaseSettings):
     # Módulo de IA — poner IA_ENABLED=false en .env para desactivarlo
     IA_ENABLED: bool = True
 
-    # Logging
-    LOG_LEVEL: str = "DEBUG"
+    # Logging — L7: INFO por defecto (DEBUG vuelca payloads sensibles a stdout en prod).
+    # El contenido sensible (preguntas, MQL, resultados de Mongo, respuestas del LLM) está
+    # en DEBUG; INFO conserva solo telemetría operativa (counts, tokens, modos).
+    LOG_LEVEL: str = "INFO"
 
     class Config:
         env_file = str(_ENV_FILE)

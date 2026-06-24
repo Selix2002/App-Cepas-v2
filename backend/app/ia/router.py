@@ -119,7 +119,7 @@ class ChatController(Controller):
                     modelo_usado="security_filter",
                 )
 
-            logger.info(f"Procesando pregunta: '{pregunta[:100]}'")
+            logger.debug(f"Procesando pregunta: '{pregunta[:100]}'")  # L7: dato de usuario solo en DEBUG
 
             # Datos compartidos por ambos paths
             campos = await db_service.descubrir_campos_coleccion()
@@ -193,7 +193,8 @@ class ChatController(Controller):
             parser.set_campos_dinamicos(campos)
             parsed = parser.parse(pregunta)
 
-            logger.info(
+            # L7: filtros/términos derivan de la pregunta del usuario → solo en DEBUG
+            logger.debug(
                 f"🔍 Pregunta parseada → modo={parsed.modo} | "
                 f"filtros={parsed.filtros} | términos={parsed.terminos_detectados}"
             )

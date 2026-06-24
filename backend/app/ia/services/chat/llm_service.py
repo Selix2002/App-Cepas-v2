@@ -423,7 +423,7 @@ class LLMService:
 
         logger.info("━" * 60)
         logger.info("🔍 [MQL] GENERACIÓN DE QUERY")
-        logger.info(f"   Pregunta del usuario : {pregunta}")
+        logger.debug(f"   Pregunta del usuario : {pregunta}")  # L7: dato de usuario solo en DEBUG
         logger.info(f"   Schema enviado       : {schema_description}")
         logger.info(f"   Modelos (prioridad)  : {self.models}")
         logger.info(f"   Temperature          : 0 (determinístico)")
@@ -439,7 +439,7 @@ class LLMService:
             logger.info(f"   Modelo usado         : {modelo_usado}")
             logger.info(f"   Tokens prompt        : {usage.get('prompt_tokens')}")
             logger.info(f"   Tokens completion    : {usage.get('completion_tokens')}")
-            logger.info(f"📤 [MQL] Respuesta RAW del LLM:\n{raw_text}")
+            logger.debug(f"📤 [MQL] Respuesta RAW del LLM:\n{raw_text}")  # L7: salida del LLM solo en DEBUG
             self._dump_mql("2_query_response", {"raw": raw_text, "usage": usage})  # S17: gateado dentro del método
 
             # ── Paso 1: quitar code fences de markdown ───────────────────
@@ -470,7 +470,7 @@ class LLMService:
 
             query = json.loads(repaired)
             logger.info(f"   → Query parseada: type={query.get('type')}")
-            logger.info(f"📋 [MQL] Query generada:\n{json.dumps(query, ensure_ascii=False, indent=2)}")
+            logger.debug(f"📋 [MQL] Query generada:\n{json.dumps(query, ensure_ascii=False, indent=2)}")  # L7: MQL con valores de usuario solo en DEBUG
             logger.info("━" * 60)
             return query
 
@@ -529,10 +529,10 @@ class LLMService:
 
         logger.info("━" * 60)
         logger.info("📝 [MQL] FORMATEO DE RESULTADOS")
-        logger.info(f"   Pregunta             : {pregunta}")
+        logger.debug(f"   Pregunta             : {pregunta}")  # L7: dato de usuario solo en DEBUG
         logger.info(f"   Documentos de MongoDB: {query_results['count']}")
         logger.info(f"   Tipo de query        : {query_results['query_type']}")
-        logger.info(f"📦 [MQL] Resultados de MongoDB enviados al LLM:\n{results_str}")
+        logger.debug(f"📦 [MQL] Resultados de MongoDB enviados al LLM:\n{results_str}")  # L7: payload de Mongo solo en DEBUG
         self._dump_mql("3_formatter_request", payload_base)
 
         try:
@@ -543,7 +543,7 @@ class LLMService:
             logger.info(f"   Modelo usado         : {modelo_usado}")
             logger.info(f"   Tokens prompt        : {usage.get('prompt_tokens')}")
             logger.info(f"   Tokens completion    : {usage.get('completion_tokens')}")
-            logger.info(f"💬 [MQL] Respuesta final del LLM:\n{respuesta_texto}")
+            logger.debug(f"💬 [MQL] Respuesta final del LLM:\n{respuesta_texto}")  # L7: respuesta del LLM solo en DEBUG
             self._dump_mql("4_formatter_response", {"respuesta": respuesta_texto, "usage": usage})
             logger.info("━" * 60)
 

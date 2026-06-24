@@ -154,7 +154,7 @@ Auditoría completa del backend. Issues marcados con ✅ han sido corregidos.
 | S18 | ✅ | `dtos.py`, `routes_cepas.py`, `cepa_repository.py` | Constante `RESERVED_FIELDS` (`embedding`, `fecha_creacion`, `fecha_actualizacion`, `_id`, `id`). `add_attribute` rechaza (400) reservados + estructurados (`cepa`/`latitud`/`longitud`/`envio_punta_arenas`). `to_update_dict()` y `create()` stripean reservados colados vía `extra="allow"`. Verificado. |
 | S19 | — | `core/security.py:16-19` | JWT válido de un usuario borrado devuelve 404 (no 401); sin check `is_active`/revocación. Lanzar `NotAuthorizedException` y validar usuario activo. |
 | S20 | — | `login_rate_limit.py:122-140` | Contador por username incrementa en cada intento (incluido login exitoso y desde IPs atacantes) → DoS de bloqueo de cuenta sobre un username conocido (ej: `admin`). Contar solo intentos fallidos. |
-| S21 | — | `core/security.py:26` | `/schema` (Scalar/OpenAPI) excluido de auth y siempre servido → superficie de API pública en prod. Gatear tras `settings.debug` o auth. |
+| S21 | ✅ | `main.py`, `core/security.py` | **CORREGIDO (2026-06-24).** OpenAPI/Scalar gateado tras `settings.debug`: `main.py` pasa `openapi_config=... if settings.debug else None` → en prod (`debug=False`) la ruta `/schema` **no se registra** (404). `exclude` de auth en `security.py` también condicionado a debug por coherencia. Verificado: `debug=True` registra `/schema`, `debug=False` no. |
 
 ### Bugs
 
@@ -248,7 +248,7 @@ Diagnóstico del sistema de logging actual. Ninguno de estos issues ha sido corr
 | L4 | — | Sin correlation ID (A9): no se puede vincular el bloqueo del middleware con el request ni reconstruir la secuencia de acciones de una IP. |
 | L5 | `core/logging_config.py` | Logs en texto libre, no estructurado. Dificulta alertas automáticas, procesamiento con scripts y parseo por herramientas externas. |
 | L6 | `.gitignore` | **(mayormente mitigado)** `backend/.gitignore` sí tiene `*.log` y `temp/`; `git ls-files` confirma que no hay logs/env/temp trackeados. Falta solo el patrón explícito `logs/`. |
-| L7 | `core/config.py:23` | `LOG_LEVEL` default `"DEBUG"` → en prod el logger raíz corre en DEBUG y los servicios de IA loggean prompts completos, preguntas y resultados de MongoDB a stdout (datos sensibles). Default a INFO/WARNING. |
+| L7 ✅ | `core/config.py`, `main.py`, `ia/*` | **CORREGIDO (2026-06-23).** Default `LOG_LEVEL="INFO"`. Hallazgo clave: el contenido sensible estaba en `INFO`, no `DEBUG` → se bajaron a `DEBUG` las líneas que vuelcan pregunta de usuario, MQL generada, payload de Mongo, respuesta del LLM y nombres de cepa (`llm_service`, `router`, `dbSearch_service`). INFO conserva solo telemetría (counts/tokens/modos). `main.py` endurecido (`.upper()` + fallback). Verificado: con root INFO, lo sensible no emite. |
 
 ### Issues pendientes (por prioridad)
 

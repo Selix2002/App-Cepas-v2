@@ -21,7 +21,8 @@ rate_limit_logger = setup_logging()
 
 # Configurar logging
 logging.basicConfig(
-    level=getattr(logging, settings.LOG_LEVEL),
+    # L7: .upper() + fallback a INFO para que un LOG_LEVEL mal escrito en .env no tumbe el arranque
+    level=getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO),
     format='%(levelname)s - %(asctime)s - %(name)s - %(funcName)s - %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S'
 )
@@ -70,7 +71,8 @@ if settings.IA_ENABLED:
 # ── App ──────────────────────────────────────────────────────────────────────
 app = Litestar(
     route_handlers=route_handlers,
-    openapi_config=openapi_config,
+    # S21: OpenAPI/Scalar solo en debug. En prod (debug=False) la ruta /schema no existe → 404.
+    openapi_config=openapi_config if settings.debug else None,
     on_app_init=[oauth2_auth.on_app_init],
     on_startup=[init_db],
     cors_config=cors,

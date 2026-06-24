@@ -24,7 +24,7 @@ Auditoría completa de seguridad, bugs, rendimiento, arquitectura, frontend y ob
 | ~~**S18**~~ ✅ | MEDIA | `app/schema/dtos.py`, `app/api/routes_cepas.py`, `app/repositories/cepa_repository.py` | **CORREGIDO (2026-06-23).** Constante central `RESERVED_FIELDS` (`embedding`, `fecha_creacion`, `fecha_actualizacion`, `_id`, `id`). `add_attribute` rechaza (400) reservados + estructurados (`cepa`/`latitud`/`longitud`/`envio_punta_arenas`). `CepaUpdateDTO.to_update_dict()` y `CepaRepository.create()` stripean los reservados colados vía `extra="allow"`. Verificado: reservados/estructurados → 400, atributos personalizados → permitidos; extra interno → descartado del dict. | ✅ |
 | **S19** | BAJA | `app/core/security.py:16-19,33` | Un JWT válido de un usuario borrado devuelve 404 (no 401); sin check `is_active`/revocación → el token no expirado de un usuario eliminado sigue siendo distinguible/parcialmente usable. | Lanzar `NotAuthorizedException`; añadir check de cuenta activa. |
 | **S20** | BAJA | `app/middleware/login_rate_limit.py:122-140` | El contador por username incrementa en cada intento (incluidos logins exitosos y desde IPs atacantes), sin reset al éxito → DoS de bloqueo de cuenta sobre un username conocido (ej: `admin`). | Contar solo intentos fallidos; opcionalmente acotar por (username, IP). |
-| **S21** | BAJA | `app/core/security.py:26` | `/schema` (Scalar/OpenAPI) está excluido de auth y se sirve siempre → superficie completa de la API pública en producción. | Gatear tras `settings.debug` o auth. |
+| ~~**S21**~~ ✅ | BAJA | `app/main.py`, `app/core/security.py` | **CORREGIDO (2026-06-24).** `/schema` ya no se sirve en prod: `main.py` pasa `openapi_config=... if settings.debug else None` (ruta no registrada → 404 con `debug=False`); `exclude` de auth condicionado a debug. Verificado. | ✅ |
 | S12/S13/S14 | MED/BAJA | `input_validator_service.py:28-52`, `router.py:62-67` | **Pendientes confirmados:** regex de inyección sin normalización unicode; `_LEAK_INDICATORS` por substring; el preámbulo solapa los indicadores. | Según `CLAUDE.md`. |
 
 ---
@@ -90,7 +90,7 @@ Auditoría completa de seguridad, bugs, rendimiento, arquitectura, frontend y ob
 - **L4 [BAJA]** abierto — sin correlation/request ID; no se puede vincular un bloqueo del middleware con su request (A9).
 - **L5 [BAJA]** abierto — logs en texto libre, no estructurado.
 - **L6 [— mayormente mitigado]** — `backend/.gitignore` tiene `*.log` y `temp/`; `git ls-files` confirma que no hay logs/env/temp trackeados. Falta solo el patrón explícito `logs/`.
-- **L7 [BAJA] NUEVO** — `app/core/config.py:23` default `LOG_LEVEL="DEBUG"`; sin override, prod corre el logger raíz en DEBUG y los servicios de IA loggean prompts completos, preguntas y resultados de MongoDB a stdout (datos sensibles). Default a INFO/WARNING.
+- **L7 [BAJA→CRÍTICA en prod]** ✅ **CORREGIDO (2026-06-23)** — default `LOG_LEVEL="INFO"`. **Hallazgo clave durante el fix:** el contenido sensible (pregunta de usuario, MQL generada, payload completo de Mongo, respuesta del LLM, nombres de cepa) estaba en `logger.info`, **no** en DEBUG → bajar el default a INFO no bastaba. Se bajaron esas líneas a `logger.debug` en `llm_service.py`, `ia/router.py` y `dbSearch_service.py`; INFO conserva solo telemetría no sensible. `main.py` endurecido (`.upper()` + fallback a INFO). Verificado de punta a punta.
 
 ---
 

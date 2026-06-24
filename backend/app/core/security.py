@@ -23,7 +23,8 @@ oauth2_auth = OAuth2PasswordBearerAuth[User](
     retrieve_user_handler=retrieve_user_handler,
     token_secret=settings.secret_key.get_secret_value(),
     token_url="/auth/login",
-    exclude=["/auth/login", "/schema"],
+    # S21: /schema solo se excluye en debug; en prod la ruta ni siquiera se registra (ver main.py).
+    exclude=["/auth/login"] + (["/schema"] if settings.debug else []),
 )
 
 

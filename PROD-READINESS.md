@@ -23,7 +23,7 @@
 | `ALLOWED_ORIGINS` | `["http://localhost:5173", ...]` ⚠️ | **Cambiar** al origin real del frontend |
 | `IA_ENABLED` | `True` | Confirmado activo en prod |
 | `LOG_LEVEL` | `"DEBUG"` 🔴 | **Cambiar default a `INFO`** + fijar `LOG_LEVEL=INFO` en `.env` |
-| `/schema` (OpenAPI) | servido siempre 🔴 | Gatear tras `debug`/auth (S21) |
+| `/schema` (OpenAPI) | gateado tras `debug` ✅ | OK (S21 corregido: no se registra con `debug=False`) |
 
 ---
 
@@ -31,10 +31,11 @@
 
 Orden de ataque recomendado:
 
-- [ ] **1. L7 — `LOG_LEVEL=DEBUG` por defecto** · `[CRÍTICO]` · `core/config.py:23`
-  Con IA activa, en prod se vuelcan **prompts completos, preguntas de usuario y resultados de MongoDB a stdout**
-  → fuga activa de datos sensibles.
-  **Fix:** default a `INFO`/`WARNING` en `config.py` **y** `LOG_LEVEL=INFO` en el `.env` de prod. *(código + config, trivial)*
+- [x] **1. L7 — `LOG_LEVEL=DEBUG` por defecto** · `[CRÍTICO]` · ✅ **HECHO (2026-06-23)**
+  Con IA activa, en prod se vuelcan prompts, preguntas de usuario y resultados de MongoDB a stdout → fuga activa.
+  **Fix aplicado:** default `LOG_LEVEL="INFO"`; además se descubrió que el contenido sensible estaba en `INFO`
+  (no DEBUG) → se bajó a `DEBUG` en `llm_service`/`router`/`dbSearch`; `main.py` endurecido. Verificado.
+  **Pendiente en despliegue:** fijar `LOG_LEVEL=INFO` en el `.env` de prod (defensa adicional).
 
 - [ ] **2. Config de despliegue (`.env` de prod)** · `[bloqueante de funcionamiento]`
   - `ALLOWED_ORIGINS` = origin real del frontend (default `localhost` → CORS roto en prod).
@@ -42,8 +43,9 @@ Orden de ataque recomendado:
   - `GROQ_API_KEY` / `GROQ_MODELS` válidos (IA on).
   - Verificar Redis + Mongo accesibles (rate-limiters fail-closed → 503 si Redis cae).
 
-- [ ] **3. S21 — `/schema` (OpenAPI/Scalar) público** · `[ALTA]` · `core/security.py:26`
-  Expone toda la superficie de la API en prod. **Fix:** gatear tras `settings.debug` o auth. *(pequeño)*
+- [x] **3. S21 — `/schema` (OpenAPI/Scalar) público** · `[ALTA]` · ✅ **HECHO (2026-06-24)**
+  Exponía toda la superficie de la API en prod. **Fix aplicado:** `main.py` pasa `openapi_config=... if settings.debug else None`
+  → con `debug=False` la ruta `/schema` no se registra (404); `exclude` de auth condicionado a debug. Verificado.
 
 - [ ] **4. B22 — create de cepa: 500 tras insert exitoso / cepa sin embedding sin log** · `[MEDIA-ALTA]`
   `cepa_repository.py:75-82`, `routes_cepas.py:486-495`

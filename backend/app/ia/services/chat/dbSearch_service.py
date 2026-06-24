@@ -64,7 +64,7 @@ class DatabaseService:
         threshold: float = 0.3
     ) -> List[Cepa]:
         """Busca cepas similares usando embeddings"""
-        logger.info(f"🔍 Buscando cepas similares a: '{pregunta[:50]}...'")
+        logger.debug(f"🔍 Buscando cepas similares a: '{pregunta[:50]}...'")  # L7: dato de usuario solo en DEBUG
         logger.info(f"   Parámetros: limit={limit}, threshold={threshold}")
 
         try:
@@ -137,9 +137,10 @@ class DatabaseService:
         logger.info(f"✅ Incluidas: {len(resultados)} cepas (similitud >= {threshold})")
 
         if resultados:
-            logger.info("🏆 Top 3 más similares:")
+            # L7: nombres de cepa de los resultados solo en DEBUG
+            logger.debug("🏆 Top 3 más similares:")
             for i, (cepa, sim) in enumerate(resultados[:3], 1):
-                logger.info(f"   {i}. {cepa.cepa} - similitud: {sim:.4f}")
+                logger.debug(f"   {i}. {cepa.cepa} - similitud: {sim:.4f}")
 
         return [cepa for cepa, _ in resultados[:limit]]
 
@@ -243,10 +244,10 @@ class DatabaseService:
 
         logger.info("━" * 60)
         logger.info("🔀 BÚSQUEDA HÍBRIDA")
-        logger.info(f"   Pregunta:   '{pregunta[:80]}'")
+        logger.debug(f"   Pregunta:   '{pregunta[:80]}'")  # L7: dato de usuario solo en DEBUG
         logger.info(f"   Modo:       {parsed.modo}")
-        logger.info(f"   Filtros:    {parsed.filtros}")
-        logger.info(f"   Términos:   {parsed.terminos_detectados}")
+        logger.debug(f"   Filtros:    {parsed.filtros}")  # L7: derivado de la pregunta → solo DEBUG
+        logger.debug(f"   Términos:   {parsed.terminos_detectados}")  # L7: derivado de la pregunta → solo DEBUG
         logger.info(f"   Total DB:   {total_db} cepas")
         logger.info("━" * 60)
 
