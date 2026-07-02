@@ -1,6 +1,6 @@
 # backend/app/main.py
 
-from litestar import Litestar
+from litestar import Litestar, get
 from litestar.config.cors import CORSConfig
 from litestar.openapi.config import OpenAPIConfig
 from litestar.openapi.plugins import ScalarRenderPlugin
@@ -39,8 +39,13 @@ openapi_config = OpenAPIConfig(
     path="/schema",
 )
 
+@get("/health")
+async def health_check() -> dict[str, str]:
+    return {"status": "ok"}
+
+
 # ── Route handlers y middleware base ────────────────────────────────────────
-route_handlers = [CepaController, UserController, AuthController]
+route_handlers = [health_check, CepaController, UserController, AuthController]
 
 middleware = [
     DefineMiddleware(
@@ -48,7 +53,7 @@ middleware = [
         max_requests=5,
         window_seconds=60,
         redis_client=redis_client,
-        trusted_proxies={"127.0.0.1"},
+        trusted_proxies=settings.trusted_proxies_set,
     ),
 ]
 
@@ -56,7 +61,7 @@ middleware = [
 if settings.IA_ENABLED:
     from app.ia import get_ia_route_handlers, get_ia_middleware
     route_handlers += get_ia_route_handlers()
-    middleware += get_ia_middleware(redis_client, trusted_proxies={"127.0.0.1"})
+    middleware += get_ia_middleware(redis_client, trusted_proxies=settings.trusted_proxies_set)
 
 # ── App ──────────────────────────────────────────────────────────────────────
 app = Litestar(

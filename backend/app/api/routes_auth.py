@@ -12,21 +12,22 @@ from litestar.enums import RequestEncodingType
 
 from app.schema.auth_dto import LoginDTO
 from app.repositories.user_repository import UserRepository
+from app.core.config import settings
 from app.core.security import oauth2_auth
 from app.services.auth_service import authenticate_user
 
 # L1: los eventos de login son de seguridad → al logger que persiste a archivo (rate_limit.log)
 rate_logger = logging.getLogger("rate_limit")
 
-# Mismo set de proxies confiables que los middlewares (S6/S16). Honra X-Forwarded-For
-# solo si la conexión directa viene de un proxy confiable; si no, usa la IP del socket.
-_TRUSTED_PROXIES = {"127.0.0.1"}
-
 
 def _client_ip(request: Request) -> str:
+    # Mismo set de proxies confiables que los middlewares (S6/S16), vía settings.TRUSTED_PROXIES.
+    # Honra X-Forwarded-For solo si la conexión directa viene de un proxy confiable
+    # (o si TRUSTED_PROXIES="*"); si no, usa la IP del socket.
+    trusted = settings.trusted_proxies_set
     client = request.client
     direct_ip = client.host if client else None
-    if direct_ip in _TRUSTED_PROXIES:
+    if "*" in trusted or direct_ip in trusted:
         xff = request.headers.get("x-forwarded-for")
         if xff and xff.split(",")[0].strip():
             return xff.split(",")[0].strip()

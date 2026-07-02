@@ -152,7 +152,7 @@ class LoginRateLimitMiddleware:
         client = scope.get("client")
         direct_ip = client[0] if client and isinstance(client, tuple) else None
 
-        if direct_ip in self.trusted_proxies:
+        if "*" in self.trusted_proxies or direct_ip in self.trusted_proxies:
             headers_dict = {k.lower(): v for k, v in scope.get("headers", [])}
             xff = headers_dict.get(b"x-forwarded-for")
             if xff:

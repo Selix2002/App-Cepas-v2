@@ -12,9 +12,19 @@ class Settings(BaseSettings):
     mongodb_uri: str = "mongodb://localhost:27017"
     db_name: str = "cepas_db"
     secret_key: SecretStr  # S2: required — set SECRET_KEY in .env
+    redis_url: str = "redis://localhost:6379/0"  # set REDIS_URL in .env for hosted Redis
 
     # CORS — set ALLOWED_ORIGINS in .env as JSON array
     ALLOWED_ORIGINS: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
+
+    # Proxies de confianza para resolver la IP real del cliente vía X-Forwarded-For
+    # (comma-separated). "*" = confiar siempre, sin chequear la IP directa — usar solo
+    # en plataformas donde el contenedor no es alcanzable salvo por su propio proxy (Render).
+    TRUSTED_PROXIES: str = "127.0.0.1"
+
+    @property
+    def trusted_proxies_set(self) -> set[str]:
+        return {p.strip() for p in self.TRUSTED_PROXIES.split(",") if p.strip()}
 
     # Módulo de IA — poner IA_ENABLED=false en .env para desactivarlo
     IA_ENABLED: bool = True

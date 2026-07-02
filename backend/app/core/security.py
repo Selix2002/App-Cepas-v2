@@ -26,7 +26,8 @@ oauth2_auth = OAuth2PasswordBearerAuth[User](
     token_secret=settings.secret_key.get_secret_value(),
     token_url="/auth/login",
     # S21: /schema solo se excluye en debug; en prod la ruta ni siquiera se registra (ver main.py).
-    exclude=["/auth/login"] + (["/schema"] if settings.debug else []),
+    # /health es público — lo usa el health check de la plataforma de despliegue (Render).
+    exclude=["/auth/login", "/health"] + (["/schema"] if settings.debug else []),
 )
 
 

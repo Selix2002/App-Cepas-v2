@@ -16,4 +16,17 @@ dependencies = [
     "httpx>=0.28.1",
     "sentence-transformers>=5.2.3",
     "openpyxl>=3.1.5",
+    "torch>=2.0.0", # pineado explícito para forzar la variante CPU-only (ver tool.uv.sources)
 ]
+
+# torch trae por defecto la build con soporte CUDA (varios GB); la app solo hace
+# inferencia CPU vía sentence-transformers, así que se fuerza el índice CPU-only.
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-cpu" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
