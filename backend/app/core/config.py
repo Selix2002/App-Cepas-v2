@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     mongodb_uri: str = "mongodb://localhost:27017"
     db_name: str = "cepas_db"
     secret_key: SecretStr  # S2: required — set SECRET_KEY in .env
+    redis_url: str = "redis://localhost:6379/0"  # set REDIS_URL in .env for hosted Redis
 
     # CORS — set ALLOWED_ORIGINS in .env as JSON array
     ALLOWED_ORIGINS: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
