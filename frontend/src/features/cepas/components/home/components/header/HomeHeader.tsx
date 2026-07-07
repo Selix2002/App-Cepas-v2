@@ -4,6 +4,7 @@ import { Link } from "react-router-dom"
 import { Moon, Sun } from "lucide-react"
 import type { CepaColumnDef } from "../../../../types/tableTypes"
 import { useTheme } from "../../../../../../app/ThemeContext"
+import { IA_ENABLED } from "../../../../../../shared/config/features"
 import "./header.css"
 
 type HomeHeaderProps = {
@@ -127,7 +128,8 @@ export default function HomeHeader({
                 )}
 
 
-                {/* chat IA */}
+                {/* chat IA — oculto cuando IA_ENABLED=false (CPU sin soporte para el stack de IA) */}
+                {IA_ENABLED && (
                 <button
                     className={`hdr-btn hdr-btn-chat${chatOpen ? " active" : ""}`}
                     onClick={(e) => { addRipple(e); onToggleChat() }}
@@ -135,6 +137,7 @@ export default function HomeHeader({
                 >
                     IA Chat
                 </button>
+                )}
 
                 {/* crear nuevo — solo admin */}
                 {isAdmin && (
@@ -152,7 +155,7 @@ export default function HomeHeader({
                                     { to: "/home/addcepa", label: "🧫 Nueva Cepa" },
                                     { to: "/home/addatribute", label: "🧬 Nuevo Atributo" },
                                     { to: "/home/UserManagement", label: "👤 Nuevo Usuario" },
-                                    { to: "/home/FeedbackIA", label: "📊 Feedback IA" },
+                                    ...(IA_ENABLED ? [{ to: "/home/FeedbackIA", label: "📊 Feedback IA" }] : []),
                                 ].map(({ to, label }) => (
                                     <Link
                                         key={to}

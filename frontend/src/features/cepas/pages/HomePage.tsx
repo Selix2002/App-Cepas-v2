@@ -26,6 +26,7 @@ import MapBottomSheetSection from "../components/home/components/map/MapBottomSh
 import CepasSidebar          from "../components/CepasTable/CepasSideBar"
 import CepasTable            from "../components/CepasTable/CepasTable"
 import ChatPanel             from "../components/home/components/chat/ChatPanel"
+import { IA_ENABLED }        from "../../../shared/config/features"
 import "./home-page.css"
 
 export function HomePage() {
@@ -174,15 +175,17 @@ export function HomePage() {
         onPointDblClick={map.handleMapPointDblClick}
       />
 
-      <ChatPanel
-        open={chatOpen}
-        onClose={() => setChatOpen(false)}
-        messages={chat.messages}
-        isLoading={chat.isLoading}
-        onSend={chat.sendMessage}
-        onClear={chat.clearMessages}
-        onApplyFilters={handleApplyFilters}
-      />
+      {IA_ENABLED && (
+        <ChatPanel
+          open={chatOpen}
+          onClose={() => setChatOpen(false)}
+          messages={chat.messages}
+          isLoading={chat.isLoading}
+          onSend={chat.sendMessage}
+          onClear={chat.clearMessages}
+          onApplyFilters={handleApplyFilters}
+        />
+      )}
     </>
   )
 }

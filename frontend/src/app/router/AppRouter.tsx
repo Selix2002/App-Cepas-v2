@@ -4,6 +4,7 @@ import { Suspense, lazy } from "react";
 import LoginPage from '../../features/auth/pages/LoginPage';
 import PrivateRoute from './PrivateRoute';
 import AdminRoute from './AdminRoute';
+import { IA_ENABLED } from '../../shared/config/features';
 import './app-router.css';
 
 const HomePage = lazy(() => import("../../features/cepas/pages/HomePage"));
@@ -24,7 +25,8 @@ export default function AppRouter() {
             <Route path="/home/addcepa"        element={<NewCepaPage />} />
             <Route path="/home/addatribute"    element={<NewAtributePage />} />
             <Route path="/home/UserManagement" element={<UserManagementPage />} />
-            <Route path="/home/FeedbackIA"     element={<FeedbackPage />} />
+            {/* IA off → la ruta de Feedback IA no se registra */}
+            {IA_ENABLED && <Route path="/home/FeedbackIA"     element={<FeedbackPage />} />}
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />
