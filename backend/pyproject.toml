@@ -16,4 +16,15 @@ dependencies = [
     "httpx>=0.28.1",
     "sentence-transformers>=5.2.3",
     "openpyxl>=3.1.5",
+    "torch>=2.10.0",  # se resuelve desde el índice CPU (server sin GPU) — ver [tool.uv.sources]
 ]
+
+# Server sin GPU → torch en su build CPU (evita ~2-3 GB de nvidia-*/cuda-*/triton que
+# nunca se cargan). El índice se marca explicit=true para usarlo SOLO para torch.
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu" }]
