@@ -49,9 +49,11 @@ class ValidationResult:
 
 class InputValidatorService:
 
-    # Patrones de prompt injection
+    # Patrones de prompt injection.
+    # NOTA: se matchean contra texto_norm, que ya está en minúsculas (_normalize_for_checks) →
+    # estos patrones deben estar en minúsculas (antes "\[INST\]" nunca podía matchear "[inst]").
     _INJECTION_PATTERNS = [
-        r"ignora\s+(las\s+)?instrucciones",
+        r"ignora\s+((las|tus|sus|mis|nuestras)\s+)?instrucciones",
         r"olvida\s+(lo\s+)?anterior",
         r"act[uú]a\s+como",
         r"nuevo\s+rol",
@@ -59,7 +61,9 @@ class InputValidatorService:
         r"\bjailbreak\b",
         r"\bdan\s+mode\b",
         r"<\s*system\s*>",
-        r"\[INST\]",
+        r"\[inst\]",
+        r"<\|im_start\|>",
+        r"<\|im_end\|>",
         r"\bprompt\s*:",
         r"system\s*prompt",
         r"ignora\s+todo",
@@ -111,7 +115,9 @@ class InputValidatorService:
     def __init__(self) -> None:
         self._embedding_service = get_embedding_service()
         logger.info("🛡️  Cargando anclas semánticas del dominio...")
-        self._anchor_embeddings = self._embedding_service.encode_batch(self._DOMAIN_ANCHORS)
+        self._anchor_embeddings = self._embedding_service.encode_batch(
+            self._DOMAIN_ANCHORS, "search_document"
+        )
         logger.info(f"✅ InputValidatorService listo ({len(self._DOMAIN_ANCHORS)} anclas)")
 
     async def validate(self, pregunta: str, domain_threshold: float) -> ValidationResult:
@@ -150,7 +156,9 @@ class InputValidatorService:
                 )
 
         # ── 4. Similitud semántica con el dominio ─────────────────────────────
-        query_embedding = await asyncio.to_thread(self._embedding_service.encode, pregunta)
+        query_embedding = await asyncio.to_thread(
+            self._embedding_service.encode, pregunta, "search_query"
+        )
         similitudes = [
             self._embedding_service.cosine_similarity(query_embedding, anchor)
             for anchor in self._anchor_embeddings

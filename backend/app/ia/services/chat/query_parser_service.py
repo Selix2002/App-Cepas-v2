@@ -3,11 +3,20 @@
 import re
 import time
 import logging
+import unicodedata
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+
+def _invertir_alias_antibiotico(aliases: dict[str, str]) -> dict[str, list[str]]:
+    """nombre_antibiotico → campo  pasa a  campo → [nombres de antibiótico]."""
+    inverso: dict[str, list[str]] = {}
+    for nombre, campo in aliases.items():
+        inverso.setdefault(campo, []).append(nombre)
+    return inverso
 
 # ---------------------------------------------------------------------------
 # Resultado del parser
@@ -104,6 +113,41 @@ class QueryParserService:
         "enviaron", "enviar",
     ]
 
+    # Nombre completo del antibiótico → código de campo real en la colección.
+    # Los campos de antibiograma son códigos de 1-3 letras (c=cloranfenicol,
+    # s=estreptomicina, k=kanamicina, do=doxiciclina, ...) que como substring aparecían
+    # en casi cualquier oración en español (cualquier plural termina en "s") y empujaban
+    # preguntas puramente semánticas hacia el modo "híbrido". Con el fix a word-boundary
+    # en _parse_campos_dinamicos ya no hay falsos positivos, pero sin este alias tampoco
+    # se detectaría "resistente a cloranfenicol" (el código corto "c" no aparece literal
+    # en la pregunta) — este mapeo cubre ambos casos.
+    _ANTIBIOTICO_ALIASES: dict[str, str] = {
+        "ampicilina": "amp",
+        "amoxicilina": "amc_aml",
+        "acido clavulanico": "amc_aml",
+        "clavulanico": "amc_aml",
+        "cefepime": "fep",
+        "cefepima": "fep",
+        "cefotaxima": "ctx",
+        "cefuroxima": "cxm",
+        "ceftazidima": "caz",
+        "ertapenem": "etp",
+        "imipenem": "i_r",
+        "gentamicina": "cn",
+        "amikacina": "ak",
+        "kanamicina": "k",
+        "estreptomicina": "s",
+        "streptomicina": "s",
+        "acido nalidixico": "na_nd",
+        "nalidixico": "na_nd",
+        "cloranfenicol": "c",
+        "azitromicina": "azm",
+        "tetraciclina": "te",
+        "doxiciclina": "do",
+        "doxaciclina": "do",
+    }
+    _ALIASES_POR_CAMPO: dict[str, list[str]] = _invertir_alias_antibiotico(_ANTIBIOTICO_ALIASES)
+
     def __init__(self) -> None:
         self._campos_dinamicos: list[str] = []
 
@@ -121,8 +165,15 @@ class QueryParserService:
     # Método principal
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _sin_acentos(texto: str) -> str:
+        """Quita acentos combinados (á→a, í→i, ...) para que el matching de nombres de
+        antibiótico/campo sea accent-insensitive sin importar cómo los tipee el usuario."""
+        nfkd = unicodedata.normalize("NFKD", texto)
+        return "".join(c for c in nfkd if not unicodedata.combining(c))
+
     def parse(self, pregunta: str) -> ParsedQuery:
-        texto = pregunta.lower()
+        texto = self._sin_acentos(pregunta.lower())
         filtros: dict[str, Any] = {}
         terminos: list[str] = []
 
@@ -305,10 +356,22 @@ class QueryParserService:
     def _parse_campos_dinamicos(
         self, texto: str, filtros: dict, terminos: list
     ) -> None:
-        """Busca coincidencias entre la pregunta y los campos dinámicos de la colección."""
+        """Busca coincidencias entre la pregunta y los campos dinámicos de la colección.
+
+        Usa \\b (word boundary) en vez de substring crudo: con substring, los campos de
+        antibiograma de 1-3 letras (c=cloranfenicol, s=estreptomicina, k=kanamicina, ...)
+        matcheaban casi cualquier pregunta en español (p.ej. cualquier plural termina en
+        "s"), empujando preguntas puramente conceptuales hacia el modo "híbrido" en vez de
+        "semántico". Además reconoce el nombre completo del antibiótico
+        (_ANTIBIOTICO_ALIASES) para no perder detección real: "resistente a cloranfenicol"
+        debe seguir mapeando al campo "c" aunque el código corto no aparezca literal.
+        """
         for campo in self._campos_dinamicos:
             campo_legible = campo.replace("_", " ").lower()
-            if campo_legible not in texto and campo.lower() not in texto:
+            candidatos = {campo_legible, campo.lower()} | set(
+                self._ALIASES_POR_CAMPO.get(campo, [])
+            )
+            if not any(re.search(rf"\b{re.escape(c)}\b", texto) for c in candidatos):
                 continue
             if re.search(self._POSITIVO_RE, texto):
                 filtros[campo] = {"$in": ["+", "++", "+++", "si", "sí", "yes", "positivo"]}

@@ -20,6 +20,15 @@ class Settings(BaseSettings):
     # Módulo de IA — poner IA_ENABLED=false en .env para desactivarlo
     IA_ENABLED: bool = True
 
+    # Motor de embeddings — intercambiable por env (parche CPU-sin-AVX de la VM de prod).
+    # "cohere": llamadas HTTP a Cohere API (sin numpy/torch → corre en cualquier CPU).
+    # "local":  sentence-transformers local (requiere el extra `local-embeddings`).
+    # Va aquí y no en ia/config.py porque el import/create de cepas lo usa y no debe
+    # depender de GROQ_API_KEY (que IaSettings exige).
+    EMBEDDING_PROVIDER: str = "local"
+    COHERE_API_KEY: str | None = None
+    COHERE_EMBED_MODEL: str = "embed-multilingual-v3.0"  # 1024 dims, multilingüe
+
     # Logging — L7: INFO por defecto (DEBUG vuelca payloads sensibles a stdout en prod).
     # El contenido sensible (preguntas, MQL, resultados de Mongo, respuestas del LLM) está
     # en DEBUG; INFO conserva solo telemetría operativa (counts, tokens, modos).

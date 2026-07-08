@@ -24,6 +24,7 @@ from app.schema.dtos import (
     PaginatedCepasDTO,
     CepaFilterParams,
     RESERVED_FIELDS,
+    HIDDEN_FIELDS,
 )
 from app.repositories.cepa_repository import (
     CepaRepository,
@@ -449,6 +450,14 @@ class CepaController(Controller):
         dynamic_labels = _collect_dynamic_labels(raw_rows)
         parsed_rows = _parse_rows(raw_rows)
 
+        # Campos deshabilitados (ver HIDDEN_FIELDS en dtos.py): se descartan recién acá,
+        # después de que _parse_rows ya hizo el matching de alias + parseo de fecha, para
+        # no tocar esa lógica — solo el valor final no llega a persistirse.
+        if HIDDEN_FIELDS:
+            for doc in parsed_rows:
+                for field in HIDDEN_FIELDS:
+                    doc.pop(field, None)
+
         if settings.debug:
             print(f"[DEBUG][import] filas a insertar: {len(parsed_rows)}")
 
@@ -475,53 +484,63 @@ class CepaController(Controller):
         if dynamic_labels:
             await _upsert_column_labels(dynamic_labels)
 
-        results: list[ImportRowResult] = []
-        # B22: si el embedding falla de forma sistémica (modelo caído/OOM o IA off), se
-        # loggea UNA vez y se dejan de intentar embeddings en las filas restantes → evita
-        # spam de logs y N encode() desperdiciados. Las cepas se siguen creando sin embedding.
-        embeddings_disabled = False
+        # Resultados indexados por fila → preservan el orden original del archivo
+        # aunque los embeddings se generen en un batch aparte.
+        results: list[ImportRowResult | None] = [None] * len(parsed_rows)
+        to_create: list[tuple[int, Cepa]] = []
 
-        for doc in parsed_rows:
+        # ── Fase 1: clasificar filas (duplicado / error de validación / a crear) ──────
+        for idx, doc in enumerate(parsed_rows):
             cepa_name = doc.get("cepa", "")
             try:
                 existing = await Cepa.find_one(Cepa.cepa == cepa_name)
                 if existing:
                     if settings.debug:
                         print(f"[DEBUG][import] duplicada: {cepa_name!r}")
-                    results.append(ImportRowResult(cepa=cepa_name, status="duplicate"))
+                    results[idx] = ImportRowResult(cepa=cepa_name, status="duplicate")
                     continue
-
-                cepa_obj = Cepa(**doc)
-
-                # B22: embedding best-effort ANTES del insert (1 sola escritura).
-                # Un fallo NO aborta el alta (la fila queda "created" sin embedding).
-                if not embeddings_disabled:
-                    try:
-                        from app.ia.services.chat.embedding_service import get_embedding_service
-                        from app.ia.services.chat.dbSearch_service import DatabaseService
-                        cepa_obj.embedding = await asyncio.to_thread(
-                            get_embedding_service().encode,
-                            DatabaseService._cepa_a_texto(cepa_obj),
-                        )
-                    except ImportError:
-                        embeddings_disabled = True  # módulo IA no disponible (esperado)
-                    except Exception as e:
-                        logger.warning(
-                            "Importación: no se pudieron generar embeddings, "
-                            "se continúa sin ellos (regenerables luego): %s", e
-                        )
-                        embeddings_disabled = True
-
-                await cepa_obj.insert()
-
-                if settings.debug:
-                    print(f"[DEBUG][import] creada: {cepa_name!r}")
-                results.append(ImportRowResult(cepa=cepa_name, status="created"))
-
+                to_create.append((idx, Cepa(**doc)))
             except Exception as e:
                 if settings.debug:
                     print(f"[DEBUG][import] error en {cepa_name!r}: {e}")
-                results.append(ImportRowResult(cepa=cepa_name, status="error", error=str(e)))
+                results[idx] = ImportRowResult(cepa=cepa_name, status="error", error=str(e))
+
+        # ── Fase 2: embeddings en UN solo batch (no fila por fila) ────────────────────
+        # Genera todos los embeddings con una sola llamada al provider (Cohere: 1 request
+        # para ≤96 textos) → no agota la capa gratuita. B22: best-effort — si falla, las
+        # cepas se insertan igual sin embedding (regenerables luego); ImportError = módulo
+        # IA / provider no disponible (IA off), esperado y silencioso.
+        if to_create:
+            try:
+                from app.ia.services.chat.embedding_service import get_embedding_service
+                from app.ia.services.chat.dbSearch_service import DatabaseService
+                textos = [DatabaseService._cepa_a_texto(obj) for _, obj in to_create]
+                embeddings = await asyncio.to_thread(
+                    get_embedding_service().encode_batch, textos, "search_document"
+                )
+                for (_, obj), emb in zip(to_create, embeddings):
+                    obj.embedding = emb
+            except ImportError:
+                pass
+            except Exception as e:
+                logger.warning(
+                    "Importación: no se pudieron generar embeddings en batch, "
+                    "se insertan sin ellos (regenerables luego): %s", e
+                )
+
+        # ── Fase 3: insertar (fila por fila para conservar el reporte granular) ───────
+        for idx, obj in to_create:
+            try:
+                await obj.insert()
+                if settings.debug:
+                    print(f"[DEBUG][import] creada: {obj.cepa!r}")
+                results[idx] = ImportRowResult(cepa=obj.cepa, status="created")
+            except Exception as e:
+                if settings.debug:
+                    print(f"[DEBUG][import] error en {obj.cepa!r}: {e}")
+                results[idx] = ImportRowResult(cepa=obj.cepa, status="error", error=str(e))
+
+        results = [r for r in results if r is not None]
 
         return ImportResultDTO(
             created=sum(1 for r in results if r.status == "created"),

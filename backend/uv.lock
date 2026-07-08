@@ -50,10 +50,14 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "pyjwt" },
     { name = "redis" },
+    { name = "uvicorn" },
+]
+
+[package.optional-dependencies]
+local-embeddings = [
     { name = "sentence-transformers" },
     { name = "torch", version = "2.12.1", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "sys_platform == 'darwin'" },
     { name = "torch", version = "2.12.1+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "sys_platform != 'darwin'" },
-    { name = "uvicorn" },
 ]
 
 [package.metadata]
@@ -67,10 +71,11 @@ requires-dist = [
     { name = "pydantic-settings" },
     { name = "pyjwt", specifier = ">=2.11.0" },
     { name = "redis", specifier = ">=7.2.0" },
-    { name = "sentence-transformers", specifier = ">=5.2.3" },
-    { name = "torch", specifier = ">=2.10.0", index = "https://download.pytorch.org/whl/cpu" },
+    { name = "sentence-transformers", marker = "extra == 'local-embeddings'", specifier = ">=5.2.3" },
+    { name = "torch", marker = "extra == 'local-embeddings'", specifier = ">=2.10.0", index = "https://download.pytorch.org/whl/cpu" },
     { name = "uvicorn" },
 ]
+provides-extras = ["local-embeddings"]
 
 [[package]]
 name = "bcrypt"

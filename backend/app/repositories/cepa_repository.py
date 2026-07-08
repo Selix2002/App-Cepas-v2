@@ -12,6 +12,7 @@ from app.schema.dtos import (
     CepaUpdateDTO,
     CepaFilterParams,
     RESERVED_FIELDS,
+    HIDDEN_FIELDS,
 )
 
 
@@ -71,7 +72,11 @@ class CepaRepository:
             raise CepaAlreadyExistsError(f"Ya existe una cepa con nombre '{dto.cepa}'")
 
         # S18: descarta campos internos colados vía extra="allow" (embedding, fecha_*, _id)
-        data = {k: v for k, v in dto.model_dump().items() if k not in RESERVED_FIELDS}
+        # + campos deshabilitados (HIDDEN_FIELDS, ver dtos.py)
+        data = {
+            k: v for k, v in dto.model_dump().items()
+            if k not in RESERVED_FIELDS and k not in HIDDEN_FIELDS
+        }
         lat, lon = resolve_coords_from_origen(data.get("origen"), data.get("latitud"), data.get("longitud"))
         data["latitud"] = lat
         data["longitud"] = lon
@@ -87,7 +92,9 @@ class CepaRepository:
             # B20: encode() es CPU-bound y síncrono; to_thread evita bloquear el event loop
             texto = DatabaseService._cepa_a_texto(cepa)
             embedding_service = get_embedding_service()
-            cepa.embedding = await asyncio.to_thread(embedding_service.encode, texto)
+            cepa.embedding = await asyncio.to_thread(
+                embedding_service.encode, texto, "search_document"
+            )
         except ImportError:
             pass  # módulo IA no disponible (IA_ENABLED=false) → alta sin embedding, esperado
         except Exception as e:
@@ -169,7 +176,9 @@ class CepaRepository:
             # B20: encode() es CPU-bound y síncrono; to_thread evita bloquear el event loop
             texto = DatabaseService._cepa_a_texto(cepa)
             embedding_service = get_embedding_service()
-            cepa.embedding = await asyncio.to_thread(embedding_service.encode, texto)
+            cepa.embedding = await asyncio.to_thread(
+                embedding_service.encode, texto, "search_document"
+            )
             await cepa.save()
         except ImportError:
             pass  # módulo IA no disponible (IA_ENABLED=false) → esperado

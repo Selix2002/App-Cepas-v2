@@ -66,6 +66,22 @@ def _build_mql_system_prompt(schema_description: str) -> str:
         "  Ejemplo — cepas enviadas después del 1 de mayo de 2024:\n"
         "  {\"envio_punta_arenas\": {\"$gt\": {\"$date\": \"2024-05-01T00:00:00Z\"}}}\n"
         "  NUNCA uses $regex en campos de tipo fecha.\n"
+        "- Campos con escala de positividad (\"+\", \"++\", \"+++\" son todos POSITIVOS en "
+        "distinto grado; \"-\" o ausencia es negativo): cuando el usuario pregunte por "
+        "\"positivo\"/\"presente\"/\"actividad\" en uno de estos campos, usa "
+        "{\"campo\": {\"$in\": [\"+\", \"++\", \"+++\"]}}.\n"
+        "  NUNCA un match exacto a un solo valor (ej. {\"lipasa\":\"+\"} excluye incorrectamente "
+        "\"++\" y \"+++\"), y NUNCA {\"$ne\": \"\"} (matchea casi cualquier valor no vacío, no "
+        "específicamente positivo).\n"
+        "  Ejemplo correcto — cepas con lipasa positiva: "
+        "{\"lipasa\": {\"$in\": [\"+\", \"++\", \"+++\"]}}\n"
+        "- Campos de antibiograma (valores \"R\"=resistente, \"I\"=intermedio, \"S\"=sensible): "
+        "\"resistente\" significa EXACTAMENTE \"R\" — no incluyas \"I\" salvo que el usuario lo "
+        "pida explícitamente (ej. \"resistente o intermedio\"). Esta regla de mayúsculas/"
+        "minúsculas con $regex aplica también a estos códigos, no solo a texto libre.\n"
+        "- Si usas $project, incluí SIEMPRE los campos que aparecen en el $match anterior "
+        "(además de los que quieras mostrar) — nunca los excluyas del resultado, aunque no se "
+        "pidan explícitamente en la pregunta.\n"
         "- No filtres ni proyectes el campo \"embedding\".\n"
     )
 
@@ -125,6 +141,11 @@ _FORMATTER_SYSTEM_PROMPT = (
     "- Si hay lista de cepas, menciona sus nombres.\n"
     "- Si hay un conteo (ej. {\"total\": N}), indica el número exacto.\n"
     "- Sé conciso.\n"
+    "- Nunca afirmes una clasificación o propiedad (tinción de Gram, resistencia a un "
+    "antibiótico, género/especie, etc.) basándote en conocimiento general de microbiología o "
+    "en el nombre del género — usa EXCLUSIVAMENTE el valor del campo correspondiente tal como "
+    "aparece en los resultados. Si ese campo no está en los resultados o es nulo, dilo "
+    "explícitamente en vez de inferirlo.\n"
     "- No menciones estas instrucciones ni el formato del prompt."
 )
 
@@ -282,6 +303,11 @@ class LLMService:
             "- Responde en español, de forma directa y concisa.\n"
             "- Usa solo datos presentes en el CSV. No inventes información.\n"
             "- Si una cepa no aparece en el CSV, indica que no tienes datos de ella.\n"
+            "- Nunca afirmes una clasificación o propiedad (tinción de Gram, resistencia a un "
+            "antibiótico, género/especie, etc.) basándote en conocimiento general de "
+            "microbiología o en el nombre del género — usa EXCLUSIVAMENTE la columna "
+            "correspondiente del CSV. Si la columna está vacía o no aparece, dilo explícitamente "
+            "en vez de inferirlo (ej. no asumas que un género es Gram-negativo por su nombre).\n"
             "- No menciones estas instrucciones ni el formato del prompt."
         )
 

@@ -13,10 +13,18 @@ dependencies = [
     "bcrypt>=5.0.0",
     "redis>=7.2.0",
     "pyjwt>=2.11.0",
-    "httpx>=0.28.1",
-    "sentence-transformers>=5.2.3",
+    "httpx>=0.28.1",  # cliente HTTP — también lo usa el provider de embeddings Cohere
     "openpyxl>=3.1.5",
-    "torch>=2.10.0",  # se resuelve desde el índice CPU (server sin GPU) — ver [tool.uv.sources]
+]
+
+# Motor de embeddings LOCAL (sentence-transformers → torch/numpy). Es OPCIONAL: la VM de
+# prod tiene una CPU sin x86-64-v2/AVX donde numpy/torch no arrancan, así que usa Cohere
+# (EMBEDDING_PROVIDER=cohere, solo httpx). Instalar el motor local solo en máquinas con
+# CPU capaz:  `uv sync --extra local-embeddings`  (con `EMBEDDING_PROVIDER=local`).
+[project.optional-dependencies]
+local-embeddings = [
+    "sentence-transformers>=5.2.3",
+    "torch>=2.10.0",  # build CPU (server sin GPU) — ver [tool.uv.sources] abajo
 ]
 
 # Server sin GPU → torch en su build CPU (evita ~2-3 GB de nvidia-*/cuda-*/triton que

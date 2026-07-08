@@ -19,14 +19,14 @@ from pathlib import Path
 
 import httpx
 
-from prompts import PROMPTS
+from backend.tests.legacy.prompts import PROMPTS
 
 # ---------------------------------------------------------------------------
 # Configuración por defecto
 # ---------------------------------------------------------------------------
 DEFAULT_URL   = "http://localhost:8000"
 DEFAULT_USER  = "sebas"
-DEFAULT_PASS  = "sebas1234"
+DEFAULT_PASS  = "sebas123"
 DEFAULT_DELAY = 7  # segundos entre preguntas
 
 

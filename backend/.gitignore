@@ -11,3 +11,6 @@ app/scripts/
 /graphify-out
 /data
 /tests/resultados
+
+resultados_absoluto.json
+resultados_absoluto2.json

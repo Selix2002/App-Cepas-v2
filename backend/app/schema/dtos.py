@@ -8,6 +8,14 @@ from datetime import datetime
 # mass-assignment (extra="allow"). Se stripean en los DTOs y se rechazan en add_attribute.
 RESERVED_FIELDS = frozenset({"embedding", "fecha_creacion", "fecha_actualizacion", "_id", "id"})
 
+# Campos deshabilitados por decisión de producto (2026-07): dejan de leerse/escribirse vía
+# API (tabla/alta en el front, create/update/import en el back), pero el campo del modelo
+# Beanie y TODA la lógica que lo rodea (query_parser_service, schema_service, dbSearch_service,
+# migrate_envio_punta_arenas.py) se conservan intactos por si se reactivan en el futuro. Se
+# stripean junto a RESERVED_FIELDS en los mismos puntos de escritura. Para reactivar: vaciar
+# este frozenset (y su espejo en frontend/.../CepasColumns.tsx).
+HIDDEN_FIELDS = frozenset({"envio_punta_arenas"})
+
 
 def _coerce_coord(v: Any) -> Optional[float]:
     """Convierte el valor a float; retorna None si no es numérico."""
@@ -107,6 +115,7 @@ class CepaUpdateDTO(BaseModel):
             k: None if isinstance(v, str) and not v.strip() else v
             for k, v in raw.items()
             if k not in RESERVED_FIELDS  # S18: descarta campos internos colados como extra
+            and k not in HIDDEN_FIELDS  # campo deshabilitado — ver comentario junto a HIDDEN_FIELDS
         }
 
 
@@ -118,7 +127,9 @@ class CepaResponseDTO(BaseModel):
     cepa: str
     latitud: Optional[float] = None
     longitud: Optional[float] = None
-    envio_punta_arenas: Optional[datetime] = None
+    # Deshabilitado — ver HIDDEN_FIELDS. exclude=True: nunca se serializa en la respuesta,
+    # igual que embedding.
+    envio_punta_arenas: Optional[datetime] = Field(default=None, exclude=True)
     fecha_creacion: datetime
     fecha_actualizacion: Optional[datetime] = None
     embedding: Optional[Any] = Field(default=None, exclude=True)

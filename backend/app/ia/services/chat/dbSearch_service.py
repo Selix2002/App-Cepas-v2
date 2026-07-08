@@ -3,9 +3,8 @@
 import asyncio
 import time
 import statistics
-import numpy as np
 from app.models.models import Cepa
-from app.ia.services.chat.embedding_service import get_embedding_service
+from app.ia.services.chat.embedding_service import get_embedding_service, cosine_similarity
 from typing import TYPE_CHECKING, List, Tuple
 import logging
 from datetime import datetime
@@ -70,7 +69,7 @@ class DatabaseService:
         try:
             # Generar embedding de la pregunta
             logger.debug("📝 Generando embedding de la pregunta...")
-            query_embedding = await asyncio.to_thread(self.embedding_service.encode, pregunta)
+            query_embedding = await asyncio.to_thread(self.embedding_service.encode, pregunta, "search_query")
             logger.debug(f"✅ Embedding generado: {len(query_embedding)} dimensiones")
 
             # Buscar cepas con embeddings
@@ -107,7 +106,7 @@ class DatabaseService:
         limit: int,
         threshold: float
     ) -> List[Cepa]:
-        """Búsqueda por similitud de embeddings (vectorizada con numpy, P3)."""
+        """Búsqueda por similitud de embeddings (coseno en Python puro, sin numpy)."""
         logger.debug(f"🔬 Calculando similitudes con {len(cepas)} cepas...")
 
         cepas_validas = [c for c in cepas if c.embedding]
@@ -120,17 +119,12 @@ class DatabaseService:
             logger.warning("⚠️  Ninguna cepa tiene embedding")
             return []
 
-        # P3: matmul batch en lugar de bucle por cepa
-        E = np.array([c.embedding for c in cepas_validas], dtype=np.float32)
-        q = np.array(query_embedding, dtype=np.float32)
-        norms = np.linalg.norm(E, axis=1) * np.linalg.norm(q)
-        norms = np.where(norms == 0, 1.0, norms)
-        similitudes = (E @ q) / norms
-
+        # Similitud coseno en Python puro (sin numpy → corre sin AVX). A esta escala
+        # (~50 cepas × 1024 dims) el costo es despreciable.
         resultados = [
-            (cepa, float(sim))
-            for cepa, sim in zip(cepas_validas, similitudes)
-            if sim >= threshold
+            (cepa, sim)
+            for cepa in cepas_validas
+            if (sim := cosine_similarity(query_embedding, cepa.embedding)) >= threshold
         ]
         resultados.sort(key=lambda x: x[1], reverse=True)
 
@@ -301,7 +295,7 @@ class DatabaseService:
             )
             return subconjunto, "híbrido_sin_vector"
 
-        query_embedding = await asyncio.to_thread(self.embedding_service.encode, pregunta)
+        query_embedding = await asyncio.to_thread(self.embedding_service.encode, pregunta, "search_query")
         ranked = await self._busqueda_vectorial(
             query_embedding,
             cepas_con_embedding,
@@ -318,7 +312,7 @@ class DatabaseService:
         from app.ia.config import ia_settings as settings
 
         logger.debug("🧠 Búsqueda semántica — generando embedding de la pregunta...")
-        query_embedding = await asyncio.to_thread(self.embedding_service.encode, pregunta)
+        query_embedding = await asyncio.to_thread(self.embedding_service.encode, pregunta, "search_query")
 
         cepas_con_embedding = await Cepa.find(
             {"embedding": {"$exists": True, "$ne": None}}  # B8: exclude null embeddings at DB level
@@ -329,13 +323,11 @@ class DatabaseService:
             logger.warning("⚠️  No hay embeddings en la DB → retornando todas las cepas")
             return await self.get_todas_las_cepas()
 
-        # P3: vectorized cosine similarity via numpy matmul
-        E = np.array([c.embedding for c in cepas_con_embedding], dtype=np.float32)
-        q = np.array(query_embedding, dtype=np.float32)
-        norms = np.linalg.norm(E, axis=1) * np.linalg.norm(q)
-        norms = np.where(norms == 0, 1.0, norms)
-        sims = (E @ q) / norms
-        scores: list[tuple[Cepa, float]] = list(zip(cepas_con_embedding, sims.tolist()))
+        # Similitud coseno en Python puro (sin numpy → corre sin AVX).
+        scores: list[tuple[Cepa, float]] = [
+            (cepa, cosine_similarity(query_embedding, cepa.embedding))
+            for cepa in cepas_con_embedding
+        ]
 
         threshold = self._calcular_threshold_dinamico(
             [s for _, s in scores],
@@ -430,7 +422,9 @@ class DatabaseService:
             return 0, 0.0
 
         textos = [self._cepa_a_texto(cepa) for cepa in cepas_sin_embedding]
-        embeddings = await asyncio.to_thread(self.embedding_service.encode_batch, textos)
+        embeddings = await asyncio.to_thread(
+            self.embedding_service.encode_batch, textos, "search_document"
+        )
 
         procesadas = 0
         for cepa, embedding in zip(cepas_sin_embedding, embeddings):

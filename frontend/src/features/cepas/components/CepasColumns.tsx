@@ -11,10 +11,19 @@ const FIXED_COLUMN_DEFS: CepaColumnDef[] = [
   { field: "cepa",               headerName: "Cepa",              pinned: true, width: 140, type: "text" },
   { field: "latitud",            headerName: "Latitud",            width: 100,  type: "number" },
   { field: "longitud",           headerName: "Longitud",           width: 100,  type: "number" },
+]
+
+// Ocultas por decisión de producto (2026-07): dejan de mostrarse en la tabla y en el
+// formulario de alta (ambos derivan sus campos de FIXED_COLUMN_DEFS), pero se conserva la
+// definición + toda la lógica que la rodea (backend: parser de fechas de la IA, import,
+// schema Mongo — ver HIDDEN_FIELDS en backend/app/schema/dtos.py) por si se reactiva en el
+// futuro. Para reactivar: mover la entrada de vuelta a FIXED_COLUMN_DEFS.
+const HIDDEN_COLUMN_DEFS: CepaColumnDef[] = [
   { field: "envio_punta_arenas", headerName: "Envío Pta. Arenas", width: 160,  type: "date" },
 ]
 
 const FIXED_FIELDS = new Set(FIXED_COLUMN_DEFS.map((c) => c.field))
+const HIDDEN_FIELDS = new Set(HIDDEN_COLUMN_DEFS.map((c) => c.field))
 
 /** Convierte un nombre de campo a un header legible. */
 function fieldToHeader(field: string): string {
@@ -38,7 +47,9 @@ export const getCepasColumnDefsWithExtras = (
   const extraKeys = Array.from(
     new Set(
       data.flatMap((row) =>
-        Object.keys(row).filter((k) => !FIXED_FIELDS.has(k) && !INTERNAL_FIELDS.has(k))
+        Object.keys(row).filter(
+          (k) => !FIXED_FIELDS.has(k) && !INTERNAL_FIELDS.has(k) && !HIDDEN_FIELDS.has(k)
+        )
       )
     )
   ).sort()
