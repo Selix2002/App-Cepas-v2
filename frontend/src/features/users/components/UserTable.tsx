@@ -187,10 +187,8 @@ const UserTable = forwardRef<UserTableHandles>((_, ref) => {
         </span>
       </div>
 
-      {/* table */}
-      {loading ? (
-        <div className="ut-loading">Cargando usuarios…</div>
-      ) : (
+      {/* table: el estado de carga lo muestra el overlay global (loadUsers) */}
+      {loading ? null : (
         <div className="ut-table-wrap">
           <table className="ut-table">
             <thead>

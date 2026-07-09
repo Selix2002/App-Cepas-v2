@@ -2,12 +2,12 @@ from beanie import init_beanie
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from app.core.config import settings
-from app.models.models import Cepa, ColumnLabels, User
+from app.models.models import Cepa, ColumnLabels, User, EmbeddingRefreshState
 
 
 async def init_db() -> None:
     client = AsyncIOMotorClient(settings.mongodb_uri)
-    document_models = [Cepa, ColumnLabels, User]
+    document_models = [Cepa, ColumnLabels, User, EmbeddingRefreshState]
 
     if settings.IA_ENABLED:
         from app.ia.models import ChatFeedback

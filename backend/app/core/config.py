@@ -29,6 +29,12 @@ class Settings(BaseSettings):
     COHERE_API_KEY: str | None = None
     COHERE_EMBED_MODEL: str = "embed-multilingual-v3.0"  # 1024 dims, multilingüe
 
+    # Refresh diferido de embeddings (scripts/check_embeddings_refresh.py, vía systemd timer):
+    # se dispara un batch cuando la cepa stale más antigua supera EMBEDDING_STALE_DAYS días,
+    # o cuando se acumulan EMBEDDING_STALE_EDIT_THRESHOLD ediciones sin refrescar.
+    EMBEDDING_STALE_DAYS: int = 5
+    EMBEDDING_STALE_EDIT_THRESHOLD: int = 90
+
     # Logging — L7: INFO por defecto (DEBUG vuelca payloads sensibles a stdout en prod).
     # El contenido sensible (preguntas, MQL, resultados de Mongo, respuestas del LLM) está
     # en DEBUG; INFO conserva solo telemetría operativa (counts, tokens, modos).
