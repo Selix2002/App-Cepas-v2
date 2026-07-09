@@ -1,5 +1,5 @@
 // src/features/cepas/components/home/components/header/ImportCepasModal.tsx
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import ImportCepas from "../../../ImportCepas"
 import "../../../import-modal.css"
 
@@ -11,19 +11,23 @@ type Props = {
 }
 
 export default function ImportCepasModal({ isOpen, onClose, existingNames, onImported }: Props) {
-    // ESC para cerrar
+    const [isImporting, setIsImporting] = useState(false)
+
+    // ESC para cerrar (bloqueado mientras hay un import en curso)
     useEffect(() => {
         if (!isOpen) return
-        const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose() }
+        const handler = (e: KeyboardEvent) => { if (e.key === "Escape" && !isImporting) onClose() }
         window.addEventListener("keydown", handler)
         return () => window.removeEventListener("keydown", handler)
-    }, [isOpen, onClose])
+    }, [isOpen, isImporting, onClose])
 
     if (!isOpen) return null
 
+    const handleClose = () => { if (!isImporting) onClose() }
+
     return (
         <div className="im-overlay">
-            <div className="im-backdrop" onClick={onClose} />
+            <div className="im-backdrop" onClick={handleClose} />
 
             <div className="im-card">
                 <div className="im-accent-line" />
@@ -34,7 +38,7 @@ export default function ImportCepasModal({ isOpen, onClose, existingNames, onImp
                         <span className="im-title">Importar Cepas</span>
                         <span className="im-subtitle">— Excel / CSV</span>
                     </div>
-                    <button className="im-close" onClick={onClose} aria-label="Cerrar">
+                    <button className="im-close" onClick={handleClose} disabled={isImporting} aria-label="Cerrar">
                         ✕
                     </button>
                 </div>
@@ -44,6 +48,7 @@ export default function ImportCepasModal({ isOpen, onClose, existingNames, onImp
                     <ImportCepas
                         key={String(isOpen)}
                         existingNames={existingNames}
+                        onImportingChange={setIsImporting}
                         onImported={() => {
                             onImported()
                             onClose()

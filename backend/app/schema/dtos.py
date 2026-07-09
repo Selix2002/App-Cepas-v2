@@ -6,7 +6,9 @@ from datetime import datetime
 
 # S18: campos internos/derivados que ningún cliente debe poder asignar vía
 # mass-assignment (extra="allow"). Se stripean en los DTOs y se rechazan en add_attribute.
-RESERVED_FIELDS = frozenset({"embedding", "fecha_creacion", "fecha_actualizacion", "_id", "id"})
+RESERVED_FIELDS = frozenset({
+    "embedding", "embedding_stale_since", "fecha_creacion", "fecha_actualizacion", "_id", "id",
+})
 
 # Campos deshabilitados por decisión de producto (2026-07): dejan de leerse/escribirse vía
 # API (tabla/alta en el front, create/update/import en el back), pero el campo del modelo
@@ -133,6 +135,7 @@ class CepaResponseDTO(BaseModel):
     fecha_creacion: datetime
     fecha_actualizacion: Optional[datetime] = None
     embedding: Optional[Any] = Field(default=None, exclude=True)
+    embedding_stale_since: Optional[datetime] = Field(default=None, exclude=True)
 
     model_config = {"from_attributes": True, "extra": "allow"}
 

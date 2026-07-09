@@ -23,18 +23,6 @@
   position: relative;
 }
 
-.home-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-  background: var(--bg-base);
-  color: var(--accent);
-  font-family: monospace;
-  letter-spacing: 2px;
-  font-size: 13px;
-}
-
 .home-error {
   padding: 32px;
   color: #ff4d6d;

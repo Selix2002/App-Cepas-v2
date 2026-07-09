@@ -75,15 +75,6 @@
   white-space: nowrap;
 }
 
-/* ── loading ──────────────────────────────────────── */
-.ut-loading {
-  padding: 32px;
-  text-align: center;
-  color: var(--accent-mid);
-  letter-spacing: 2px;
-  font-size: 12px;
-}
-
 /* ── table wrap ───────────────────────────────────── */
 .ut-table-wrap { flex: 1; overflow-y: auto; overflow-x: auto; }
 

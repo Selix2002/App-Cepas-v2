@@ -94,6 +94,16 @@
   color: #ff4d6d;
 }
 
+.im-close:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.im-close:disabled:hover {
+  border-color: var(--border);
+  color: var(--accent-mid);
+}
+
 /* ── body ────────────────────────────────────────────────────────────────── */
 
 .im-body {
@@ -239,6 +249,38 @@
 .im-btn-row {
   display: flex;
   gap: 8px;
+}
+
+/* ── import progress bar ─────────────────────────────────────────────────── */
+
+.im-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.im-progress-track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--bg-base);
+  border: 1px solid var(--border-dim);
+  overflow: hidden;
+}
+
+.im-progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: var(--accent);
+  transition: width 0.15s linear;
+}
+
+.im-progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: var(--accent-mid);
+  letter-spacing: 1px;
+  text-transform: uppercase;
 }
 
 /* ── stats strip ─────────────────────────────────────────────────────────── */

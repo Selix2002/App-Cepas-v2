@@ -40,5 +40,24 @@ class Cepa(Document):
     # Usado por el módulo IA para búsqueda semántica
     embedding: Optional[List[float]] = None
 
+    # Refresh diferido de embeddings: fecha desde la que el embedding quedó desactualizado
+    # (se setea solo en la transición fresh→stale, no se pisa en ediciones subsiguientes).
+    # null = embedding al día. Ver EmbeddingRefreshState y scripts/check_embeddings_refresh.py.
+    embedding_stale_since: Optional[datetime] = None
+
     class Settings:
         name = "cepas"
+
+
+class EmbeddingRefreshState(Document):
+    """Documento singleton: cola de refresh de embeddings pendientes.
+
+    ``ediciones_pendientes`` cuenta ediciones acumuladas (no cepas distintas — la misma
+    cepa editada varias veces suma varias) desde el último refresh exitoso.
+    """
+    ediciones_pendientes: int = 0
+    ultimo_intento: Optional[datetime] = None
+    ultimo_resultado: Optional[str] = None
+
+    class Settings:
+        name = "embedding_refresh_state"

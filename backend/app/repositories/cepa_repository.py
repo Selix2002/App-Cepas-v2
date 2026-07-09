@@ -6,7 +6,8 @@ from datetime import datetime, timezone
 from beanie import PydanticObjectId
 from beanie.operators import RegEx
 
-from app.models.models import Cepa
+from app.core.config import settings
+from app.models.models import Cepa, EmbeddingRefreshState
 from app.schema.dtos import (
     CepaCreateDTO,
     CepaUpdateDTO,
@@ -38,8 +39,7 @@ ORIGEN_COORDS: dict[str, tuple[float, float]] = {
     "planta l. amarga":     (-50.975656, -72.749295),
     "laguna amarga":        (-50.975656, -72.749295),
     "lago pehoe":           (-51.099674, -73.066238),
-    "Lago grey":            (-51.054339, -73.163511),
-    "Lago Grey":            (-51.054339, -73.163511),
+    "lago grey":            (-51.054339, -73.163511),
     "lago maravilloso":       (-51.315441, -72.758702),
     "cascada lm":           (-39.522724, -72.034290),   
 }
@@ -167,25 +167,34 @@ class CepaRepository:
 
         await cepa.set(update_data)
 
-        # B22: el update ya persistió vía set(); regenerar el embedding es best-effort.
-        # Un fallo aquí NO debe propagarse (sería 500 tras un update exitoso) pero sí loggearse.
-        # A1: lazy import so CepaRepository doesn't hard-depend on IA packages
-        try:
-            from app.ia.services.chat.embedding_service import get_embedding_service
-            from app.ia.services.chat.dbSearch_service import DatabaseService
-            # B20: encode() es CPU-bound y síncrono; to_thread evita bloquear el event loop
-            texto = DatabaseService._cepa_a_texto(cepa)
-            embedding_service = get_embedding_service()
-            cepa.embedding = await asyncio.to_thread(
-                embedding_service.encode, texto, "search_document"
-            )
-            await cepa.save()
-        except ImportError:
-            pass  # módulo IA no disponible (IA_ENABLED=false) → esperado
-        except Exception as e:
-            logger.warning("Cepa %r actualizada sin regenerar embedding: %s", cepa.cepa, e)
+        # El embedding ya NO se regenera acá (bloqueaba el request/front hasta que Cohere
+        # respondía). En su lugar se marca la cepa como stale y se encola para el refresh
+        # en background (systemd timer + scripts/check_embeddings_refresh.py, cada 5h),
+        # que la procesa cuando se acumulan EMBEDDING_STALE_EDIT_THRESHOLD ediciones o la
+        # más vieja lleva EMBEDDING_STALE_DAYS días sin refrescar.
+        if settings.IA_ENABLED:
+            try:
+                await self._encolar_refresh_embedding(cepa.id)
+            except Exception as e:
+                logger.warning(
+                    "Cepa %r actualizada sin poder encolar refresh de embedding: %s", cepa.cepa, e
+                )
 
         return cepa
+
+    async def _encolar_refresh_embedding(self, cepa_id: PydanticObjectId) -> None:
+        """Marca la cepa como stale (solo en la transición fresh→stale) e incrementa el
+        contador global de ediciones pendientes. Ambas escrituras son updates atómicos
+        de Mongo (filtro condicional / $inc con upsert) — sin race conditions entre
+        ediciones concurrentes."""
+        now = datetime.now(timezone.utc)
+        await Cepa.get_pymongo_collection().update_one(
+            {"_id": cepa_id, "embedding_stale_since": None},
+            {"$set": {"embedding_stale_since": now}},
+        )
+        await EmbeddingRefreshState.get_pymongo_collection().update_one(
+            {}, {"$inc": {"ediciones_pendientes": 1}}, upsert=True,
+        )
 
     # -----------------------------------------------------------------------
     # DELETE

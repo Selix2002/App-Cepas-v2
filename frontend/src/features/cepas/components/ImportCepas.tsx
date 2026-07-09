@@ -2,13 +2,27 @@
 // El parsing del archivo ocurre en el backend (POST /cepas/import).
 // El frontend solo hace precheck de nombres (para UX) y luego sube el archivo.
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import Papa from "papaparse"
 import ExcelJS from "exceljs"
 import { importCepas } from "../services/CepasQuery"
 import type { ImportRowResult } from "../services/CepasQuery"
 import "./import-modal.css"
 import { loader } from "../../../shared/utils/loader"
+
+// ─── import progress (estimado, no viene del backend) ──────────────────────
+// El endpoint /cepas/import responde una sola vez al terminar (sin eventos
+// intermedios), así que esto es una animación calculada a partir de la
+// cantidad de filas, no progreso real fila por fila.
+const PER_ROW_MS = 8
+const MIN_ESTIMATE_MS = 600
+const MAX_ESTIMATE_MS = 15000
+const PROGRESS_CAP = 96
+const PROGRESS_TICK_MS = 100
+
+function estimateDurationMs(rowCount: number): number {
+  return Math.min(MAX_ESTIMATE_MS, Math.max(MIN_ESTIMATE_MS, rowCount * PER_ROW_MS))
+}
 
 // ─── types ────────────────────────────────────────────────────────────────────
 type PrecheckRow = {
@@ -19,6 +33,7 @@ type PrecheckRow = {
 type Props = {
   existingNames: string[]
   onImported?: () => void
+  onImportingChange?: (importing: boolean) => void
 }
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -89,7 +104,7 @@ const pillClass: Record<ImportRowResult["status"], string> = {
 }
 
 // ─── component ────────────────────────────────────────────────────────────────
-export default function ImportCepas({ existingNames, onImported }: Props) {
+export default function ImportCepas({ existingNames, onImported, onImportingChange }: Props) {
   const [file, setFile] = useState<File | null>(null)
   const [precheckRows, setPrecheckRows] = useState<PrecheckRow[]>([])
   const [resultRows, setResultRows] = useState<ImportRowResult[]>([])
@@ -98,9 +113,31 @@ export default function ImportCepas({ existingNames, onImported }: Props) {
   const [confirmed, setConfirmed] = useState(false)
   const [done, setDone] = useState(false)
   const [dragOver, setDragOver] = useState(false)
+  const [importPct, setImportPct] = useState(0)
+  const progressTimer = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const duplicates = precheckRows.filter((r) => r.isDuplicate)
   const hasDuplicates = duplicates.length > 0
+
+  const stopProgress = () => {
+    if (progressTimer.current !== null) {
+      clearInterval(progressTimer.current)
+      progressTimer.current = null
+    }
+  }
+
+  const startProgress = (rowCount: number) => {
+    const estimateMs = estimateDurationMs(rowCount)
+    const tau = estimateMs / 3
+    const start = Date.now()
+    setImportPct(0)
+    stopProgress()
+    progressTimer.current = setInterval(() => {
+      const elapsed = Date.now() - start
+      const pct = PROGRESS_CAP * (1 - Math.exp(-elapsed / tau))
+      setImportPct(pct)
+    }, PROGRESS_TICK_MS)
+  }
 
   const reset = () => {
     setPrecheckRows([])
@@ -108,6 +145,8 @@ export default function ImportCepas({ existingNames, onImported }: Props) {
     setConfirmed(false)
     setDone(false)
     setError(null)
+    setImportPct(0)
+    stopProgress()
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -149,10 +188,13 @@ export default function ImportCepas({ existingNames, onImported }: Props) {
   const handleImport = async () => {
     if (!file) return
     setLoading(true)
-    loader(true)
+    onImportingChange?.(true)
+    startProgress(precheckRows.length)
     setError(null)
     try {
       const result = await importCepas(file)
+      stopProgress()
+      setImportPct(100)
       setResultRows(result.rows)
       setDone(true)
       onImported?.()
@@ -160,8 +202,9 @@ export default function ImportCepas({ existingNames, onImported }: Props) {
       const axiosErr = e as { response?: { data?: { detail?: string } } }
       setError(axiosErr?.response?.data?.detail ?? (e instanceof Error ? e.message : "Error al importar"))
     } finally {
+      stopProgress()
       setLoading(false)
-      loader(false)
+      onImportingChange?.(false)
     }
   }
 
@@ -252,22 +295,33 @@ export default function ImportCepas({ existingNames, onImported }: Props) {
             </div>
           )}
 
-          <div className="im-btn-row">
-            <button
-              className="im-btn im-btn-primary"
-              onClick={handleImport}
-              disabled={loading || (hasDuplicates && !confirmed)}
-            >
-              {loading ? "Importando…" : "Importar"}
-            </button>
-            <button
-              className="im-btn im-btn-ghost"
-              onClick={() => { setFile(null); reset() }}
-              disabled={loading}
-            >
-              Cancelar
-            </button>
-          </div>
+          {loading ? (
+            <div className="im-progress">
+              <div className="im-progress-track">
+                <div className="im-progress-fill" style={{ width: `${importPct}%` }} />
+              </div>
+              <div className="im-progress-label">
+                <span>Importando {precheckRows.length} filas…</span>
+                <span>{Math.round(importPct)}%</span>
+              </div>
+            </div>
+          ) : (
+            <div className="im-btn-row">
+              <button
+                className="im-btn im-btn-primary"
+                onClick={handleImport}
+                disabled={hasDuplicates && !confirmed}
+              >
+                Importar
+              </button>
+              <button
+                className="im-btn im-btn-ghost"
+                onClick={() => { setFile(null); reset() }}
+              >
+                Cancelar
+              </button>
+            </div>
+          )}
         </div>
       )}
 

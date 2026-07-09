@@ -57,7 +57,9 @@ export function HomePage() {
   }, [table.clearAllFilters, table.setColumnFilter])
 
   // ── loading / error ───────────────────────────────────────────────────────
-  if (table.loading) return <div className="home-loading">Cargando cepas…</div>
+  // El estado de carga lo muestra el overlay global (ver useCepasTableCore),
+  // así que acá no se renderiza nada para no duplicarlo.
+  if (table.loading) return null
   if (table.error)   return <div className="home-error">Error al cargar datos: {table.error.message}</div>
 
   return (
