@@ -2,13 +2,13 @@
 import { MapContainer, TileLayer } from "react-leaflet";
 import type { ReactNode } from "react";
 import "leaflet/dist/leaflet.css";
-//import L from "leaflet";
+import L from "leaflet";
 import "./map.css";
 
-//import marker2x from "leaflet/dist/images/marker-icon-2x.png";
-//import marker from "leaflet/dist/images/marker-icon.png";
-//import shadow from "leaflet/dist/images/marker-shadow.png";
-//L.Icon.Default.mergeOptions({ iconRetinaUrl: marker2x, iconUrl: marker, shadowUrl: shadow });
+import marker2x from "leaflet/dist/images/marker-icon-2x.png";
+import marker from "leaflet/dist/images/marker-icon.png";
+import shadow from "leaflet/dist/images/marker-shadow.png";
+L.Icon.Default.mergeOptions({ iconRetinaUrl: marker2x, iconUrl: marker, shadowUrl: shadow });
 
 type Props = {
   center?: [number, number];
