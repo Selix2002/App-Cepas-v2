@@ -36,3 +36,14 @@ explicit = true
 
 [tool.uv.sources]
 torch = [{ index = "pytorch-cpu" }]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
+
+# testpaths acotado a tests/api/: tests/test_absoluto.py y tests/legacy/*.py son scripts
+# standalone (argparse, requieren backend+Mongo+Groq reales en marcha) — no tests de pytest.
+# Sin esto, pytest los colecciona igual por matchear el patrón test_*.py y falla al importarlos.
+[tool.pytest.ini_options]
+testpaths = ["tests/api"]
