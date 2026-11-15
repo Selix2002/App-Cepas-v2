@@ -9,6 +9,7 @@ export default function LoginPage() {
     password,
     setPassword,
     error,
+    notice,
     isSubmitting,
     handleSubmit,
   } = useLoginForm()
@@ -43,6 +44,13 @@ export default function LoginPage() {
             <span className="login-divider-text">Acceso al sistema</span>
             <div className="login-divider-line" />
           </div>
+
+          {/* aviso (ej. sesión vencida) */}
+          {notice && !error && (
+            <div className="login-info" role="status">
+              {notice}
+            </div>
+          )}
 
           {/* error */}
           {error && (

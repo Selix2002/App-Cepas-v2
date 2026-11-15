@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import type React from "react"
 
-import { createCepa, getCepas } from "../../services/CepasQuery"
+import { createCepa, getCepas, getFieldLabels } from "../../services/CepasQuery"
 import { getCepasColumnDefsWithExtras } from "../../components/CepasColumns"
 import type { CepaColumnDef } from "../../types/tableTypes"
 import type { CepaCreate } from "../../../../shared/interfaces"
@@ -20,8 +20,9 @@ export function useNewCepa() {
 
     // Carga columnas (estáticas + dinámicas) al montar
     useEffect(() => {
-        getCepas().then(({ items }) => {
-            const defs = getCepasColumnDefsWithExtras(items as Record<string, unknown>[])
+        // Las etiquetas originales ("pH óptimo") se usan como título de cada campo
+        Promise.all([getCepas(), getFieldLabels().catch(() => ({}))]).then(([{ items }, labels]) => {
+            const defs = getCepasColumnDefsWithExtras(items as Record<string, unknown>[], labels)
             setColumns(defs)
             setExistingNames(new Set(items.map((c) => c.cepa?.trim().toLowerCase()).filter(Boolean)))
 

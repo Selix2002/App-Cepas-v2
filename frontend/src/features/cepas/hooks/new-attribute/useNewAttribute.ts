@@ -4,6 +4,8 @@ import type React from "react"
 import { getCepas, addAttribute } from "../../services/CepasQuery"
 import type { Cepa } from "../../../../shared/interfaces"
 import { loader } from "../../../../shared/utils/loader"
+import { getApiErrorMessage } from "../../../../shared/utils/apiError"
+import { saveSectionAssignment } from "../../components/new-attribute/SectionSelect"
 
 type CepaLite = { id: string; nombre: string }
 
@@ -14,6 +16,8 @@ export function useNewAttribute() {
     const [modalData, setModalData] = useState<Record<string, string>>({})
 
     const inputRefs = useRef<(HTMLInputElement | null)[]>([])
+    // Sección elegida en el formulario; se persiste recién cuando el alta tiene éxito
+    const pendingSection = useRef("")
 
     // Carga la lista de cepas al montar
     useEffect(() => {
@@ -38,7 +42,8 @@ export function useNewAttribute() {
     }
 
     // Lee los inputs y abre el modal de confirmación
-    const confirmFromInputs = () => {
+    const confirmFromInputs = (sectionId: string) => {
+        pendingSection.current = sectionId
         const attributeName = inputRefs.current[0]?.value?.trim()
         if (!attributeName) {
             alert('Debes ingresar un nombre para el atributo.')
@@ -68,12 +73,12 @@ export function useNewAttribute() {
         loader(true)
         try {
             const result = await addAttribute(attribute_name, nullableValues)
-            alert(`¡Atributo añadido! (${result.updated} cepas actualizadas)`)
+            // Se guarda con la clave interna (ej. "ph_optimo"), que es la que usa Nueva Cepa
+            saveSectionAssignment(result.field, pendingSection.current)
+            alert(`¡Atributo "${result.label}" añadido! (${result.updated} cepas actualizadas)`)
             inputRefs.current.forEach((el) => { if (el) el.value = "" })
         } catch (err: unknown) {
-            const axiosErr = err as { response?: { data?: { detail?: string } }; message?: string }
-            const detail = axiosErr?.response?.data?.detail ?? axiosErr?.message ?? "Error desconocido"
-            alert(`Error al añadir: ${detail}`)
+            alert(`Error al añadir: ${getApiErrorMessage(err)}`)
         } finally {
             setLoading(false)
             loader(false)

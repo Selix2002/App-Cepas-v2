@@ -57,6 +57,10 @@ export async function deleteCepa(id: string): Promise<void> {
 export interface AddAttributeResult {
   updated: number
   not_found: string[]
+  /** Clave interna con la que se guardó (ej. "ph_optimo") */
+  field: string
+  /** Nombre tal como lo escribió el usuario (ej. "pH óptimo") */
+  label: string
 }
 
 export async function addAttribute(

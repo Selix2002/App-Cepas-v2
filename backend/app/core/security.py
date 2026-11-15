@@ -2,7 +2,7 @@ from typing import Any
 
 from litestar.connection import ASGIConnection
 from litestar.contrib.jwt import OAuth2PasswordBearerAuth, Token
-from litestar.exceptions import NotAuthorizedException
+from litestar.exceptions import NotAuthorizedException, PermissionDeniedException
 from litestar.handlers import BaseRouteHandler
 
 from app.core.config import settings
@@ -33,5 +33,9 @@ oauth2_auth = OAuth2PasswordBearerAuth[User](
 def admin_guard(connection: ASGIConnection, _: BaseRouteHandler) -> None:
     """Permite solo usuarios con is_admin=True."""
     user: User | None = getattr(connection, "user", None)
-    if not user or not user.is_admin:
-        raise NotAuthorizedException(detail="Se requiere rol de administrador")
+    if not user:
+        raise NotAuthorizedException(detail="No autorizado")
+    if not user.is_admin:
+        # 403 (no 401): el usuario SÍ está autenticado, solo le falta el rol. El frontend
+        # interpreta cualquier 401 como sesión vencida y cierra la sesión.
+        raise PermissionDeniedException(detail="Se requiere rol de administrador")

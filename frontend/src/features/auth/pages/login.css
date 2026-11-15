@@ -418,3 +418,15 @@
   letter-spacing: 1px;
   font-family: "Courier New", monospace;
 }
+
+/* ── aviso informativo (ej. sesión vencida) ──────────────────────────────── */
+.login-info {
+  background: #4d9fff11;
+  border: 1px solid #4d9fff44;
+  border-radius: 4px;
+  padding: 10px 14px;
+  margin-bottom: 20px;
+  font-size: 11px;
+  color: #4d9fff;
+  letter-spacing: 0.5px;
+}

@@ -77,11 +77,18 @@ _FIXED_FIELD_ALIASES: dict[str, str] = {
 
 _FLOAT_FIELDS = {"latitud", "longitud"}
 _DATE_FIELDS = {"envio_punta_arenas"}
-_NULL_VALUES = {"", "n/i", "n/a", "null", "none", "-"}
+# OJO: "-" NO es nulo — en las planillas del laboratorio significa resultado negativo
+# (ver CLAUDE.md, bug B26). Solo se descarta como nombre de cepa (_is_empty_cepa).
+_NULL_VALUES = {"", "n/i", "n/a", "null", "none"}
 
 
 def _is_null(v: str) -> bool:
     return v.strip().lower() in _NULL_VALUES
+
+
+def _is_empty_cepa(v: str) -> bool:
+    """Un nombre de cepa vacío, nulo o "-" no identifica a ninguna cepa."""
+    return _is_null(v) or v.strip() == "-"
 
 
 def _check_magic(content: bytes, filename: str) -> None:
@@ -151,7 +158,7 @@ def _parse_rows(raw_rows: list[dict[str, str]]) -> list[dict]:
 
             if field == "cepa":
                 val = raw_value.strip()[:_MAX_CEPA_LEN]
-                if not val or _is_null(val):
+                if not val or _is_empty_cepa(val):
                     continue
                 doc["cepa"] = val
 
@@ -247,7 +254,7 @@ def _read_csv(content: bytes) -> list[dict[str, str]]:
     if cepa_key:
         cepa_count = sum(
             1 for r in rows
-            if r.get(cepa_key, "").strip() and not _is_null(r[cepa_key])
+            if r.get(cepa_key, "").strip() and not _is_empty_cepa(r[cepa_key])
         )
         if cepa_count > _MAX_CEPA_ROWS:
             raise HTTPException(
@@ -554,14 +561,38 @@ class CepaController(Controller):
     # ------------------------------------------------------------------
     @post("/add-attribute", guards=[admin_guard])
     async def add_attribute(self, data: AddAttributeDTO) -> dict:
-        field = data.attribute_name.strip()
+        # El usuario escribe un nombre libre ("pH óptimo"); se guarda con la misma clave
+        # normalizada que usa la importación (ph_optimo) y la etiqueta original va a
+        # column_labels, que es lo que muestra la tabla.
+        label = data.attribute_name.strip()
+        if not label:
+            raise HTTPException(status_code=400, detail="El nombre del atributo no puede estar vacío.")
+        field = _normalize_dynamic_key(label)
         if not field:
-            raise HTTPException(status_code=400, detail="attribute_name no puede estar vacío")
-        if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', field):
-            raise HTTPException(status_code=400, detail="attribute_name solo puede contener letras, números y guión bajo")
+            raise HTTPException(
+                status_code=400,
+                detail="El nombre del atributo debe contener al menos una letra o número.",
+            )
         # S18: rechaza campos reservados (internos) y estructurados (tienen su propio path de PATCH)
-        if field.lower() in RESERVED_FIELDS or field.lower() in {"cepa", "latitud", "longitud", "envio_punta_arenas"}:
-            raise HTTPException(status_code=400, detail=f"'{field}' es un campo reservado y no puede modificarse por este endpoint")
+        if (
+            field in RESERVED_FIELDS
+            or field in _RESERVED_KEYS
+            or _FIXED_FIELD_ALIASES_NORMALIZED.get(field)
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail=f"'{label}' es un campo reservado del sistema. Elija otro nombre.",
+            )
+        # No sobrescribir un atributo existente: con valores vacíos borraría datos de
+        # todas las cepas. Para cambiar valores existentes se edita desde la tabla.
+        if await Cepa.get_pymongo_collection().find_one({field: {"$exists": True}}, {"_id": 1}):
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"Ya existe un atributo llamado '{label}'. "
+                    "Para cambiar sus valores, edítelos desde la tabla."
+                ),
+            )
 
         updated = 0
         not_found = []
@@ -574,7 +605,10 @@ class CepaController(Controller):
             await cepa.set({field: value, "fecha_actualizacion": datetime.now(timezone.utc)})
             updated += 1
 
-        return {"updated": updated, "not_found": not_found}
+        if updated:
+            await _upsert_column_labels({field: label})
+
+        return {"updated": updated, "not_found": not_found, "field": field, "label": label}
 
     # ------------------------------------------------------------------
     # PATCH

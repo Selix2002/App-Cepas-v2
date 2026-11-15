@@ -1,6 +1,7 @@
 // src/features/cepas/hooks/chat/useChatIA.ts
 import { useState, useCallback } from "react"
 import { postChatQuery, type HistorialMensaje } from "../../services/chatQuery"
+import { getApiErrorMessage } from "../../../../shared/utils/apiError"
 
 const HISTORY_TURNS = 3  // pares user/assistant a enviar
 
@@ -85,7 +86,7 @@ export function useChatIA() {
             }
             setMessages((prev) => [...prev, iaMsg])
         } catch (err) {
-            const msg = err instanceof Error ? err.message : "Error desconocido"
+            const msg = getApiErrorMessage(err, "chat")
             setError(msg)
             const errMsg: ChatMessage = {
                 id: uid(),

@@ -12,13 +12,17 @@ def _create_cepa(test_client, auth_headers, **overrides):
 # ---------------------------------------------------------------------------
 
 def test_create_cepa_requires_auth(test_client):
+    # El login deja una cookie httponly con el token y test_client es de sesión:
+    # sin limpiarla, este request iría autenticado con el último usuario logueado.
+    test_client.cookies.clear()
     resp = test_client.post("/cepas/", json={"cepa": "Sin Auth"})
     assert resp.status_code == 401
 
 
 def test_create_cepa_requires_admin(test_client, non_admin_headers):
     resp = test_client.post("/cepas/", json={"cepa": "No Admin"}, headers=non_admin_headers)
-    assert resp.status_code == 401
+    # 403 (no 401): autenticado pero sin rol — el frontend trata 401 como sesión vencida
+    assert resp.status_code == 403
     assert resp.json()["detail"] == "Se requiere rol de administrador"
 
 

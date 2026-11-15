@@ -1,7 +1,7 @@
 // src/features/cepas/components/new-attribute/NewAttributeForm.tsx
 import type React from "react"
 import { useState } from "react"
-import SectionSelect, { saveSectionAssignment } from "./SectionSelect"
+import SectionSelect from "./SectionSelect"
 import "./new-attribute.css"
 
 type CepaLite = { id: string; nombre: string }
@@ -10,7 +10,8 @@ type Props = {
     cepas: CepaLite[]
     inputRefs: React.MutableRefObject<(HTMLInputElement | null)[]>
     onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>, index: number) => void
-    onSubmit: () => void
+    /** Recibe la sección elegida; se guarda solo si el alta tiene éxito */
+    onSubmit: (sectionId: string) => void
 }
 
 export default function NewAttributeForm({
@@ -21,13 +22,7 @@ export default function NewAttributeForm({
 }: Props) {
     const [sectionId, setSectionId] = useState("")
 
-    // Al enviar, persiste la asignación de sección en localStorage
-    const handleSubmit = () => {
-        const attributeName = inputRefs.current[0]?.value?.trim()
-        if (!attributeName) return
-        saveSectionAssignment(attributeName, sectionId)
-        onSubmit()
-    }
+    const handleSubmit = () => onSubmit(sectionId)
 
     const canSubmit = true // validación real en el hook
 
@@ -57,6 +52,9 @@ export default function NewAttributeForm({
                                 ref={(el) => { inputRefs.current[0] = el }}
                                 onKeyDown={(e) => onKeyDown(e, 0)}
                             />
+                            <span className="na-input-hint">
+                                Puede usar espacios, tildes y símbolos; se mostrará tal cual en la tabla.
+                            </span>
                         </div>
 
                         {/* sección */}

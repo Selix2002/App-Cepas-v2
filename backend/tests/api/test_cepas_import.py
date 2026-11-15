@@ -47,6 +47,24 @@ def test_import_csv_happy_path_creates_rows(test_client, auth_headers):
     assert nombres == {"Import Uno", "Import Dos"}
 
 
+def test_import_keeps_dash_as_negative_value(test_client, auth_headers):
+    # B26: "-" es un resultado negativo, no "sin información"
+    csv_content = (
+        "cepa,gram,ureasa\n"
+        "Neg Uno,-,N/I\n"
+        "-,+,+\n"
+    ).encode("utf-8")
+
+    resp = _upload(test_client, auth_headers, "cepas.csv", csv_content, "text/csv")
+    assert resp.status_code == 201, resp.text
+    assert resp.json()["created"] == 1  # la fila con cepa "-" se descarta
+
+    items = test_client.get("/cepas/", headers=auth_headers).json()["items"]
+    assert len(items) == 1
+    assert items[0]["gram"] == "-"
+    assert items[0]["ureasa"] is None
+
+
 def test_import_csv_existing_cepa_is_reported_as_duplicate(test_client, auth_headers):
     test_client.post("/cepas/", json={"cepa": "Ya En Bd"}, headers=auth_headers)
 
