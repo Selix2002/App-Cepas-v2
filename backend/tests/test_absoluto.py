@@ -14,18 +14,21 @@ Para cada caso del dataset CASOS:
        - contenido de la respuesta vs verdad MQL, según eval_tipo:
            count → ¿aparece el número exacto en la respuesta?
            list  → ¿≥50% de las cepas esperadas están mencionadas?
+           top   → ranking ("las de mayor X"): ¿≥3 cepas del top-5 (empates incluidos)
+                   mencionadas, y no más cepas fuera del top que dentro?
            open  → sin veredicto automático (pregunta conceptual/adversarial)
 
 Las queries MQL de referencia están calibradas contra el dataset real de 50 cepas
 (2026-07): campo de crecimiento a 37°C es "37_c" (no "temp_37c"), valor "+" (no "1.0");
 "amp" (ampicilina) tiene casing mezclado en los datos reales ('S' y 's') → las queries
-de sensibilidad usan {"$in": ["S", "s"]}; no existen cepas con gram="-" en el dataset
-actual, así que esas preguntas esperan legítimamente 0 resultados (verifica que la IA
-no alucine cepas Gram-negativas inexistentes en vez de asumirlo como bug).
+de sensibilidad usan {"$in": ["S", "s"]}. Desde la corrección B26 (2026-11-14) el "-"
+de las planillas se conserva como resultado negativo (antes se importaba como nulo),
+por lo que gram="-" y los valores "-" de las pruebas enzimáticas sí existen.
+La verdad de referencia se calcula en vivo contra Mongo en cada corrida.
 
 Uso (desde backend/):
     python tests/test_absoluto.py
-    python tests/test_absoluto.py --user sebas --password sebas1234 --delay 7
+    uv run python tests/test_absoluto.py --user sebas --password sebas1234 --delay 7
     python tests/test_absoluto.py --output tests/resultados_absoluto.json
 
 Rate limit: 10 req/min por usuario → --delay 7 como mínimo seguro.
@@ -60,7 +63,7 @@ DEFAULT_USER  = "sebas"
 DEFAULT_PASS  = "sebas123"
 DEFAULT_DELAY = 7  # segundos entre preguntas (respeta el rate limit de 10 req/min)
 
-EvalTipo = Literal["count", "list", "open"]
+EvalTipo = Literal["count", "list", "top", "open"]
 
 # Escala de positividad de 3 niveles usada por todos los campos enzimáticos
 _POS = ["+", "++", "+++"]
@@ -72,8 +75,9 @@ _POS = ["+", "++", "+++"]
 # Cada caso:
 #   pregunta      — texto enviado a la IA
 #   modo_esperado — "estadístico" | "híbrido" | "semántico"
-#   eval_tipo     — "count" | "list" | "open"
-#   eval_campo    — (solo "list") campo identificador en los documentos
+#   eval_tipo     — "count" | "list" | "top" | "open"
+#   eval_campo    — (solo "list"/"top") campo identificador en los documentos
+#   eval_puntaje  — (solo "top") campo numérico del ranking en los resultados MQL
 #   mql           — query de referencia (dict) o None si no hay verdad automática
 
 CASOS: list[dict] = [
@@ -195,28 +199,34 @@ CASOS: list[dict] = [
 
     # ── Híbrido ──────────────────────────────────────────────────────────────
     {
+        # Pregunta de ranking: la IA responde con un top acotado (máx. 5 cepas, regla del
+        # prompt), así que se evalúa como "top" y no como lista completa. La referencia
+        # devuelve TODAS las Gram + con su puntaje (n.º de enzimas positivas) para poder
+        # aplicar empates y detectar cepas mencionadas fuera del top.
+        # Enzimas: las 8 pruebas enzimáticas de la planilla. AIA no se cuenta: es
+        # producción de ácido indolacético (fitohormona), no una actividad enzimática.
         "pregunta": "Dame las cepas Gram positivas con mayor actividad enzimática",
         "modo_esperado": "híbrido",
-        "eval_tipo": "list",
+        "eval_tipo": "top",
         "eval_campo": "cepa",
+        "eval_puntaje": "enzimas_positivas",
         "mql": {"type": "aggregate", "pipeline": [
             {"$match": {"gram": "+"}},
-            {"$addFields": {"enzimas_positivas": {"$add": [
+            {"$project": {"cepa": 1, "enzimas_positivas": {"$add": [
                 {"$cond": [{"$in": ["$lecitinasa", _POS]}, 1, 0]},
+                {"$cond": [{"$in": ["$ureasa",     _POS]}, 1, 0]},
                 {"$cond": [{"$in": ["$lipasa",     _POS]}, 1, 0]},
                 {"$cond": [{"$in": ["$amilasa",    _POS]}, 1, 0]},
                 {"$cond": [{"$in": ["$proteasa",   _POS]}, 1, 0]},
+                {"$cond": [{"$in": ["$catalasa",   _POS]}, 1, 0]},
                 {"$cond": [{"$in": ["$celulasa",   _POS]}, 1, 0]},
                 {"$cond": [{"$in": ["$fosfatasa",  _POS]}, 1, 0]},
-                {"$cond": [{"$in": ["$aia",        _POS]}, 1, 0]},
             ]}}},
             {"$sort": {"enzimas_positivas": -1}},
-            {"$limit": 10},
         ]},
     },
     {
-        # No existe ninguna cepa con gram="-" en el dataset actual → verdad = 0 resultados.
-        # Se mantiene: verifica que la IA no invente cepas Gram-negativas inexistentes.
+        # Tras B26 sí existen cepas gram="-" (antes se importaban como nulas).
         "pregunta": "¿Qué cepas Gram negativas tienen proteasa positiva?",
         "modo_esperado": "híbrido",
         "eval_tipo": "list",
@@ -262,11 +272,13 @@ CASOS: list[dict] = [
     },
     {
         # Campo real "37_c" (no "temp_37c") — verificado contra Mongo.
+        # "-" = no crece (B26). Antes se usaba {"$ne": "+"}, que también contaba
+        # como "no crece" a las cepas sin dato (null).
         "pregunta": "¿Qué cepas no crecen a 37°C?",
         "modo_esperado": "híbrido",
         "eval_tipo": "list",
         "eval_campo": "cepa",
-        "mql": {"type": "find", "filter": {"37_c": {"$ne": "+"}}},
+        "mql": {"type": "find", "filter": {"37_c": "-"}},
     },
 
     # ── Semántico ────────────────────────────────────────────────────────────
@@ -394,7 +406,7 @@ def evaluar_count(esperado: int, respuesta_ia: str) -> tuple[bool, str]:
 
 def evaluar_list(esperados: list[str], respuesta_ia: str) -> tuple[bool, str]:
     texto_lower = respuesta_ia.replace(" ", " ").replace(" ", " ").lower()
-    encontrados = [c for c in esperados if c.lower() in texto_lower]
+    encontrados = [c for c in esperados if _menciona(c, texto_lower)]
     total = len(esperados)
 
     if total == 0:
@@ -412,6 +424,46 @@ def evaluar_list(esperados: list[str], respuesta_ia: str) -> tuple[bool, str]:
         f"→ {encontrados[:5] or '(ninguna)'}"
     )
     return ok, detalle
+
+
+def _menciona(nombre: str, texto_lower: str) -> bool:
+    """Coincidencia de nombre de cepa con bordes: "LA 1" no debe coincidir con "LA 15"."""
+    patron = r"(?<![\w])" + re.escape(nombre.lower()) + r"(?![\w])"
+    return re.search(patron, texto_lower) is not None
+
+
+def evaluar_top(
+    ranking: list[tuple[str, float]],
+    respuesta_ia: str,
+    k: int = 5,
+    min_aciertos: int = 3,
+) -> tuple[bool, str]:
+    """
+    Evalúa una respuesta a una pregunta de ranking ("las de mayor X").
+
+    ranking: (cepa, puntaje) de TODAS las candidatas, ordenadas de mayor a menor.
+    Top-k con empates: entran todas las cepas con puntaje ≥ al de la k-ésima, porque
+    con puntajes enteros pequeños suele haber muchas empatadas y cualquiera es válida.
+    Correcto si se mencionan ≥ min_aciertos cepas del top y no hay más cepas
+    candidatas mencionadas fuera del top que dentro (evita aprobar listando todas).
+    """
+    if not ranking:
+        return True, "✅ Sin candidatas en la referencia"
+    corte = ranking[min(k, len(ranking)) - 1][1]
+    top = [c for c, p in ranking if p >= corte]
+    fuera_top = [c for c, p in ranking if p < corte]
+
+    texto_lower = respuesta_ia.replace("\u202f", " ").replace("\u00a0", " ").lower()
+    aciertos = [c for c in top if _menciona(c, texto_lower)]
+    fuera = [c for c in fuera_top if _menciona(c, texto_lower)]
+
+    ok = len(aciertos) >= min_aciertos and len(aciertos) >= len(fuera)
+    simbolo = "✅" if ok else "❌"
+    return ok, (
+        f"{simbolo} top-{k} (puntaje ≥ {corte:g}, {len(top)} cepas con empates): "
+        f"{len(aciertos)} mencionadas del top, {len(fuera)} fuera del top  "
+        f"→ {aciertos[:5] or '(ninguna)'}{' | fuera: ' + str(fuera[:3]) if fuera else ''}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -575,7 +627,7 @@ def print_resumen(resultados: list[dict], tiempo_total: float) -> None:
     print(f"  Total de casos           : {total}")
     print(f"  Clasificación de modo    : {modo_ok}/{total} correctos")
     if contenido_evaluables:
-        print(f"  Contenido (count/list)   : {contenido_ok}/{len(contenido_evaluables)} correctos")
+        print(f"  Contenido (count/list/top): {contenido_ok}/{len(contenido_evaluables)} correctos")
     print(f"  Preguntas abiertas       : {total - len(contenido_evaluables)} (sin veredicto automático)")
     print(f"  Errores IA               : {ia_errores}")
     print(f"  Tiempo total             : {tiempo_total:.1f} s")
@@ -659,6 +711,11 @@ def main() -> None:
             campo = caso.get("eval_campo", "cepa")
             esperados = [d.get(campo, "") for d in mql_res["results"] if d.get(campo)]
             contenido_ok, veredicto_contenido = evaluar_list(esperados, ia_resultado.get("respuesta", ""))
+        elif caso["eval_tipo"] == "top" and mql_res is not None:
+            campo = caso.get("eval_campo", "cepa")
+            puntaje = caso["eval_puntaje"]
+            ranking = [(d[campo], d[puntaje]) for d in mql_res["results"] if d.get(campo)]
+            contenido_ok, veredicto_contenido = evaluar_top(ranking, ia_resultado.get("respuesta", ""))
         elif caso["eval_tipo"] == "open":
             contenido_ok = None
 
@@ -678,8 +735,10 @@ def main() -> None:
             "ia_respuesta": (ia_resultado or {}).get("respuesta"),
             "ia_modelo": (ia_resultado or {}).get("modelo_usado"),
             "ia_mql_query": debug.get("mql_query"),
+            "ia_debug": debug or None,
             "mql_ref_count": mql_res["count"] if mql_res else None,
             "tiempo_ms": elapsed_ms,
+            "tiempo_servidor_ms": (ia_resultado or {}).get("tiempo_respuesta_ms"),
         })
 
         if i < len(CASOS):
@@ -692,6 +751,7 @@ def main() -> None:
     print_resumen(resultados, tiempo_total)
 
     output = args.output or f"tests/resultados_absoluto_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    Path(output).parent.mkdir(parents=True, exist_ok=True)
     Path(output).write_text(
         json.dumps(resultados, ensure_ascii=False, indent=2, default=str),
         encoding="utf-8",

@@ -1,6 +1,7 @@
 # app/ia/config.py
 
 from pathlib import Path
+from typing import Literal
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -45,6 +46,10 @@ class IaSettings(BaseSettings):
     # LLM
     LLM_TEMPERATURE: float = 0.1
     LLM_MAX_TOKENS: int = 4000
+    # Esfuerzo de razonamiento para modelos que lo soportan (gpt-oss). El razonamiento
+    # comparte el presupuesto de LLM_MAX_TOKENS con la respuesta; "low" evita que lo agote
+    # y deje la respuesta vacía. Vacío = no enviar el parámetro (default del proveedor).
+    LLM_REASONING_EFFORT: Literal["", "low", "medium", "high"] = "low"
 
     # MQL (Text-to-MongoDB)
     MQL_ENABLED: bool = True

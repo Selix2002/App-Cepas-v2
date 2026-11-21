@@ -44,6 +44,7 @@ def llm_service_provider() -> LLMService:
         models=ia_settings.groq_models,
         temperature=ia_settings.LLM_TEMPERATURE,
         max_tokens=ia_settings.LLM_MAX_TOKENS,
+        reasoning_effort=ia_settings.LLM_REASONING_EFFORT,
     )
 
 
@@ -146,7 +147,7 @@ class ChatController(Controller):
                         query_results = await executor.execute(validated)
 
                         resultado = await llm_service.formatear_resultados_mql(
-                            pregunta, query_results, historial
+                            pregunta, query_results, historial, query=validated
                         )
 
                         respuesta = resultado["respuesta"]

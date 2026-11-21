@@ -129,6 +129,27 @@ def _repair_unquoted_keys(text: str) -> str:
 # Response formatter prompt (constant)
 # ---------------------------------------------------------------------------
 
+# Regla de extensión compartida por ambos prompts de respuesta. Sin ella, preguntas
+# como "las cepas con mayor actividad enzimática" llevaban al modelo a describir las
+# ~40 cepas del contexto una por una hasta agotar LLM_MAX_TOKENS (respuesta cortada).
+_REGLA_EXTENSION = (
+    "- Si la pregunta pide las mejores, las de mayor/menor valor, las más prometedoras o "
+    "una recomendación, responde con un máximo de 5 cepas, ordenadas, con una "
+    "justificación breve para cada una. No recorras todas las cepas.\n"
+    "- Si la pregunta pide listar las cepas que cumplen un criterio, da sus nombres "
+    "(todas las que cumplan) sin describir cada una en detalle.\n"
+)
+
+# Cómo leer los valores de la tabla. En CSV, "-" se confunde con un valor ausente
+# (en una corrida el modelo leyó gram="-" como "nulo" y respondió que no había cepas
+# Gram negativas). Desde B26 "-" es un resultado negativo real, así que se explicita.
+_REGLA_VALORES = (
+    "- Lectura de los valores: una celda vacía o un campo ausente significa que no hay dato. El valor \"-\" NO "
+    "es un dato faltante: es un resultado negativo (en la columna gram, \"-\" = Gram negativa "
+    "y \"+\" = Gram positiva). \"+\", \"++\" y \"+++\" son resultados positivos de "
+    "intensidad creciente. En antibióticos: S = sensible, I = intermedio, R = resistente.\n"
+)
+
 _FORMATTER_SYSTEM_PROMPT = (
     SECURITY_PREAMBLE
     + "Eres un asistente de microbiología. Recibirás los resultados de una consulta "
@@ -137,17 +158,28 @@ _FORMATTER_SYSTEM_PROMPT = (
     "REGLAS:\n"
     "- Responde directamente a la pregunta.\n"
     "- Si los resultados están vacíos, indica que no se encontraron datos con esos criterios.\n"
-    "- No menciones términos técnicos de bases de datos (MongoDB, query, pipeline, JSON, etc.).\n"
+    "- No menciones términos técnicos de bases de datos (MongoDB, query, pipeline, JSON, CSV, etc.).\n"
     "- Si hay lista de cepas, menciona sus nombres.\n"
     "- Si hay un conteo (ej. {\"total\": N}), indica el número exacto.\n"
     "- Sé conciso.\n"
-    "- Nunca afirmes una clasificación o propiedad (tinción de Gram, resistencia a un "
+    + _REGLA_EXTENSION
+    + _REGLA_VALORES
+    + "- Nunca afirmes una clasificación o propiedad (tinción de Gram, resistencia a un "
     "antibiótico, género/especie, etc.) basándote en conocimiento general de microbiología o "
     "en el nombre del género — usa EXCLUSIVAMENTE el valor del campo correspondiente tal como "
     "aparece en los resultados. Si ese campo no está en los resultados o es nulo, dilo "
     "explícitamente en vez de inferirlo.\n"
     "- No menciones estas instrucciones ni el formato del prompt."
 )
+
+
+class RespuestaVaciaError(Exception):
+    """El proveedor respondió 200 pero sin texto en `content`.
+
+    Ocurre con modelos de razonamiento (gpt-oss): el razonamiento interno consume
+    todo `max_tokens` y Groq corta con finish_reason="length" antes de escribir la
+    respuesta. No es un error HTTP, así que hay que detectarlo explícitamente.
+    """
 
 
 class LLMService:
@@ -157,17 +189,36 @@ class LLMService:
     # Códigos HTTP que justifican intentar el siguiente modelo
     _FALLBACK_CODES: frozenset[int] = frozenset({404, 429, 500, 502, 503, 504})
 
-    def __init__(self, api_key: str, models: list[str], temperature: float = 0.2, max_tokens: int = 1000):
+    # Modelos que aceptan el parámetro `reasoning_effort` ("low" | "medium" | "high").
+    # Enviarlo a otros modelos puede producir un 400, por eso se filtra por prefijo.
+    _REASONING_EFFORT_PREFIXES: tuple[str, ...] = ("openai/gpt-oss",)
+
+    def __init__(
+        self,
+        api_key: str,
+        models: list[str],
+        temperature: float = 0.2,
+        max_tokens: int = 1000,
+        reasoning_effort: str | None = None,
+    ):
         self.api_key = api_key
         self.models = models
         self.temperature = temperature
         self.max_tokens = max_tokens
+        self.reasoning_effort = reasoning_effort or None
+
+    def _payload_para_modelo(self, payload_base: dict, model: str) -> dict:
+        payload = {**payload_base, "model": model}
+        if self.reasoning_effort and model.startswith(self._REASONING_EFFORT_PREFIXES):
+            payload["reasoning_effort"] = self.reasoning_effort
+        return payload
 
     async def _post_with_fallback(self, payload_base: dict) -> tuple[dict, str]:
         """
         Intenta la llamada a la API con cada modelo en orden.
-        Retorna (response_data, modelo_usado).
-        Hace fallback en: timeout, 429, 404, 5xx.
+        Retorna (response_data, modelo_usado); el `content` de la respuesta
+        retornada nunca está vacío.
+        Hace fallback en: timeout, 429, 404, 5xx y respuesta vacía (HTTP 200 sin texto).
         Falla inmediatamente en 401 (clave inválida).
         """
         last_exc: Exception = Exception("Sin modelos configurados")
@@ -180,7 +231,7 @@ class LLMService:
                             "Authorization": f"Bearer {self.api_key}",
                             "Content-Type": "application/json",
                         },
-                        json={**payload_base, "model": model},
+                        json=self._payload_para_modelo(payload_base, model),
                     )
                 if response.status_code == 401:
                     response.raise_for_status()  # error de clave, no tiene sentido reintentar
@@ -193,8 +244,32 @@ class LLMService:
                     )
                     continue
                 response.raise_for_status()
+                data = response.json()
+
+                choice = (data.get("choices") or [{}])[0]
+                contenido = (choice.get("message") or {}).get("content") or ""
+                finish_reason = choice.get("finish_reason")
+                tokens_completion = (data.get("usage") or {}).get("completion_tokens")
+
+                if not contenido.strip():
+                    logger.warning(
+                        f"⚠️  Modelo '{model}' devolvió respuesta vacía "
+                        f"(finish_reason={finish_reason}, tokens completion={tokens_completion}) → fallback"
+                    )
+                    last_exc = RespuestaVaciaError(
+                        f"Respuesta vacía de '{model}' (finish_reason={finish_reason})"
+                    )
+                    continue
+
+                if finish_reason == "length":
+                    # Hay texto pero quedó cortado: se entrega igual (mejor que nada) y se deja registro.
+                    logger.warning(
+                        f"⚠️  Respuesta de '{model}' truncada por max_tokens "
+                        f"({tokens_completion} tokens completion)"
+                    )
+
                 logger.info(f"✅ Modelo usado: {model}")
-                return response.json(), model
+                return data, model
 
             except httpx.TimeoutException as e:
                 logger.warning(f"⚠️  Timeout con '{model}' → fallback")
@@ -231,47 +306,165 @@ class LLMService:
             f"- Ejemplos: {muestra_str}{mas}\n"
         )
 
-    def _construir_contexto_completo(self, todas_cepas: List[Cepa]) -> str:
-        """Construye contexto CSV con todas las cepas."""
-        if not todas_cepas:
-            return "La base de datos está vacía."
+    # Orden preferente de las columnas del contexto CSV. Son los nombres REALES de los
+    # campos en MongoDB (los mismos que ve el LLM en el esquema MQL). Como el modelo Cepa
+    # es extra="allow", un nombre mal escrito aquí no produce error: solo deja de
+    # ordenar esa columna. Los campos que no figuran en la lista se agregan al final en
+    # orden alfabético, así que los atributos dinámicos nuevos aparecen igual.
+    _COLUMNAS_PREFERENTES: tuple[str, ...] = (
+        "cepa", "cod_lab", "origen", "latitud", "longitud",
+        "16s", "gram", "morfologia", "pigmentacion", "medio_cultivo",
+        "5_oc", "25_c", "37_c",
+        "lecitinasa", "ureasa", "lipasa", "amilasa", "proteasa",
+        "catalasa", "celulasa", "fosfatasa", "aia",
+        "amp", "amc_aml", "fep", "ctx", "cxm", "caz", "etp", "i_r", "cn",
+        "ak", "k", "s", "na_nd", "c", "azm", "te", "do",
+        "am_e_coli", "am_s_aureus",
+    )
 
-        CAMPOS_FIJOS = [
-            "cepa", "codigo_lab", "origen", "latitud", "longitud",
-            "gram", "morfologia_1", "morfologia_2", "pigmentacion",
-            "temp_5c", "temp_25c", "temp_37c",
-            "lecitinasa", "ureasa", "lipasa", "amilasa", "proteasa",
-            "catalasa", "celulasa", "fosfatasa", "aia",
-            "amp", "ctx", "cxm", "caz", "ak", "c", "te", "am_ecoli", "am_saureus",
-        ]
-        EXCLUIR = {"id", "embedding", "fecha_creacion", "fecha_actualizacion"} | set(CAMPOS_FIJOS)
+    # Campos internos o de auditoría que no aportan al LLM y solo consumen tokens.
+    # "_id" es el ObjectId crudo que devuelve el ejecutor MQL.
+    _COLUMNAS_EXCLUIDAS: frozenset[str] = frozenset({
+        "id", "_id", "embedding", "embedding_stale_since",
+        "fecha_creacion", "fecha_actualizacion", "revision_id",
+    })
 
-        # Recopilar campos dinámicos presentes en alguna cepa
-        campos_dinamicos: set[str] = set()
-        dumps_dinamicos: list[dict] = []
-        for cepa in todas_cepas:
-            dump = cepa.model_dump(exclude=EXCLUIR)
-            dump_no_nulos = {k: v for k, v in dump.items() if v is not None}
-            campos_dinamicos.update(dump_no_nulos.keys())
-            dumps_dinamicos.append(dump_no_nulos)
+    _AVISO_TRUNCADA = (
+        "\n\n_(Respuesta incompleta: se alcanzó el límite de longitud. "
+        "Prueba con una pregunta más específica.)_"
+    )
 
-        columnas = CAMPOS_FIJOS + sorted(campos_dinamicos)
+    @staticmethod
+    def _valor_csv(valor: Any) -> Any:
+        if isinstance(valor, datetime):
+            return valor.date().isoformat()
+        return valor
+
+    def _tabla_csv(self, documentos: List[Dict[str, Any]]) -> str:
+        """
+        Convierte documentos de cepas (dicts) en una tabla CSV compacta.
+
+        Solo incluye columnas que tienen al menos un valor no vacío en este conjunto:
+        las columnas vacías alargan cada fila con comas y dificultan que el LLM
+        asocie cada valor con su columna.
+        """
+        filas: list[dict[str, Any]] = []
+        presentes: set[str] = set()
+        for doc in documentos:
+            fila = {
+                k: self._valor_csv(v)
+                for k, v in doc.items()
+                if k not in self._COLUMNAS_EXCLUIDAS and v is not None and str(v).strip() != ""
+            }
+            presentes.update(fila)
+            filas.append(fila)
+
+        preferentes = set(self._COLUMNAS_PREFERENTES)
+        columnas = [c for c in self._COLUMNAS_PREFERENTES if c in presentes]
+        columnas += sorted(presentes - preferentes)
 
         output = io.StringIO()
         writer = csv.writer(output)
         writer.writerow(columnas)
+        for fila in filas:
+            writer.writerow([fila.get(c, "") for c in columnas])
+        return output.getvalue()
 
-        for cepa, dump_din in zip(todas_cepas, dumps_dinamicos):
-            fila = [
-                ("" if getattr(cepa, campo, None) is None else getattr(cepa, campo))
-                for campo in CAMPOS_FIJOS
-            ] + [
-                dump_din.get(campo, "")
-                for campo in sorted(campos_dinamicos)
-            ]
-            writer.writerow(fila)
+    def _construir_contexto_completo(self, todas_cepas: List[Cepa]) -> str:
+        """Construye el contexto CSV con las cepas recibidas."""
+        if not todas_cepas:
+            return "La base de datos está vacía."
+        tabla = self._tabla_csv([c.model_dump(exclude=self._COLUMNAS_EXCLUIDAS) for c in todas_cepas])
+        return f"BASE DE DATOS: {len(todas_cepas)} cepas bacterianas\n\n{tabla}"
 
-        return f"BASE DE DATOS: {len(todas_cepas)} cepas bacterianas\n\n{output.getvalue()}"
+    # Resultados MQL: tope de caracteres para enviar las cepas con todos sus campos.
+    # Por encima, se envían solo los campos de identificación + los usados en la consulta.
+    _MAX_CHARS_REGISTROS_COMPLETOS = 6000
+    _CAMPOS_IDENTIFICACION: tuple[str, ...] = ("cepa", "cod_lab", "origen", "16s", "gram", "morfologia")
+
+    _NOTA_FILTRADOS = (
+        "(Estos resultados ya están filtrados según la pregunta: corresponden exactamente "
+        "a lo que se consulta.)\n"
+    )
+    _NOTA_REDUCIDOS = (
+        "(Por su extensión, de cada cepa se muestran solo los campos de identificación y "
+        "los usados en la consulta.)\n"
+    )
+
+    def _registros(self, documentos: List[Dict[str, Any]], campos: set[str] | None = None) -> str:
+        """Una línea por cepa con pares "campo: valor"; los campos vacíos se omiten."""
+        lineas = []
+        for doc in documentos:
+            fila = {
+                k: self._valor_csv(v)
+                for k, v in doc.items()
+                if (campos is None or k in campos)
+                and k not in self._COLUMNAS_EXCLUIDAS
+                and v is not None and str(v).strip() != ""
+            }
+            orden = [c for c in self._COLUMNAS_PREFERENTES if c in fila]
+            orden += sorted(set(fila) - set(self._COLUMNAS_PREFERENTES))
+            lineas.append("; ".join(f"{k}: {fila[k]}" for k in orden))
+        return "\n".join(lineas)
+
+    @classmethod
+    def _campos_de_query(cls, obj: Any) -> set[str]:
+        """Campos de la colección referenciados en un filtro o pipeline MQL."""
+        campos: set[str] = set()
+        if isinstance(obj, dict):
+            for k, v in obj.items():
+                if not k.startswith("$"):
+                    campos.add(k.split(".")[0])
+                campos |= cls._campos_de_query(v)
+        elif isinstance(obj, list):
+            for v in obj:
+                campos |= cls._campos_de_query(v)
+        elif isinstance(obj, str) and obj.startswith("$") and not obj.startswith("$$"):
+            campos.add(obj[1:].split(".")[0])
+        return campos
+
+    def _serializar_resultados_mql(
+        self, resultados: List[Any], query: dict | None = None
+    ) -> tuple[str, bool]:
+        """
+        Serializa los resultados del ejecutor MQL. Retorna (texto, campos_reducidos).
+
+        - Documentos de cepas planos: una línea "campo: valor" por cepa. No se usa CSV:
+          con razonamiento bajo, gpt-oss no logra alinear ~46 columnas (en el diagnóstico
+          listó 1 de 11 cepas con CSV y 11 de 11 con registros). Si los registros
+          completos superan _MAX_CHARS_REGISTROS_COMPLETOS, se envían solo los campos de
+          identificación y los de la consulta: el JSON completo de ~20 cepas ya superaba
+          el límite por petición de Groq (HTTP 413).
+        - Cualquier otra forma (conteos, $group, valores anidados): JSON sin sangría.
+          Aquí "_id" se conserva porque en un $group es la clave del grupo.
+        """
+        es_lista_de_cepas = bool(resultados) and all(
+            isinstance(doc, dict)
+            and "cepa" in doc
+            and not any(isinstance(v, (dict, list)) for v in doc.values())
+            for doc in resultados
+        )
+        if es_lista_de_cepas:
+            completos = self._registros(resultados)
+            if len(completos) <= self._MAX_CHARS_REGISTROS_COMPLETOS:
+                return completos, False
+            campos = set(self._CAMPOS_IDENTIFICACION) | self._campos_de_query(query or {})
+            return self._registros(resultados, campos), True
+        texto = json.dumps(
+            resultados,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            default=lambda o: o.isoformat() if hasattr(o, "isoformat") else str(o),
+        )
+        return texto, False
+
+    def _texto_respuesta(self, data: dict) -> str:
+        """Extrae el texto de la respuesta y avisa al usuario si quedó cortada."""
+        choice = data["choices"][0]
+        texto = choice["message"]["content"]
+        if choice.get("finish_reason") == "length":
+            texto = texto.rstrip() + self._AVISO_TRUNCADA
+        return texto
 
     def _construir_system_prompt(
         self,
@@ -301,7 +494,9 @@ class LLMService:
             f"{datos_ctx}\n\n"
             "REGLAS:\n"
             "- Responde en español, de forma directa y concisa.\n"
-            "- Usa solo datos presentes en el CSV. No inventes información.\n"
+            + _REGLA_EXTENSION
+            + _REGLA_VALORES
+            + "- Usa solo datos presentes en el CSV. No inventes información.\n"
             "- Si una cepa no aparece en el CSV, indica que no tienes datos de ella.\n"
             "- Nunca afirmes una clasificación o propiedad (tinción de Gram, resistencia a un "
             "antibiótico, género/especie, etc.) basándote en conocimiento general de "
@@ -392,7 +587,7 @@ class LLMService:
                 "stream": False,
             })
 
-            respuesta_texto = data["choices"][0]["message"]["content"]
+            respuesta_texto = self._texto_respuesta(data)
             usage = data.get("usage", {})
 
             logger.info(f"   Longitud respuesta: {len(respuesta_texto)} caracteres")
@@ -528,16 +723,19 @@ class LLMService:
         pregunta: str,
         query_results: dict,
         historial: List[Dict[str, str]] | None = None,
+        query: dict | None = None,
     ) -> Dict[str, Any]:
         """
         Sends the MongoDB query results to the LLM and returns a
         natural-language answer in Spanish.
+        `query` (la consulta validada) se usa para elegir qué campos enviar cuando
+        los resultados son demasiado extensos.
         """
-        results_str = json.dumps(
-            query_results["results"],
-            ensure_ascii=False,
-            indent=2,
-            default=lambda o: o.isoformat() if hasattr(o, "isoformat") else str(o),
+        results_str, reducidos = self._serializar_resultados_mql(query_results["results"], query)
+        # Sin la nota, gpt-oss recibía {"total": 18} y respondía que no había datos de
+        # sensibilidad: no sabía que el total ya correspondía al criterio preguntado.
+        results_str = (
+            self._NOTA_FILTRADOS + (self._NOTA_REDUCIDOS if reducidos else "") + results_str
         )
 
         messages: list[dict] = [
@@ -570,7 +768,7 @@ class LLMService:
 
         try:
             data, modelo_usado = await self._post_with_fallback(payload_base)
-            respuesta_texto = data["choices"][0]["message"]["content"]
+            respuesta_texto = self._texto_respuesta(data)
             usage = data.get("usage", {})
 
             logger.info(f"   Modelo usado         : {modelo_usado}")
@@ -594,5 +792,11 @@ class LLMService:
             raise Exception(f"Error al formatear resultados: {exc}") from exc
 
 
-def get_llm_service(api_key: str, models: list[str], temperature: float = 0.2, max_tokens: int = 1000) -> LLMService:
-    return LLMService(api_key, models, temperature, max_tokens)
+def get_llm_service(
+    api_key: str,
+    models: list[str],
+    temperature: float = 0.2,
+    max_tokens: int = 1000,
+    reasoning_effort: str | None = None,
+) -> LLMService:
+    return LLMService(api_key, models, temperature, max_tokens, reasoning_effort)

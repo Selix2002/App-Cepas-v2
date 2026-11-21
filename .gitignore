@@ -5,5 +5,10 @@ commands-prod.md
 CLAUDE.md
 plan-prod.md
 PROD-READINESS.md
-/docs
+# docs/ son notas internas (planes, auditorías); solo docs/tecnico/ se versiona
+/docs/*
+/docs/tecnico/
 /manual-usuario
+/informe-cierre
+backend/Test-tesis
+.env.example
